@@ -1,10 +1,12 @@
+# noinspection PyUnresolvedReferences
 import discord
 import pickle
-import os
 import inspect
 import copy
 
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
+from os import listdir
 from utils import *
 
 
@@ -62,7 +64,8 @@ class Tools(SessionCog):
             pickle.dump(self.requests, f, -1)
         await self.send_req_msg()
 
-    @request_command(commands.group, owner_pass=False, pass_context=True, aliases=('request',), invoke_without_command=True)
+    @request_command(commands.group, owner_pass=False, pass_context=True,
+                     aliases=('request',), invoke_without_command=True)
     async def req(self, ctx, *, command):
         """Send a request for a command."""
         msg = copy.copy(ctx.message)
@@ -148,7 +151,7 @@ class Tools(SessionCog):
     async def extensions(self):
         """List loaded and unloaded extentsions."""
         await self.bot.say('Loaded: {}\nAll: {}'.format(' '.join(self.bot.cogs.keys()),
-                                                        ' '.join([x for x in os.listdir('cogs') if '.py' in x])))
+                                                        ' '.join([x for x in listdir('cogs') if '.py' in x])))
 
     @commands.command(name='load')
     @is_owner()

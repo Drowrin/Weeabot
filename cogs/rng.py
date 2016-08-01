@@ -1,5 +1,7 @@
+# noinspection PyUnresolvedReferences
 import discord
 import random
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
 
@@ -19,15 +21,15 @@ def atk_formatter(ctx, field, fields):
 
 class RNG:
     """Commands based on a randomly selected value."""
-    
+
     formatters = {}
     verbose_formatters = {'atk': atk_formatter}
-    
+
     def __init__(self, bot):
         self.bot = bot
         self.atk = open_json('attack.json')
 
-    @commands.command(aliases=('pick','choice'))
+    @commands.command(aliases=('pick', 'choice'))
     async def choose(self, *, choices):
         """Choose from a list of choices. Separate with semicolons."""
         await self.bot.reply(random.choice(choices.split(';')))
@@ -52,20 +54,21 @@ class RNG:
                 if o != v:
                     return False
             return True
+
         try:
             choices = list(filter(predicate, ctx.message.server.members))
             await self.bot.say(random.choice(choices).display_name)
         except IndexError:
             await self.bot.say("None")
         except KeyError as e:
-            await bot.say(e)
+            await self.bot.say(e)
 
-    @raffle.command(pass_context=True, aliases=('c'))
+    @raffle.command(pass_context=True, aliases=('c',))
     async def channel(self, ctx):
         """Raffle from users who are able to see this channel."""
         choices = filter(lambda e: ctx.message.channel.permissions_for(e).read_messages, ctx.message.server.members)
         await self.bot.say(random.choice(list(choices)).display_name)
-    
+
     @commands.command()
     async def roll(self, sides: str='6'):
         """Roll a die.
@@ -77,12 +80,13 @@ class RNG:
                 sp = sides.split('d')
                 n = int(sp[0])
                 s = int(sp[1])
-                await self.bot.say('```\n{}\n```'.format('\n'.join(['{}:{}'.format(random.randint(1, s), s)])))
+                await self.bot.say('```\n{}\n```'.format(
+                    '\n'.join(['{}: {}/{}'.format(i, random.randint(1, s), s) for i in range(1, n)])))
             else:
                 await self.bot.reply("You rolled a {} out of {}.".format(random.randint(1, int(sides)), sides))
         except ValueError:
             raise commands.BadArgument("Incorrect die formatting.")
-    
+
     @commands.command(name='8ball')
     async def eight_ball(self, *, question: str):
         """8ball responses to your questions."""
@@ -95,15 +99,15 @@ class RNG:
             'Who knows?',
             'Probably.',
             'Only if you type "I am trash" in the next five seconds.'
-            ]
+        ]
         await self.bot.reply('{}\n{}'.format(question, random.choice(r)))
-    
+
     @commands.command()
     async def rate(self, *, thing: str):
         """Rate something. Anything. Go nuts."""
         s = sum([hash(c) % 10 for c in list(thing)])
         await self.bot.say("I give it a {}/10.".format((s % 10) + 1))
-    
+
     def get_atk(self, uid: str):
         up = self.bot.profiles.get_field_by_id(uid, 'atk')
         if not len(up):

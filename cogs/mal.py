@@ -1,12 +1,14 @@
+# noinspection PyUnresolvedReferences
 import discord
-from discord.ext import commands
-import aiohttp
 import xmltodict
 import random
 import asyncio
+# noinspection PyUnresolvedReferences
+from discord.ext import commands
 from utils import *
 
 
+# noinspection PyUnusedLocal
 def mal_formatter(ctx, field, fields):
     fields.append('MAL: <http://myanimelist.net/animelist/{}>'.format(field))
 
@@ -83,7 +85,7 @@ class MAL(SessionCog):
                 usr = commands.MemberConverter(ctx, user).convert()
             await self.putmal(usr.id, mal)
         except commands.BadArgument as e:
-            await bot.say(e)
+            await self.bot.say(e)
             return
         await self.bot.say("Added {} as {}.".format(mal, usr.display_name))
     

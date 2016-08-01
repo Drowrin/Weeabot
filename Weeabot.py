@@ -1,6 +1,7 @@
-import discord
-import os
 import sys
+# noinspection PyUnresolvedReferences
+import discord
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
 
 import random

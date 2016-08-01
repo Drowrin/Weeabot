@@ -1,18 +1,20 @@
+# noinspection PyUnresolvedReferences
 import discord
-from discord.ext import commands
 import random
 import pyimgur
-import os
-import io
 import xmltodict
 
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 
+# noinspection PyUnresolvedReferences
+from discord.ext import commands
 from utils import *
-
-import aiohttp
+from os import path
+from os import listdir
+from os import makedirs
+from io import BytesIO
 
 imgur = pyimgur.Imgur(tokens['imgur_token'], tokens["imgur_secret"])
 
@@ -27,7 +29,7 @@ class Images(SessionCog):
             for prompt in self.reactions:
                 if prompt in m.content.lower():
                     r = self.reactions[prompt][1]
-                    i = self.get_random_file(os.path.join('images', 'collections'), self.reactions[prompt][0])
+                    i = self.get_random_file(path.join('images', 'collections'), self.reactions[prompt][0])
                     if i is None:
                         await self.bot.send_message(m.channel, r)
                     else:
@@ -47,24 +49,24 @@ class Images(SessionCog):
     @staticmethod
     def get_random_file(d: str, s: str, t: str = None):
         """Get a file from a subdirectory."""
-        if s in os.listdir(d):
-            d = os.path.join(d, s)
+        if s in listdir(d):
+            d = path.join(d, s)
             if t:
-                return os.path.join(d, random.choice([f for f in os.listdir(d) if f.endswith(t)]))
+                return path.join(d, random.choice([f for f in listdir(d) if f.endswith(t)]))
             else:
-                return os.path.join(d, random.choice(os.listdir(d)))
+                return path.join(d, random.choice(listdir(d)))
 
     async def baka_image(self, t: str):
         t = t[:7] + '...' if len(t) > 10 else t
         i = 'you idiot...'
         f = ImageFont.truetype("ZinPenKeba-R.otf", 12)
-        im = Image.open(os.path.join('images', 'collections', 'pout', 'baka.png'))
+        im = Image.open(path.join('images', 'collections', 'pout', 'baka.png'))
         d = ImageDraw.Draw(im)
         tw, th = d.textsize(t, f)
         iw, ih = d.textsize(i, f)
         d.text((250 - (tw // 2), 125 - (th // 2)), t, (0, 0, 0), font=f)
         d.text((255 - (iw // 2), 150 - (ih // 2)), i, (0, 0, 0), font=f)
-        with io.BytesIO() as fp:
+        with BytesIO() as fp:
             im.save(fp, 'PNG')
             fp.seek(0)
             await self.bot.upload(fp, filename='baka.png')
@@ -87,7 +89,7 @@ class Images(SessionCog):
 
         Get an image from a category or search through several online services with subcommands."""
         if ctx.invoked_subcommand is None:
-            f = self.get_random_file(os.path.join('images', 'collections'), category, filetype)
+            f = self.get_random_file(path.join('images', 'collections'), category, filetype)
             if f is None:
                 await self.bot.reply('Collection not found: {}'.format(category))
             else:
@@ -100,7 +102,7 @@ class Images(SessionCog):
     async def _image_list(self):
         """Get a list of all the categories and reactions."""
         r_list = [x[0] for x in self.reactions.values() if x[0] is not None]
-        c_list = [x for x in os.listdir(os.path.join('images', 'collections')) if x not in r_list]
+        c_list = [x for x in listdir(path.join('images', 'collections')) if x not in r_list]
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
 
     @image.command(name='booru')
@@ -119,7 +121,7 @@ class Images(SessionCog):
                     else:
                         im = random.choice(list(xml['posts']['post']))
                         if im['@rating'] == 'e':
-                            await self.bot.edit_message(tmp, ctw.message.author.mention + " no ecchi.")
+                            await self.bot.edit_message(tmp, "No ecchi.")
                             return
                         else:
                             im = im['@file_url']
@@ -139,12 +141,12 @@ class Images(SessionCog):
         links = link or [x['proxy_url'] for x in ctx.message.attachments]
         if not links:
             raise commands.BadArgument('Invalid Usage: No images.')
-        coldir = os.path.join('images', 'collections')
-        if collection not in os.listdir(coldir):
+        coldir = path.join('images', 'collections')
+        if collection not in listdir(coldir):
             await self.bot.say("That collection doesn't exist, add it?")
             msg = await self.bot.wait_for_message(author=self.bot.owner)
             if 'yes' in msg.content.lower():
-                os.makedirs(os.path.join(coldir, collection))
+                makedirs(path.join(coldir, collection))
                 await self.bot.say("Added collection: {}".format(collection))
             else:
                 return
@@ -152,12 +154,12 @@ class Images(SessionCog):
             if '//imgur.com/' in link:
                 link = imgur.get_image(link.split('/')[-1]).link
             name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
-            if name in os.listdir(os.path.join(coldir, collection)):
+            if name in listdir(path.join(coldir, collection)):
                 await self.bot.say("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
                 name = 'temp.png'
             else:
                 await self.bot.say("Image added to {} as {}".format(collection, name))
-            await download(self.session, link, os.path.join(coldir, collection, name))
+            await download(self.session, link, path.join(coldir, collection, name))
 
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):

@@ -1,19 +1,25 @@
-import json
-import discord
 import operator
+# noinspection PyUnresolvedReferences
+import json
+# noinspection PyUnresolvedReferences
+import discord
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
 
 
+# noinspection PyUnusedLocal
 def count_formatter(ctx, field, fields):
     top_command = max(field, key=field.get)
     fields.append('Most used command: ({}) {}'.format(field[top_command], top_command))
 
 
+# noinspection PyUnusedLocal
 def custom_formatter(ctx, field, fields):
     fields.append('Cusomt fields: {}'.format(field))
 
 
+# noinspection PyUnusedLocal
 def default_formatter(ctx, field, fields):
     pass
 

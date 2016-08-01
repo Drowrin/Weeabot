@@ -1,16 +1,18 @@
+# noinspection PyUnresolvedReferences
 import discord
 import unicodedata
 import random
-import aiohttp
 import copy
 
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
 from cleverbot import Cleverbot
+
 from utils import *
 
 
 def _insert_randoms(text):
-    random_extras = [unichr(i) for i in range(0x1D023, 0x1D045 + 1)]
+    random_extras = [chr(i) for i in range(0x1D023, 0x1D045 + 1)]
     newtext = []
     for char in text:
         newtext.append(char)
@@ -21,7 +23,7 @@ def _insert_randoms(text):
 
 def _is_narrow_build():
     try:
-        unichr(0x10000)
+        chr(0x10000)
     except ValueError:
         return True
     return False
@@ -92,7 +94,7 @@ class Pointless(SessionCog):
             '\N{BANKNOTE WITH YEN SIGN}',
             '\N{CIRCLED LATIN CAPITAL LETTER Z}',
             '\N{WARNING SIGN}',
-            ])
+        ])
         emoji = str.maketrans(translated, translated_to)
         return '        '.join(text.translate(emoji).split())
 
@@ -179,8 +181,8 @@ class Pointless(SessionCog):
                 await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
                 return
         if message.content.startswith(self.bot.user.mention):
-            await bot.send_message(message.channel, message.author.mention + ": " +
-                                   self.cleverbot.ask(message.content[len(self.bot.user.mention) + 1:]))
+            await self.bot.send_message(message.channel, message.author.mention + ": " +
+                                        self.cleverbot.ask(message.content[len(self.bot.user.mention) + 1:]))
             return
 
 
