@@ -27,7 +27,7 @@ class RNG:
 
     def __init__(self, bot):
         self.bot = bot
-        self.atk = open_json('attack.json')
+        self.atk = bot.content.attack
 
     @commands.command(aliases=('pick', 'choice'))
     async def choose(self, *, choices):

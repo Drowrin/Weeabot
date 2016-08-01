@@ -37,8 +37,8 @@ class Images(SessionCog):
 
     def __init__(self, bot):
         super(Images, self).__init__(bot)
-        self.memes = open_json('memes.json')
-        self.reactions = open_json('reactions.json')
+        self.memes = bot.content.memes
+        self.reactions = bot.content.reactions
 
     @staticmethod
     def get_random_image(album_id):
@@ -214,9 +214,10 @@ class Images(SessionCog):
         if name in self.memes.keys():
             await self.bot.say("{} already taken.".format(name))
             return
-        with open('memes.json', "w+") as memes_file:
+        with open('content.json', "w+") as content:
             self.memes[name] = link
-            memes_file.write(json.dumps(self.memes))
+            self.bot.content.memes = self.memes
+            content.write(json.dumps(self.bot.content))
         await self.bot.say('Added {}'.format(name))
 
 

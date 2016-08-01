@@ -1,4 +1,3 @@
-import sys
 # noinspection PyUnresolvedReferences
 import discord
 # noinspection PyUnresolvedReferences
@@ -11,16 +10,25 @@ import asyncio
 from utils import *
 
 
+class Config:
+    def __init__(self, **fields):
+        self.__dict__.update(fields)
+
+    def __getattr__(self, name):
+        return self.__dict__.get(name, None)
+
+
 class Weeabot(commands.Bot):
     """Simple additions to commands.Bot"""
     def __init__(self, *args, **kwargs):
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
+        self.config = Config(**open_json('config.json'))
+        self.content = Config(**open_json('content.json'))
         self.formatters = {}
         self.verbose_formatters = {}
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.owner')
-        self.required_extensions = {'Tools': 'owner', 'Profile': 'profiles'}
     
     @property
     def profiles(self):
@@ -29,6 +37,21 @@ class Weeabot(commands.Bot):
     @property
     def tools(self):
         return self.get_cog('Tools')
+
+    async def after_run(self):
+        await self.update_owner()
+        await self.load_extensions()
+
+    async def load_extensions(self):
+        """Load extensions and handle errors."""
+        for ext in self.config.base_extensions:
+            try:
+                self.load_extension(ext)
+            except Exception as e:
+                await self.send_message(self.owner, 'Failure loading {}\n{}: {}\n'.format(ext, type(e).__name__, e))
+
+    async def update_owner(self):
+        self.owner = (await self.application_info()).owner
 
     def add_cog(self, cog):
         super(Weeabot, self).add_cog(cog)
@@ -55,14 +78,6 @@ I have a lot of (mostly) useless commands. Enjoy!
 """
 bot = Weeabot(command_prefix='~', description=desc)
 
-base_extensions = ['cogs.rng',
-                   'cogs.images',
-                   'cogs.mal',
-                   'cogs.pointless',
-                   'cogs.twitch']
-
-status = open_json('statuses.json') or []
-
 
 @bot.event
 async def on_command_error(err, ctx):
@@ -83,36 +98,22 @@ async def on_command_error(err, ctx):
 
 @bot.event
 async def on_ready():
-    bot.owner = list(await bot.application_info())[-1]
-    print(bot.owner)
+    await bot.after_run()
     print('Bot: {0.name}:{0.id}'.format(bot.user))
     print('Owner: {0.name}:{0.id}'.format(bot.owner))
     print('------------------')
-    await load_extensions()
 
 
 async def random_status():
     """Rotating statuses."""
     await bot.wait_until_ready()
     while not bot.is_closed:
-        n = random.choice(status)
+        n = random.choice(bot.content.statuses)
         g = discord.Game(name=n, url='', type=0)
         await bot.change_status(game=g, idle=False)
         await asyncio.sleep(60)
 
 
-async def load_extensions():
-    """Load extensions and handle errors."""
-    for ext in base_extensions:
-        try:
-            bot.load_extension(ext)
-        except Exception as e:
-            await bot.send_message(bot.owner, 'Failure loading {}\n{}: {}\n'.format(ext, type(e).__name__, e))
-
-
 if __name__ == '__main__':
-    bot.do_restart = False
     bot.loop.create_task(random_status())
     bot.run(tokens['discord_token'])
-    if bot.do_restart:
-        os.execv('Weeabot.py', sys.argv)

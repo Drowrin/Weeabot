@@ -168,7 +168,7 @@ class Tools(SessionCog):
     @is_owner()
     async def unload_extension(self, ext):
         """Unload an extension."""
-        if ext in self.bot.required_extensions:
+        if ext in self.bot.config.required_extensions:
             await self.bot.say("{} is a required extension.".format(ext))
             return
         try:

@@ -1,0 +1,12 @@
+{
+  "base_extensions": [
+    "cogs.rng",
+    "cogs.images",
+    "cogs.mal",
+    "cogs.pointless",
+    "cogs.twitch"
+  ],
+  "required_extensions": {
+
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "attack": {
+    "self": ["me", "myself", "my"],
+    "ult": {"ITS HIGH NOON": 5, "BEEP-BOOP": 5, "NERF THIS": 2, "RYUJIN NO KEN WO KURAE": 3, "RYU GA WAGA TEKI WO KURAU": 6,
+      "FIRE IN THE HOLE": 3, "LETS DROP THE BEAT": 0, "DONG ZHU BUXU ZOU": 1, "HELDEN STERBEN NICHT": 0, "JUSTICE RAINS FROM ABOVE": 3,
+      "DIE DIE DIE": 5, "BAHA HAHA *cough*": 2, "I'VE GOT YOU IN MY SIGHTS": 4, "TELEPORTER ONLINE": 0, "MOLTEN CORE": 1,
+      "GOTCHA": 3, "PERSONNE N'ECHAPPE A MON REGARD": 2, "RRRAAAAAAAHHHHH": 2, "OGON' PO GOTOVNOSTI": 1, "EXPERIENCE TRANQUILITY": 0},
+    "el": ["ELIMINATED {}", "Bopped {}", "{} was removed from existence.", "{} is sleeping with fishes.", "{} is 'life challenged'"],
+    "esc": ["{} managed to escape!", "{} is a slippery bastard.", "{} was really a clone!", "It reflected off of {}!", "{} blocked!"],
+    "miss": ["Someday you'll hit something...", "Stop wasting ammo.", "Baka", "*You shoot at the sky\nYou attempt a badass pose\nTo mask your missed shot*"],
+    "immune": ["{0} attempted to bop {1} but they were too powerful!", "{1} laughs at {0}'s feeble attempt.", "{1} doesn't even flinch, but glares at {0}."],
+    "kys": ["{} played themself.", "{} spread their brain on the wall.", "{} ended it all.", "{} embraced sdeath"]
+  },
+  "statuses": [
+    "with knives",
+    "with fire",
+    "with box cutters",
+    "with Subaru",
+    "with Ram",
+    "'twister'",
+    "with knives",
+    "with maces",
+    "in another world",
+    "with myself",
+    "Anditeo"
+  ],
+  "memes": {
+    "thumbsup": "http://i.imgur.com/PiieNgE.jpg",
+    "smug_rin": "http://i.imgur.com/GbcvuR5.jpg",
+    "akari": "http://i.imgur.com/XvEFYLQ.png",
+    "cloroxcans": "http://i.imgur.com/2VEbRV9.jpg",
+    "ohgodwhy": "http://i.imgur.com/KO0nbR3.jpg",
+    "smug": "http://i.imgur.com/1hkgnA7.jpg",
+    "feelsgood": "http://i.imgur.com/DlHdnGR.png",
+    "cloroxinhaler": "http://i.imgur.com/lqBWbIf.jpg"
+  },
+  "reactions": {
+    "daddy": ["disapproval", "Im not your daddy."],
+    "sdeath": ["sdeath", null],
+    "pls no bully": ["nobully", "pls no bully"]
+  }
+}

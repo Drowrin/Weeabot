@@ -1,8 +1,6 @@
 import json
-import os
 import io
 import aiohttp
-import discord
 from functools import wraps
 from discord.ext import commands
 
@@ -21,7 +19,7 @@ def profiles():
     return commands.check(lambda ctx: loaded_profiles(ctx.bot))
 
 
-def loaded_tools():
+def loaded_tools(bot):
     return bot.tools is not None
 
 
@@ -51,6 +49,7 @@ def get_user(bot, idn: str):
             return u
 
 
+# noinspection PyUnusedLocal
 def full_command_name(ctx, command):
     """Return the 'full' command name.
     
@@ -131,7 +130,8 @@ def text_transform_command(base=commands.command, clean=True, **comargs):
                 arglist = [args[0], *arglist]
             a = tuple(arglist)
             if clean:
-                result = await func(*a, **kwargs, text=ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]))
+                result = await func(*a, **kwargs, text=ctx.invoked_with.join(
+                    ctx.message.clean_content.split(ctx.invoked_with)[1:]))
             else:
                 result = await func(*a, **kwargs)
             if not ctx.message.channel.is_private:
@@ -174,16 +174,7 @@ def open_json(fn: str):
             return json.load(f)
     except FileNotFoundError:
         with open(fn, 'w') as f:
-            json.dump(de, f)
-    except json.decoder.JSONDecodeError:
-        try:
-            os.rename(fn, fn + '.bak')
-        except FileExistsError:
-            print("Error parsing json file: Backup already exists, aborting.")
-        else:
-            print("Error parsing json file: {}\nbacked up to {} and opened a fresh copy.".format(fn, fn + '.bak'))
-            with open(fn, 'w') as f:
-                json.dump([], f)
+            json.dump({}, f)
 
 
 class SessionCog:
