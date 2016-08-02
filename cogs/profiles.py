@@ -34,6 +34,7 @@ class Profile(SessionCog):
     Only default support is for command count and custom fields.
     Support for specific fields are added by other cogs so that they are disabled."""
 
+    defaults = {'stat': {'xp': 0}}
     formatters = {'command_count': count_formatter, 'custom': custom_formatter}
     verbose_formatters = {}
 
@@ -57,13 +58,13 @@ class Profile(SessionCog):
     def get_by_id(self, uid: str):
         """Get the whole profile sructure of a user by their id. Generates if needed."""
         if uid not in self._db:
-            self._db[uid] = {'stat': {'xp': 0}}
+            self._db[uid] = self.bot.defaults
         return self._db[uid]
     
     def get_field_by_id(self, uid: str, key: str):
         up = self.get_by_id(uid)
         if key not in up:
-            up[key] = {}
+            up[key] = self.bot.defaults[key]
         return up[key]
     
     async def put_by_id(self, uid: str, key: str, value):

@@ -24,6 +24,7 @@ class RNG:
 
     formatters = {}
     verbose_formatters = {'atk': atk_formatter}
+    defaults = {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}
 
     def __init__(self, bot):
         self.bot = bot
@@ -109,16 +110,7 @@ class RNG:
         await self.bot.say("I give it a {}/10.".format((s % 10) + 1))
 
     def get_atk(self, uid: str):
-        up = self.bot.profiles.get_field_by_id(uid, 'atk')
-        if not len(up):
-            up['a'] = 0
-            up['m'] = 0
-            up['k'] = 0
-            up['d'] = 0
-            up['e'] = 0
-            up['s'] = 0
-            up['r'] = {}
-        return up
+        return self.bot.profiles.get_field_by_id(uid, 'atk')
 
     def inc(self, field: str, uid: str):
         up = self.get_atk(uid)

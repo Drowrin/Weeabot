@@ -27,6 +27,7 @@ class Weeabot(commands.Bot):
         self.content = Config(**open_json('content.json'))
         self.formatters = {}
         self.verbose_formatters = {}
+        self.defaults = {}
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.owner')
     
@@ -37,10 +38,6 @@ class Weeabot(commands.Bot):
     @property
     def tools(self):
         return self.get_cog('Tools')
-
-    async def after_run(self):
-        await self.update_owner()
-        await self.load_extensions()
 
     async def load_extensions(self):
         """Load extensions and handle errors."""
@@ -55,7 +52,9 @@ class Weeabot(commands.Bot):
 
     def add_cog(self, cog):
         super(Weeabot, self).add_cog(cog)
-        self.add_formats(cog)
+        self.formatters.update(getattr(cog, 'formatters', {}))
+        self.verbose_formatters.update(getattr(cog, 'verbose_formatters', {}))
+        self.defaults.update(getattr(cog, 'defaults', {}))
 
     def remove_cog(self, name):
         cog = self.get_cog(name)
@@ -66,11 +65,6 @@ class Weeabot(commands.Bot):
             for f in cog.verbose_formatters:
                 del self.formatters[f]
         super(Weeabot, self).remove_cog(name)
-
-    def add_formats(self, formattable):
-        self.formatters.update(getattr(formattable, 'formatters', {}))
-        self.verbose_formatters.update(getattr(formattable, 'verbose_formatters', {}))
-
 
 desc = """
 Weeabot
@@ -98,7 +92,8 @@ async def on_command_error(err, ctx):
 
 @bot.event
 async def on_ready():
-    await bot.after_run()
+    await bot.update_owner()
+    await bot.load_extensions()
     print('Bot: {0.name}:{0.id}'.format(bot.user))
     print('Owner: {0.name}:{0.id}'.format(bot.owner))
     print('------------------')
