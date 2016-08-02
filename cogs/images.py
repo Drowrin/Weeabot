@@ -205,7 +205,7 @@ class Images(SessionCog):
         """Lists all available templates."""
         await self.bot.say('Available Templates: ' + ', '.join(self.memes.keys()))
 
-    @meme.command(name='add')
+    @request_command(meme.command, name='add')
     async def _meme_add(self, name: str, link: str):
         """Add a template to the collection. Can't be GIF"""
         if '.gif' in link[-5:]:
