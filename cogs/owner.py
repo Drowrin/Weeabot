@@ -3,6 +3,7 @@ import discord
 import pickle
 import inspect
 import copy
+import traceback
 
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
@@ -173,8 +174,8 @@ class Tools(SessionCog):
             return
         try:
             self.bot.unload_extension(ext)
-        except Exception as e:
-            await self.bot.say('{}: {}'.format(type(e).__name__, e))
+        except Exception:
+            await self.bot.say(traceback.format_exc())
         else:
             await self.bot.say('{} unloaded.'.format(ext))
     

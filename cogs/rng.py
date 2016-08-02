@@ -24,7 +24,7 @@ class RNG:
 
     formatters = {}
     verbose_formatters = {'atk': atk_formatter}
-    defaults = {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}
+    defaults = {'atk': {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}}
 
     def __init__(self, bot):
         self.bot = bot

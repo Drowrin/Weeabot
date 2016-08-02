@@ -63,7 +63,10 @@ class Weeabot(commands.Bot):
                 del self.formatters[f]
         if hasattr(cog, 'verbose_formatters'):
             for f in cog.verbose_formatters:
-                del self.formatters[f]
+                del self.verbose_formatters[f]
+        if hasattr(cog, 'defaults'):
+            for d in cog.defaults:
+                del self.defaults[d]
         super(Weeabot, self).remove_cog(name)
 
 desc = """
