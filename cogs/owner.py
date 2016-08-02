@@ -95,7 +95,8 @@ class Tools(SessionCog):
             try:
                 r = self.requests[i]
             except IndexError:
-                raise commands.BadArgument('{} is out of range.'.format(i))
+                await self.bot.say("{} out of range.".format(i))
+                return
             await self.bot.send_message(r.channel, '{0.author}, Your request was accepted.```{0.content}```'.format(r))
             await self.bot.process_commands(r)
             self.requests.remove(r)
@@ -127,67 +128,77 @@ class Tools(SessionCog):
         with open(self.path, 'wb') as f:
             pickle.dump(self.requests, f, -1)
         await self.send_req_msg()
+
+    @commands.group()
+    async def change(self):
+        """Change a part of the bot's profile."""
+        pass
         
-    @commands.command()
+    @change.command()
     @is_owner()
     async def avatar(self, link: str):
         """Change the bot's avatar."""
         with await download_fp(self.session, link) as fp:
             await self.bot.edit_profile(avatar=fp.read())
 
-    @commands.command()
+    @change.command()
     @is_owner()
     async def username(self, name: str):
         """Change the bot's username."""
         await self.bot.edit_profile(username=name)
 
-    @commands.command(pass_context=True)
+    @change.command(pass_context=True)
     @is_owner()
     async def nick(self, ctx, nick: str):
         """Change the bot's nickname."""
         await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
 
-    @commands.command()
+    @commands.group(aliases=('e',), invoke_without_command=True)
     @is_owner()
     async def extensions(self):
-        """List loaded and unloaded extentsions."""
+        """Extension related commands.
+
+        Invoke without a subcommand to list extensions."""
         await self.bot.say('Loaded: {}\nAll: {}'.format(' '.join(self.bot.cogs.keys()),
                                                         ' '.join([x for x in listdir('cogs') if '.py' in x])))
 
-    @commands.command(name='load')
+    @extensions.command(name='load', alises=('l',))
     @is_owner()
     async def load_extension(self, ext):
         """Load an extension."""
+        # noinspection PyBroadException
         try:
             self.bot.load_extension(ext)
-        except Exception as e:
-            await self.bot.say('{}: {}'.format(type(e).__name__, e))
+        except Exception:
+            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
         else:
             await self.bot.say('{} loaded.'.format(ext))
 
-    @commands.command(name='unload')
+    @extensions.command(name='unload', aliases=('u',))
     @is_owner()
     async def unload_extension(self, ext):
         """Unload an extension."""
         if ext in self.bot.config.required_extensions:
             await self.bot.say("{} is a required extension.".format(ext))
             return
+        # noinspection PyBroadException
         try:
             self.bot.unload_extension(ext)
         except Exception:
-            await self.bot.say(traceback.format_exc())
+            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
         else:
             await self.bot.say('{} unloaded.'.format(ext))
     
-    @commands.command(name='reload')
+    @extensions.command(name='reload', aliases=('r',))
     @is_owner()
     async def reload_extension(self, ext):
         """Reload an extension."""
+        # noinspection PyBroadException
         try:
             self.bot.unload_extension(ext)
             self.bot.load_extension(ext)
-        except Exception as e:
-            await self.bot.say('{}: {}'.format(type(e).__name__, e))
+        except Exception:
+            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
         else:
             await self.bot.say('{} reloaded.'.format(ext))
     
@@ -223,13 +234,6 @@ class Tools(SessionCog):
     @is_owner()
     async def logout(self):
         """Make the bot log out."""
-        await self.bot.logout()
-    
-    @commands.command()
-    @is_owner()
-    async def restart(self):
-        """Restart the bot."""
-        self.bot.do_restart = True
         await self.bot.logout()
 
 
