@@ -30,6 +30,8 @@ class Weeabot(commands.Bot):
         self.defaults = {}
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.owner')
+        self.loop.create_task(self.update_owner())
+        self.loop.create_task(self.load_extensions())
     
     @property
     def profiles(self):
@@ -41,6 +43,7 @@ class Weeabot(commands.Bot):
 
     async def load_extensions(self):
         """Load extensions and handle errors."""
+        await self.wait_until_ready()
         for ext in self.config.base_extensions:
             try:
                 self.load_extension(ext)
@@ -48,6 +51,7 @@ class Weeabot(commands.Bot):
                 await self.send_message(self.owner, 'Failure loading {}\n{}: {}\n'.format(ext, type(e).__name__, e))
 
     async def update_owner(self):
+        await self.wait_until_ready())
         self.owner = (await self.application_info()).owner
 
     def add_cog(self, cog):
@@ -95,8 +99,6 @@ async def on_command_error(err, ctx):
 
 @bot.event
 async def on_ready():
-    await bot.update_owner()
-    await bot.load_extensions()
     print('Bot: {0.name}:{0.id}'.format(bot.user))
     print('Owner: {0.name}:{0.id}'.format(bot.owner))
     print('------------------')
