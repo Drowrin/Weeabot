@@ -129,55 +129,58 @@ class RNG:
 
     @commands.command(pass_context=True, aliases=('a', 'shoot', 'kill',))
     @profiles()
-    async def attack(self, ctx, *users: str):
+    async def attack(self, ctx, *targets: str):
         """Attempt to attack some users."""
+        
+        if len(targets) == 0:
+            await self.bot.say(random.choice(self.atk['miss']))
+            return
+        
         author = ctx.message.author
         uid = author.id
         selves = [author.mention, author.name, author.display_name] + self.atk['self']
         immune = [self.bot.user.mention, self.bot.user.name, self.bot.user.display_name]
-        userset = {u for u in users if u not in immune and u not in selves}
-        immuneset = {u for u in users if u in immune}
-        try:
-            userset = {commands.MemberConverter(ctx, u).convert() for u in userlist}
-        except commands.BadArgument as e:
-            await self.bot.say(e)
-                return
-        hitself = len(users) != len(immunelist) + len(userlist)
-        userlist = list(userset)
-        if len(users) >= 1:
-            ulted = len(userlist) > 1 and random.choice([False, True])
-            ult = random.choice(list(self.atk['ult'].keys()))
-            killed = []
-            escaped = []
-            if ulted:
-                await self.bot.say("\"{1}\" -- {0}".format(author.mention, ult))
-            for u in userlist:
+        
+        tars = []
+        for u in targets:
+            try:
+                tars.append(commands.MemberConverter(ctx, u).convert())
+            except commands.BadArgument:
+                tars.append(u)
+        
+        result = []
+        ulted = len(userlist) > 1 and random.choice([False, True])
+        ult = random.choice(list(self.atk['ult'].keys()))
+        if ulted:
+            result.append("\"{1}\" -- {0}".format(author.mention, ult))
+        for u in tars:
+            dis_name = u if isinstance(u, str) else u.display_name
+            if dis_name in immune:
+                result.append(random.choice(self.atk['immune']).format(author.display_name, dis_name))
+            elif dis_name in selves:
+                result.append(random.choice(self.atk['kys']).format(author.display_name))
+                self.inc('s', uid)
                 self.inc('a', uid)
-                self.inc_r(uid, u.id)
-                if random.choice([True] * (self.atk['ult'][ult] if ulted else 1) + [False]):
-                    self.inc('k', uid)
-                    self.inc('d', u.id)
-                    killed.append(u.mention)
-                else:
-                    self.inc('m', uid)
-                    self.inc('e', u.id)
-                    escaped.append(u.mention)
-            if len(killed) > 0:
-                await self.bot.say('\n'.join(
-                    [(self.atk['el'][0] if ulted else random.choice(self.atk['el'])).format(u) for u in killed]))
-            if len(escaped) > 0:
-                await self.bot.say('\n'.join([random.choice(self.atk['esc']).format(u) for u in escaped]))
-        else:
-            await self.bot.say(random.choice(self.atk['miss']))
-            return
-        for u in immunelist:
-            await self.bot.say(random.choice(self.atk['immune']).format(author.mention, u))
-        if hitself:
-            self.inc('s', uid)
-            self.inc('a', uid)
-            self.inc('d', uid)
-            self.inc_r(uid, uid)
-            await self.bot.say(random.choice(self.atk['kys']).format(author.mention))
+                self.inc('d', uid)
+                self.inc_r(uid, uid)
+                if u != tars[-1]:
+                    result.append('{} is dead. The remaining targets escaped.'.format(dis_name))
+                    break
+            else:
+                try:
+                    self.inc('a', uid)
+                    self.inc_r(uid, u.id)
+                    if random.choice([True] * (self.atk['ult'][ult] if ulted else 1) + [False]):
+                        result.append((self.atk['el'][0] if ulted ele random.choice(self.atk['el'])).format(dis_name))
+                        self.inc('k', uid)
+                        self.inc('d', u.id)
+                    else:
+                        result.append(random.choice(self.atk['esc']).format(dis_name))
+                        self.inc('m', uid)
+                        self.inc('e', u.id)
+                except AttributeError:
+                    pass
+        await self.bot.say('\n'.join(result))
 
 
 def setup(bot):
