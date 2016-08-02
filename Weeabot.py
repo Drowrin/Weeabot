@@ -51,7 +51,7 @@ class Weeabot(commands.Bot):
                 await self.send_message(self.owner, 'Failure loading {}\n{}: {}\n'.format(ext, type(e).__name__, e))
 
     async def update_owner(self):
-        await self.wait_until_ready())
+        await self.wait_until_ready()
         self.owner = (await self.application_info()).owner
 
     def add_cog(self, cog):
