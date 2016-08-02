@@ -30,7 +30,6 @@ class Weeabot(commands.Bot):
         self.defaults = {}
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.owner')
-        self.loop.create_task(self.update_owner())
         self.loop.create_task(self.load_extensions())
     
     @property
@@ -99,6 +98,7 @@ async def on_command_error(err, ctx):
 
 @bot.event
 async def on_ready():
+    await bot.update_owner()
     print('Bot: {0.name}:{0.id}'.format(bot.user))
     print('Owner: {0.name}:{0.id}'.format(bot.owner))
     print('------------------')

@@ -149,10 +149,10 @@ class RNG:
                 tars.append(u)
         
         result = []
-        ulted = len(userlist) > 1 and random.choice([False, True])
+        ulted = len(tars) > 1 and random.choice([False, True])
         ult = random.choice(list(self.atk['ult'].keys()))
         if ulted:
-            result.append("\"{1}\" -- {0}".format(author.mention, ult))
+            result.append("\"{1}\" -- {0}".format(author.display_name, ult))
         for u in tars:
             dis_name = u if isinstance(u, str) else u.display_name
             if dis_name in immune:
@@ -164,20 +164,20 @@ class RNG:
                 self.inc('d', uid)
                 self.inc_r(uid, uid)
                 if u != tars[-1]:
-                    result.append('{} is dead. The remaining targets escaped.'.format(dis_name))
+                    result.append('{} is dead. The remaining targets escaped.'.format(author.display_name))
                     break
             else:
                 try:
-                    self.inc('a', uid)
-                    self.inc_r(uid, u.id)
                     if random.choice([True] * (self.atk['ult'][ult] if ulted else 1) + [False]):
-                        result.append((self.atk['el'][0] if ulted ele random.choice(self.atk['el'])).format(dis_name))
+                        result.append((self.atk['el'][0] if ulted else random.choice(self.atk['el'])).format(dis_name))
                         self.inc('k', uid)
                         self.inc('d', u.id)
                     else:
                         result.append(random.choice(self.atk['esc']).format(dis_name))
                         self.inc('m', uid)
                         self.inc('e', u.id)
+                    self.inc('a', uid)
+                    self.inc_r(uid, u.id)
                 except AttributeError:
                     pass
         await self.bot.say('\n'.join(result))
