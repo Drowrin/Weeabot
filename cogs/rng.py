@@ -135,17 +135,13 @@ class RNG:
         uid = author.id
         selves = [author.mention, author.name, author.display_name] + self.atk['self']
         immune = [self.bot.user.mention, self.bot.user.name, self.bot.user.display_name]
-        userlist = [u for u in users if u not in immune and u not in selves]
-        immunelist = [u for u in users if u in immune]
-        if '@everyone' in users:
-            userlist = [*ctx.message.channel.server.members]
-        else:
-            try:
-                userlist = [commands.MemberConverter(ctx, u).convert() for u in userlist]
-            except commands.BadArgument as e:
-                await self.bot.say(e)
+        userset = {u for u in users if u not in immune and u not in selves}
+        immuneset = {u for u in users if u in immune}
+        try:
+            userset = {commands.MemberConverter(ctx, u).convert() for u in userlist}
+        except commands.BadArgument as e:
+            await self.bot.say(e)
                 return
-        userset = set(userlist)
         hitself = len(users) != len(immunelist) + len(userlist)
         userlist = list(userset)
         if len(users) >= 1:
