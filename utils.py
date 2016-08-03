@@ -10,6 +10,27 @@ def is_owner():
     return commands.check(lambda ctx: ctx.message.author.id == ctx.bot.owner.id)
 
 
+def testing():
+    """Only allowed in 'safe' environments.
+    
+    Servers and channels approved by the bot owner, or in PMs by the bot owner.
+    
+    Intended for testing new features before making them more public."""
+    
+    def pred(ctx):
+        if ctx.message.channel.is_private:
+            if ctx.message.author.id == ctx.bot.owner.id:
+                return True
+            return False
+        if ctx.message.server.id in ctx.bot.approved_servers:
+            return True
+        if ctx.message.channel.id in ctx.bot.approved_channels:
+            return True
+        return False
+    
+    return commands.check(pred)
+
+
 def loaded_profiles(bot):
     return bot.profiles is not None
 
