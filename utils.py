@@ -10,25 +10,25 @@ def is_owner():
     return commands.check(lambda ctx: ctx.message.author.id == ctx.bot.owner.id)
 
 
-def testing():
+def testing(ctx):
+    if ctx.message.channel.is_private:
+        if ctx.message.author.id == ctx.bot.owner.id:
+            return True
+        return False
+    if ctx.message.server.id in ctx.bot.config['testing_servers']:
+        return True
+    if ctx.message.channel.id in ctx.bot.config['testing_channels']:
+        return True
+    return False
+
+
+def is_testing():
     """Only allowed in 'safe' environments.
     
     Servers and channels approved by the bot owner, or in PMs by the bot owner.
     
     Intended for testing new features before making them more public."""
-    
-    def pred(ctx):
-        if ctx.message.channel.is_private:
-            if ctx.message.author.id == ctx.bot.owner.id:
-                return True
-            return False
-        if ctx.message.server.id in ctx.bot.config['testing_servers']:
-            return True
-        if ctx.message.channel.id in ctx.bot.config['testing_channels']:
-            return True
-        return False
-    
-    return commands.check(pred)
+    return commands.check(testing)
 
 
 def loaded_profiles(bot):
@@ -106,6 +106,9 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
         async def wrapp(*args, **kwargs):
             has_self = not isinstance(args[0], commands.Context)
             ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
+            if not testing(ctx):
+                print('blocked testing')
+                return
             arglist = [*args]
             if not pass_ctx:
                 del arglist[1 if has_self else 0]
