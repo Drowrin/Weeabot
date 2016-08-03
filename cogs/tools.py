@@ -229,7 +229,7 @@ class Tools(SessionCog):
         perms.read_message_history = True
         perms.attach_files = True
         perms.external_emojis = True
-        await self.bot.say(discord.utils.oauth_url(tokens['discord_ClientID'], perms))
+        await self.bot.say(discord.utils.oauth_url((await self.bot.application_info()).id, perms))
 
     @commands.group()
     async def change(self):
