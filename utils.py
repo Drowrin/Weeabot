@@ -89,7 +89,7 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
             if not pass_ctx:
                 del arglist[1 if has_self else 0]
             a = tuple(arglist)
-            if ctx.message not in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+            if ctx.message not in ctx.bot.tools.get_serv('owner')['list']:
                 if ctx.message.author.id != ctx.bot.owner.id or not owner_pass:
                     if ctx.message.author == ctx.message.server.owner:
                         await ctx.bot.say("Sent request to {}.".format(ctx.bot.owner.display_name))
