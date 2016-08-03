@@ -86,12 +86,8 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
             has_self = not isinstance(args[0], commands.Context)
             ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
             arglist = [*args]
-            if has_self:
-                arglist = arglist[1:]
             if not pass_ctx:
-                arglist = arglist[1:]
-            if has_self:
-                arglist = [args[0], *arglist]
+                del arglist[1 if has_self else 0]
             a = tuple(arglist)
             if ctx.message not in ctx.bot.tools.requests:
                 if ctx.message.author.id != ctx.bot.owner.id or not owner_pass:
@@ -122,12 +118,8 @@ def text_transform_command(base=commands.command, clean=True, **comargs):
             has_self = not isinstance(args[0], commands.Context)
             ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
             arglist = [*args]
-            if has_self:
-                arglist = arglist[1:]
             if not pass_ctx:
-                arglist = arglist[1:]
-            if has_self:
-                arglist = [args[0], *arglist]
+                del arglist[1 if has_self else 0]
             a = tuple(arglist)
             if clean:
                 result = await func(*a, **kwargs, text=ctx.invoked_with.join(
