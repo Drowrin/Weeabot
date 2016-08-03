@@ -94,7 +94,6 @@ class Tools(SessionCog):
 
     @request_command(commands.group, owner_pass=False, pass_context=True,
                      aliases=('request',), invoke_without_command=True)
-    @testing()
     async def req(self, ctx, *, command):
         """Send a request for a command."""
         msg = copy.copy(ctx.message)
