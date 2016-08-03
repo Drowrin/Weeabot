@@ -97,6 +97,12 @@ async def on_command_error(err, ctx):
 
 
 @bot.event
+async def on_server_join(server):
+    """Called when the bot joins a server or creates one."""
+    await bot.send_message(bot.owner, "Joined Server: {}".format(server))
+
+
+@bot.event
 async def on_ready():
     await bot.update_owner()
     print('Bot: {0.name}:{0.id}'.format(bot.user))
