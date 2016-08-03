@@ -3,12 +3,12 @@ import discord
 import inspect
 import copy
 import traceback
+import pickle
 
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from os import listdir
 from utils import *
-from json import dump
 
 
 def parse_indexes(indexes: str = None):
@@ -35,7 +35,8 @@ class Tools(SessionCog):
         super(Tools, self).__init__(bot)
         self.path = 'requests.json'
         try:
-            self.requests = open_json(self.path)
+            with open(self.path, 'rb') as f:
+                self.requests = pickle.load(f)
             if len(self.requests) == 0:
                 self.requests = {"owner": self.empty()}
         except FileNotFoundError:
@@ -47,15 +48,17 @@ class Tools(SessionCog):
         return {"msg": None, "list": []}
 
     def _dump(self):
-        with open(self.path, 'w') as f:
-            dump(self.requests, f, ensure_ascii=True)
+        with open(self.path, 'wb') as f:
+            pickle.dump(self.requests, f, -1)
 
     async def save(self):
         """Save the current data to disk."""
         await self.bot.loop.run_in_executor(None, self._dump)
     
     def get_serv(self, server):
-        return self.requests.get(server, self.empty())
+        if server not in self.requests:
+            self.requests[server] = self.empty()
+        return self.requests[server]
 
     async def get_msg(self, server, msg, channel=None):
         if server == 'owner':
@@ -70,29 +73,30 @@ class Tools(SessionCog):
     async def message(self, server):
         if server == 'owner':
             header = "Global Requests\n-----\n{}"
+            line = '{} | <{1.channel.server}: {1.channel}> {1.author}: `{1.content}`'
         else:
-            header = "Requests\n-----\n{}"
+            header = "{} Requests\n-----\n{}".format(server.name, '{}')
+            line = '{} | <{1.channel}> {1.author}: `{1.content}`'
         cont = []
         for req in self.get_serv(server)['list']:
             ind = self.get_serv(server)['list'].index(req)
-            mes = await self.get_msg(server, req[0], channel=req[1])
-            cont.append('{0} | <{1.channel.server}: {1.channel}> {1.author}: {1.content}'.format(ind, mes))
+            cont.append(line.format(ind, req))
         return header.format('\n'.join(cont))
 
     async def send_req_msg(self, server, dest=None):
         if not len(self.requests):
             if self.get_serv(server)['msg'] is not None:
-                await self.bot.delete_message(await self.get_req_msg(server))
+                await self.bot.delete_message(self.get_serv(server)['msg'])
                 self.get_serv(server)['msg'] = None
             return
-        dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).member
+        dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).owner
         if self.get_serv(server)['msg'] is not None:
-            await self.bot.edit_message(await self.get_req_msg(server), await self.message(server))
+            await self.bot.edit_message(self.get_serv(server)['msg'], await self.message(server))
         else:
-            self.get_serv(server)['msg'] = (await self.bot.send_message(dest, await self.message(server))).id
+            self.get_serv(server)['msg'] = await self.bot.send_message(dest, await self.message(server))
     
     async def add_request(self, mes, server):
-        self.get_serv(server)['list'].append((mes.id, mes.channel.id))
+        self.get_serv(server)['list'].append(mes)
         await self.save()
         await self.send_req_msg(server)
 
@@ -112,10 +116,16 @@ class Tools(SessionCog):
     @is_owner()
     async def list(self, ctx):
         """Display current requests."""
-        if len(self.get_serv(ctx.message.server.id)['list']):
-            await self.bot.say(self.message(ctx.message.server.id))
+        if ctx.message.server is not None:
+            servs = [ctx.message.server]
         else:
-            await self.bot.say("No requests.")
+            servs = list(filter(lambda e: e.owner.id == ctx.message.author.id, self.bot.servers)) +
+                ['owner' if ctx.message.author.id == self.bot.owner.id]
+        for server in servs:
+            if len(self.get_serv(server)['list']):
+                await self.bot.say(self.message(server))
+            else:
+                await self.bot.say("No requests.")
 
     @list.command(aliases=('g',))
     @is_owner()
