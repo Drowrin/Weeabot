@@ -89,11 +89,16 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
             if not pass_ctx:
                 del arglist[1 if has_self else 0]
             a = tuple(arglist)
-            if ctx.message not in ctx.bot.tools.requests:
+            if ctx.message.id not in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
                 if ctx.message.author.id != ctx.bot.owner.id or not owner_pass:
-                    await ctx.bot.say("Sent request to {}.".format(ctx.bot.owner.mention))
-                    await ctx.bot.tools.add_request(ctx.message)
-                    return
+                    if ctx.message.author == ctx.message.server.owner:
+                        await ctx.bot.say("Sent request to {}.".format(ctx.bot.owner.display_name))
+                        await ctx.bot.tools.add_request(ctx.message, 'owner')
+                        return
+                    else:
+                        await ctx.bot.say("Sent request to {}.".format(ctx.message.server.owner.display_name))
+                        await ctx.bot.tools.add_request(ctx.message, ctx.message.server.id)
+                        return
             result = await func(*a, **kwargs)
             return result
         return base(**comargs)(wrapp)
@@ -167,6 +172,7 @@ def open_json(fn: str):
     except FileNotFoundError:
         with open(fn, 'w') as f:
             json.dump({}, f)
+            return {}
 
 
 class SessionCog:

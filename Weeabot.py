@@ -72,6 +72,15 @@ class Weeabot(commands.Bot):
                 del self.defaults[d]
         super(Weeabot, self).remove_cog(name)
 
+    @asyncio.coroutine
+    def get_private_channel(self, dest):
+        found = self.connection._get_private_channel_by_user(dest.id)
+        if found is None:
+            channel = yield from self.start_private_message(dest)
+            return channel.id
+        else:
+            return found.id
+
 desc = """
 Weeabot
 I have a lot of (mostly) useless commands. Enjoy!

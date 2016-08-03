@@ -1,6 +1,5 @@
 # noinspection PyUnresolvedReferences
 import discord
-import pickle
 import inspect
 import copy
 import traceback
@@ -9,6 +8,7 @@ import traceback
 from discord.ext import commands
 from os import listdir
 from utils import *
+from json import dump
 
 
 def parse_indexes(indexes: str = None):
@@ -33,37 +33,68 @@ class Tools(SessionCog):
     
     def __init__(self, bot):
         super(Tools, self).__init__(bot)
-        self.req_msg = None
-        self.path = 'requests.pkl'
+        self.path = 'requests.json'
         try:
-            with open(self.path, 'rb') as f:
-                self.requests = pickle.load(f)
+            self.requests = open_json(self.path)
+            if len(self.requests) == 0:
+                self.requests = {"owner": self.empty()}
         except FileNotFoundError:
-            self.requests = []
-            with open(self.path, 'wb') as f:
-                pickle.dump(self.requests, f, -1)
+            self.requests = {"owner": self.empty()}
+        self._dump()
 
-    def message(self):
-        return "Requests\n-----\n{}".format('\n'.join(['{0} | <{1.channel.server}: {1.channel}> {1.author}: {1.content}'
-                                                      .format(self.requests.index(req), req) for req in self.requests]))
+    @staticmethod
+    def empty():
+        return {"msg": None, "list": []}
 
-    async def send_req_msg(self, dest=None):
-        if not len(self.requests):
-            if self.req_msg is not None:
-                await self.bot.delete_message(self.req_msg)
-                self.req_msg = None
-            return
-        dest = dest or self.bot.owner
-        if self.req_msg is not None:
-            await self.bot.edit_message(self.req_msg, self.message())
-        else:
-            self.req_msg = await self.bot.send_message(dest, self.message())
+    def _dump(self):
+        with open(self.path, 'w') as f:
+            dump(self.requests, f, ensure_ascii=True)
+
+    async def save(self):
+        """Save the current data to disk."""
+        await self.bot.loop.run_in_executor(None, self._dump)
     
-    async def add_request(self, mes):
-        self.requests.append(mes)
-        with open(self.path, 'wb') as f:
-            pickle.dump(self.requests, f, -1)
-        await self.send_req_msg()
+    def get_serv(self, server):
+        return self.requests.get(server, self.empty())
+
+    async def get_msg(self, server, msg, channel=None):
+        if server == 'owner':
+            dest = self.bot.owner
+        else:
+            dest = self.bot.get_server(self.get_serv(server)).owner
+        return await self.bot.get_message(discord.Object(id=(channel or await self.bot.get_private_channel(dest))), msg)
+
+    async def get_req_msg(self, server):
+        return await self.get_msg(server, self.get_serv(server)['msg'])
+
+    async def message(self, server):
+        if server == 'owner':
+            header = "Global Requests\n-----\n{}"
+        else:
+            header = "Requests\n-----\n{}"
+        cont = []
+        for req in self.get_serv(server)['list']:
+            ind = self.get_serv(server)['list'].index(req)
+            mes = await self.get_msg(server, req[0], channel=req[1])
+            cont.append('{0} | <{1.channel.server}: {1.channel}> {1.author}: {1.content}'.format(ind, mes))
+        return header.format('\n'.join(cont))
+
+    async def send_req_msg(self, server, dest=None):
+        if not len(self.requests):
+            if self.get_serv(server)['msg'] is not None:
+                await self.bot.delete_message(await self.get_req_msg(server))
+                self.get_serv(server)['msg'] = None
+            return
+        dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).member
+        if self.get_serv(server)['msg'] is not None:
+            await self.bot.edit_message(await self.get_req_msg(server), await self.message(server))
+        else:
+            self.get_serv(server)['msg'] = (await self.bot.send_message(dest, await self.message(server))).id
+    
+    async def add_request(self, mes, server):
+        self.get_serv(server)['list'].append((mes.id, mes.channel.id))
+        await self.save()
+        await self.send_req_msg(server)
 
     @request_command(commands.group, owner_pass=False, pass_context=True,
                      aliases=('request',), invoke_without_command=True)
@@ -77,57 +108,95 @@ class Tools(SessionCog):
             await self.bot.send_message(msg.channel, "Added to todo list.")
             await self.bot.send_message(self.bot.owner, "Todo: {}".format(msg.content))
 
-    @req.command(aliases=('l',))
+    @req.group(pass_context=True, aliases=('l',), invoke_without_command=True)
     @is_owner()
-    async def list(self):
+    async def list(self, ctx):
         """Display current requests."""
-        if len(self.requests):
-            await self.bot.say(self.message())
+        if len(self.get_serv(ctx.message.server.id)['list']):
+            await self.bot.say(self.message(ctx.message.server.id))
         else:
             await self.bot.say("No requests.")
-    
-    @req.command(aliases=('a',))
+
+    @list.command(aliases=('g',))
     @is_owner()
-    async def accept(self, *, indexes: str=None):
+    async def glob_list(self):
+        if len(self.get_serv('owner')['list']):
+            await self.bot.say(await self.message('owner'))
+        else:
+            await self.bot.say("No requests.")
+
+    @req.group(pass_context=True, aliases=('a',), invoke_without_command=True)
+    @is_owner()
+    async def accept(self, ctx, *, indexes: str=None):
         """Accept requests made by users."""
         indexes = parse_indexes(indexes)
         for i in indexes:
             try:
-                r = self.requests[i]
+                re = self.get_serv(ctx.message.server.id)['list'][i]
+                c = await self.bot.get_server(ctx.message.server.id).get_channel(re[1])
+                r = await self.get_msg(ctx.message.server.id, re[0], channel=c)
+            except IndexError:
+                await self.bot.say("{} out of range.".format(i))
+                return
+            await self.bot.send_message(r.channel, '{0.author}, Your request was elevated.```{0.content}```'.format(r))
+            await self.add_request(r.id, 'owner')
+            self.get_serv(ctx.message.server.id)['list'].remove(re)
+            await self.send_req_msg(ctx.message.server.id)
+        await self.save()
+
+    @accept.group(aliases=('g',))
+    @is_owner()
+    async def glob_accept(self, *, indexes: str=None):
+        indexes = parse_indexes(indexes)
+        for i in indexes:
+            try:
+                re = self.get_serv('owner')['list'][i]
+                r = await self.get_msg('owner', re[0])
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
                 return
             await self.bot.send_message(r.channel, '{0.author}, Your request was accepted.```{0.content}```'.format(r))
-            await self.bot.process_commands(r)
-            self.requests.remove(r)
-            await self.send_req_msg()
-        with open(self.path, 'wb') as f:
-            pickle.dump(self.requests, f, -1)
-    
-    @req.command(aliases=('r',))
-    @is_owner()
-    async def reject(self, *, indexes: str=None):
-        """Reject requests made by users."""
-        indexes = parse_indexes(indexes)
+            await self.bot.process_commands(r.id)
+            self.get_serv('owner')['list'].remove(re)
+            await self.send_req_msg('owner')
+        await self.save()
+
+    async def reject_requests(self, server, indexes: [int]):
         for i in indexes:
             try:
-                r = self.requests[i]
+                re = self.get_serv(server)['list'][i]
+                r = await self.get_msg(server, re[0], channel=re[1])
+                await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
+                self.get_serv(server)['list'].remove(re)
+                await self.send_req_msg(server)
             except IndexError:
-                raise commands.BadArgument('{} is out of range.'.format(i))
-            await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
-            self.requests.remove(r)
-            await self.send_req_msg()
-        with open(self.path, 'wb') as f:
-            pickle.dump(self.requests, f, -1)
-    
-    @req.command(aliases=('c',))
+                await self.bot.say('{} is out of range.'.format(i))
+        await self.save()
+
+    @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
     @is_owner()
-    async def clear(self):
+    async def reject(self, ctx, *, indexes: str=None):
+        """Reject requests made by users."""
+        indexes = parse_indexes(indexes)
+        await self.reject_requests(ctx.message.server.id, indexes)
+
+    @reject.command(aliases=('g',))
+    @is_owner()
+    async def glob_reject(self, *, indexes: str=None):
+        indexes = parse_indexes(indexes)
+        await self.reject_requests('owner', indexes)
+    
+    @req.group(pass_context=True, aliases=('c',), invoke_without_command=True)
+    @is_owner()
+    async def clear(self, ctx):
         """Clear remaining requests."""
-        self.requests = []
-        with open(self.path, 'wb') as f:
-            pickle.dump(self.requests, f, -1)
-        await self.send_req_msg()
+        ser = ctx.message.server.id
+        await self.reject_requests(ser, list(range(len(self.get_serv(ser)['list']) - 1)))
+
+    @clear.command(aliases=('g',))
+    @is_owner()
+    async def glob_clear(self):
+        await self.reject_requests('owner', list(range(len(self.get_serv('owner')['list']) - 1)))
 
     @commands.command(aliases=('oauth',))
     async def invite(self):
