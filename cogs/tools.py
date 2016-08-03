@@ -129,6 +129,22 @@ class Tools(SessionCog):
             pickle.dump(self.requests, f, -1)
         await self.send_req_msg()
 
+    @commands.command(aliases=('oauth',))
+    async def invite(self):
+        """Get the oauth link for the bot."""
+        perms = discord.Permissions.none()
+        perms.read_messages = True
+        perms.send_messages = True
+        perms.manage_roles = True
+        perms.ban_members = True
+        perms.kick_members = True
+        perms.manage_messages = True
+        perms.embed_links = True
+        perms.read_message_history = True
+        perms.attach_files = True
+        perms.external_emojis = True
+        await self.bot.say(discord.utils.oauth_url(tokens['discord_ClientID'], perms))
+
     @commands.group()
     async def change(self):
         """Change a part of the bot's profile."""
