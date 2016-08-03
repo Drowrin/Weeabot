@@ -60,40 +60,32 @@ class Tools(SessionCog):
             self.requests[server] = self.empty()
         return self.requests[server]
 
-    async def get_msg(self, server, msg, channel=None):
-        if server == 'owner':
-            dest = self.bot.owner
-        else:
-            dest = self.bot.get_server(self.get_serv(server)).owner
-        return await self.bot.get_message(discord.Object(id=(channel or await self.bot.get_private_channel(dest))), msg)
-
-    async def get_req_msg(self, server):
-        return await self.get_msg(server, self.get_serv(server)['msg'])
-
-    async def message(self, server):
+    def message(self, server):
         if server == 'owner':
             header = "Global Requests\n-----\n{}"
             line = '{} | <{1.channel.server}: {1.channel}> {1.author}: `{1.content}`'
         else:
-            header = "{} Requests\n-----\n{}".format(server.name, '{}')
+            header = "{} Requests\n-----\n{}".format(self.bot.get_server(server).name, '{}')
             line = '{} | <{1.channel}> {1.author}: `{1.content}`'
         cont = []
         for req in self.get_serv(server)['list']:
             ind = self.get_serv(server)['list'].index(req)
             cont.append(line.format(ind, req))
+        if len(cont) == 0:
+            cont = ['No requests.']
         return header.format('\n'.join(cont))
 
     async def send_req_msg(self, server, dest=None):
         if not len(self.requests):
             if self.get_serv(server)['msg'] is not None:
                 await self.bot.delete_message(self.get_serv(server)['msg'])
-                self.get_serv(server)['msg'] = None
+                self.requests[server]['msg'] = None
             return
         dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).owner
         if self.get_serv(server)['msg'] is not None:
-            await self.bot.edit_message(self.get_serv(server)['msg'], await self.message(server))
+            await self.bot.edit_message(self.get_serv(server)['msg'], self.message(server))
         else:
-            self.get_serv(server)['msg'] = await self.bot.send_message(dest, await self.message(server))
+            self.get_serv(server)['msg'] = await self.bot.send_message(dest, self.message(server))
     
     async def add_request(self, mes, server):
         self.get_serv(server)['list'].append(mes)
@@ -124,16 +116,12 @@ class Tools(SessionCog):
         for server in servs:
             if len(self.get_serv(server)['list']):
                 await self.bot.say(self.message(server))
-            else:
-                await self.bot.say("No requests.")
 
     @list.command(aliases=('g',))
     @is_owner()
     async def glob_list(self):
         if len(self.get_serv('owner')['list']):
-            await self.bot.say(await self.message('owner'))
-        else:
-            await self.bot.say("No requests.")
+            await self.bot.say(self.message('owner'))
 
     @req.group(pass_context=True, aliases=('a',), invoke_without_command=True)
     @is_owner()
@@ -142,15 +130,17 @@ class Tools(SessionCog):
         indexes = parse_indexes(indexes)
         for i in indexes:
             try:
-                re = self.get_serv(ctx.message.server.id)['list'][i]
-                c = await self.bot.get_server(ctx.message.server.id).get_channel(re[1])
-                r = await self.get_msg(ctx.message.server.id, re[0], channel=c)
+                r = self.get_serv(ctx.message.server.id)['list'][i]
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
                 return
-            await self.bot.send_message(r.channel, '{0.author}, Your request was elevated.```{0.content}```'.format(r))
-            await self.add_request(r.id, 'owner')
-            self.get_serv(ctx.message.server.id)['list'].remove(re)
+            if ctx.message.author.id == self.bot.owner.id:
+                await self.bot.send_message(r.channel, '{0.author.mention}, Your request was approved.```{0.content}```'.format(r))
+                await self.bot.process_commands(r)
+            else:
+                await self.bot.send_message(r.channel, '{0.author.mention}, Your request was elevated.```{0.content}```'.format(r))
+                await self.add_request(r, 'owner')
+            self.get_serv(ctx.message.server.id)['list'].remove(r)
             await self.send_req_msg(ctx.message.server.id)
         await self.save()
 
@@ -160,24 +150,22 @@ class Tools(SessionCog):
         indexes = parse_indexes(indexes)
         for i in indexes:
             try:
-                re = self.get_serv('owner')['list'][i]
-                r = await self.get_msg('owner', re[0])
+                r = self.get_serv('owner')['list'][i]
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
                 return
-            await self.bot.send_message(r.channel, '{0.author}, Your request was accepted.```{0.content}```'.format(r))
-            await self.bot.process_commands(r.id)
-            self.get_serv('owner')['list'].remove(re)
+            await self.bot.send_message(r.channel, '{0.author.mention}, Your request was accepted.```{0.content}```'.format(r))
+            await self.bot.process_commands(r)
+            self.get_serv('owner')['list'].remove(r)
             await self.send_req_msg('owner')
         await self.save()
 
     async def reject_requests(self, server, indexes: [int]):
         for i in indexes:
             try:
-                re = self.get_serv(server)['list'][i]
-                r = await self.get_msg(server, re[0], channel=re[1])
+                r = self.get_serv(server)['list'][i]
                 await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
-                self.get_serv(server)['list'].remove(re)
+                self.get_serv(server)['list'].remove(r)
                 await self.send_req_msg(server)
             except IndexError:
                 await self.bot.say('{} is out of range.'.format(i))
@@ -185,10 +173,20 @@ class Tools(SessionCog):
 
     @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
     @is_owner()
-    async def reject(self, ctx, *, indexes: str=None):
-        """Reject requests made by users."""
+    async def reject(self, ctx, server: str, *, indexes: str=None):
+        """Reject requests made by users.
+        
+        Use 'here' as the server argument to accept requests from this server.
+        Otherwise use a server name."""
+        if server == 'here':
+            serv = ctx.message.server
+        else:
+            serv = discord.utils.get(self.bot.servers, name=server, owner=ctx.message.author)
+        if serv is None:
+            await self.bot.say("Server not found.")
+            return
         indexes = parse_indexes(indexes)
-        await self.reject_requests(ctx.message.server.id, indexes)
+        await self.reject_requests(serv.id, indexes)
 
     @reject.command(aliases=('g',))
     @is_owner()
@@ -198,10 +196,19 @@ class Tools(SessionCog):
     
     @req.group(pass_context=True, aliases=('c',), invoke_without_command=True)
     @is_owner()
-    async def clear(self, ctx):
-        """Clear remaining requests."""
-        ser = ctx.message.server.id
-        await self.reject_requests(ser, list(range(len(self.get_serv(ser)['list']) - 1)))
+    async def clear(self, ctx, server: str):
+        """Clear remaining requests.
+        
+        User 'here' as the server argument to clear requests from this server.
+        Otherwise use a server name."""
+        if server == 'here':
+            serv = ctx.message.server
+        else:
+            serv = discord.utils.get(self.bot.servers, name=server, owner=ctx.message.author)
+        if serv is None:
+            await self.bot.say("Server not found.")
+            return
+        await self.reject_requests(serv.id, list(range(len(self.get_serv(serv.id)['list']) - 1)))
 
     @clear.command(aliases=('g',))
     @is_owner()
