@@ -22,9 +22,9 @@ def testing():
             if ctx.message.author.id == ctx.bot.owner.id:
                 return True
             return False
-        if ctx.message.server.id in ctx.bot.approved_servers:
+        if ctx.message.server.id in ctx.bot.config['testing_servers']:
             return True
-        if ctx.message.channel.id in ctx.bot.approved_channels:
+        if ctx.message.channel.id in ctx.bot.config['testing_channels']:
             return True
         return False
     
