@@ -79,6 +79,48 @@ I have a lot of (mostly) useless commands. Enjoy!
 bot = Weeabot(command_prefix='~', description=desc)
 
 
+@bot.group(name='testing')
+@is_owner()
+async def test():
+    pass
+
+
+@test.command(pass_context=True, name='list')
+@is_owner()
+async def list_test():
+    servs = [bot.get_server(x) for x in bot.config['testing_servers']]
+    chans = [discord.utils.get(bot.get_all_channels(), id=x) for x in bot.config['testing_channels']
+    await bot.say('servers:\n{}\n\nchannels:\n{}'.format(servs, chans))
+
+
+@test.command(pass_context=True, name='add', no_pm=True)
+@is_owner()
+async def add_test(ctx, typ: str='channel'):
+    """args are 'channel' or 'server'"""
+    if typ == 'channel':
+        bot.config['testing_channels'].append(ctx.message.channel.id)
+    if typ == 'server':
+        bot.config['testing_servers'].append(ctx.message.server.id)
+    else:
+        await bot.say("Possible args are 'channel' and 'server'")
+        return
+    await bot.say("Added. \N{OK HAND SIGN}")
+    
+
+@test.command(pass_context=True, name='remove', no_pm=True)
+@is_owner()
+async def remove_test(ctx, typ: str='channel'):
+    """args are 'channel' or 'server'"""
+    if typ == 'channel':
+        bot.config['testing_channels'].remove(ctx.message.channel.id)
+    if typ == 'server':
+        bot.config['testing_servers'].remove(ctx.message.server.id)
+    else:
+        await bot.say("Possible args are 'channel' and 'server'")
+        return
+    await bot.say("Removed. \N{OK HAND SIGN}")
+
+
 @bot.event
 async def on_command_error(err, ctx):
     d = ctx.message.channel
