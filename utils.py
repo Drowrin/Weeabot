@@ -94,7 +94,7 @@ def full_command_name(ctx, command):
     return ' '.join(names)
 
 
-def request():
+def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
     """Decorator to make a command requestable.
     
     Requestable commands are commands you want to lock down permissions for.
@@ -111,6 +111,23 @@ def request():
     Requests can only be called in PMs by the bot owner.
     
     Requested commands are pickled to disk, so they persist through restarts.
+    
+    Attributes
+    ----------
+    owner_bypass : Optional[bool]
+        If ``True``, the bot owner can bypass the requests system entirely.
+        Defaults to ``True``.
+    server_bypass : Optional[bool]
+        If ``True``, the server owner can bypass the server level of requests.
+        Defaults to ``True``.
+    bypasses : list
+        A list of bypass predicates accepting ctx to be used on the command.
+        This differs from a list of checks in that it immediately bypasses the requests system.
+        Defaults to an empty list.
+    bypasser : callable
+        This is a predicate that takes the list of results from 'bypasses'.
+        If ``True`` is returned, the request system is bypassed.
+        Defaults to ``any``.
     """
     
     def request_predicate(ctx):
@@ -121,11 +138,13 @@ def request():
         if ctx.command.name == 'help':
             return True
         # Bot owner bypass.
-        if ctx.message.author.id == ctx.bot.owner.id:
+        if ctx.message.author.id == ctx.bot.owner.id and owner_bypass:
             return True
         # Not allowed in PMs.
         if ctx.message.channel.is_private:
             raise commands.CheckFailure("This command can not be called from PMs.")
+        if bypasser(bypass(ctx) for bypass in bypasses):
+            return True
         # If its already at the global level and has been accepted, it passes.
         if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
             return True
