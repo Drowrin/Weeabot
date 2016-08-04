@@ -185,9 +185,9 @@ class Pointless(SessionCog):
             if not self.oc % 3:
                 await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
                 return
-        if message.content.startswith(self.bot.user.mention):
-            await self.bot.send_message(message.channel, message.author.mention + ": " +
-                                        self.cleverbot.ask(message.content[len(self.bot.user.mention) + 1:]))
+        if message.content.startswith(message.server.me.mention if message.server else self.bot.user.mention):
+            await self.bot.send_message(message.channel, "{} {}".format(
+                message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
             return
 
 
