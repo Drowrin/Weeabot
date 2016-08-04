@@ -1,5 +1,6 @@
 # noinspection PyUnresolvedReferences
 import discord
+# noinspection PyUnresolvedReferences
 import random
 import pyimgur
 import xmltodict
@@ -62,7 +63,7 @@ class Images(SessionCog):
 
         Get an image from a category or search through several online services with subcommands."""
         if ctx.invoked_subcommand is None:
-            f = self.get_random_file(path.join('images', 'collections'), category, filetype)
+            f = get_random_file(path.join('images', 'collections'), category, filetype)
             if f is None:
                 await self.bot.reply('Collection not found: {}'.format(category))
             else:
@@ -178,7 +179,8 @@ class Images(SessionCog):
         """Lists all available templates."""
         await self.bot.say('Available Templates: ' + ', '.join(self.memes.keys()))
 
-    @request_command(meme.command, name='add')
+    @meme.command(name='add')
+    @request()
     async def _meme_add(self, name: str, link: str):
         """Add a template to the collection. Can't be GIF"""
         if '.gif' in link[-5:]:

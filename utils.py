@@ -150,7 +150,7 @@ def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
         if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
             return True
         # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
-        if ctx.message.id == ctx.message.server.owner.id or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+        if ctx.message.author.id == ctx.message.server.owner.id or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
             ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, 'owner'))
             return False
         # Otherwise, this is a fresh request, add it to the server level.
@@ -158,35 +158,6 @@ def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
         return False
     
     return commands.check(request_predicate)
-
-
-def request_command(base=commands.command, **comargs):
-    pass_ctx = comargs.get('pass_context', False)
-    comargs['pass_context'] = True
-
-    def dec(func):
-        @wraps(func)
-        async def wrapp(*args, **kwargs):
-            has_self = not isinstance(args[0], commands.Context)
-            ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
-            if ctx.message.channel.is_private and ctx.message.author.id != ctx.bot.owner.id:
-                await ctx.bot.say("Requests can not be made from PMs.")
-            arglist = [*args]
-            if not pass_ctx:
-                del arglist[1 if has_self else 0]
-            a = tuple(arglist)
-            if ctx.message.author.id != ctx.bot.owner.id and ctx.message not in ctx.bot.tools.get_serv('owner')['list']:
-                if ctx.message.author.id == ctx.message.server.owner.id \
-                        or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
-                    await ctx.bot.tools.add_request(ctx.message, 'owner')
-                    return
-                else:
-                    await ctx.bot.tools.add_request(ctx.message, ctx.message.server.id)
-                    return
-            result = await func(*a, **kwargs)
-            return result
-        return base(**comargs)(wrapp)
-    return dec
 
 
 async def download(session: aiohttp.ClientSession, link: str, path: str):

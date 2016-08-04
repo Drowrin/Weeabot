@@ -2,12 +2,10 @@
 import discord
 import inspect
 import copy
-import traceback
 import pickle
 
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
-from os import listdir
 from utils import *
 
 
@@ -93,21 +91,19 @@ class Tools(SessionCog):
                 self.requests[server]['msg'] = None
             return
         dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).owner
-        if self.get_serv(server)['msg'] is not None:
-            await self.bot.delete_message(self.get_serv(server)['msg'])
         self.get_serv(server)['msg'] = await self.bot.send_message(dest, self.message(server))
     
     async def add_request(self, mes, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
-            await self.bot.say("{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
+            await self.bot.send_message(mes.channel, "{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
             return
         if len(list(filter(lambda e: e.server.id == mes.server.id, self.all_req()))) >= self.server_limit:
-            await self.bot.say("{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
+            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
             return
         if len(self.all_req()) >= self.global_limit:
-            await self.bot.say("Global request limit reached ({}).".format(self.global_limit))
+            await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
             return
-        await self.bot.say("Sent request to {}.".format(
+        await self.bot.send_message(mes.channel, "Sent request to {}.".format(
              self.bot.owner.name if server == 'owner' else mes.server.owner.display_name))
         self.get_serv(server)['list'].append(mes)
         await self.save()

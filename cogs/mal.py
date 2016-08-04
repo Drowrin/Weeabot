@@ -1,7 +1,6 @@
 # noinspection PyUnresolvedReferences
 import discord
 import xmltodict
-import random
 import asyncio
 # noinspection PyUnresolvedReferences
 from discord.ext import commands

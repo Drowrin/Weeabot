@@ -3,6 +3,7 @@ import discord
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 
+# noinspection PyUnresolvedReferences
 import random
 import traceback
 import asyncio
@@ -167,7 +168,8 @@ async def on_command_error(err, ctx):
     elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
         await bot.send_message(d, 'Invalid usage. Use {}help {}'.format(bot.command_prefix, ctx.command.name))
     elif type(err) is commands.CheckFailure:
-        await bot.send_message(d, err)
+        if not str(err).startswith('The check functions'):
+            await bot.send_message(d, err)
     elif type(err) is commands.CommandNotFound:
         pass
     else:
