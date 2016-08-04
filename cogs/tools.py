@@ -113,9 +113,14 @@ class Tools(SessionCog):
         await self.save()
         await self.send_req_msg(server)
 
-    @request_command(commands.group, pass_context=True, aliases=('request',), invoke_without_command=True)
-    async def req(self, ctx, *, command):
-        """Send a request for a command."""
+    @commands.group(name='request', aliases=('req',))
+    async def req(self):
+        """Request based commands."""
+    
+    @req.command(pass_context=True, name='make', aliases=('m',))
+    @request()
+    async def req_make(self, ctx, *, command):
+        """Send a request for a command, or request a feature."""
         msg = copy.copy(ctx.message)
         msg.content = command
         if is_command_of(ctx.bot, msg):
