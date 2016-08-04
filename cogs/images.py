@@ -107,8 +107,8 @@ class Images(SessionCog):
             else:
                 await self.bot.edit_message(tmp, 'Something went wrong')
 
-    @request_command(image.command, pass_context=True, name='add')
-    @tools()
+    @image.command(pass_context=True, name='add')
+    @request()
     async def _image_add(self, ctx, collection: str, *link: str):
         """Request to add an image to a category.
 
