@@ -41,9 +41,9 @@ class Pointless(SessionCog):
         """ZALGO"""
         source = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
         zalgo_chars = [chr(i) for i in range(0x0300, 0x036F + 1)]
-        zalgo_chars.extend([u'\u0488', u'\u0489'])
+        zalgo_chars.extend(['\u0488', '\u0489'])
         random_extras = [chr(i) for i in range(0x1D023, 0x1D046)]
-        source = ''.join([s + random.choice(random_extras) if random.randint(1, 5) == 1 else None for s in source])
+        source = ''.join([s + random.randint(random_extras) if random.randint(1, 5) == 1 else None for s in source])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)) for letter in source]
         await self.bot.delete_message(ctx.message)
         await self.bot.reply(''.join(zalgoized))
