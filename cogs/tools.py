@@ -117,8 +117,8 @@ class Tools(SessionCog):
     async def req(self):
         """Request based commands."""
     
-    @req.command(pass_context=True, name='make', aliases=('m',))
-    @request()
+    @req.command(pass_context=True, name='feature', aliases=('f', 'make', 'm'))
+    @request(owner_bypass=False, server_bypass=False)
     async def req_make(self, ctx, *, command):
         """Send a request for a command, or request a feature."""
         msg = copy.copy(ctx.message)
