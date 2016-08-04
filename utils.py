@@ -114,6 +114,9 @@ def request():
     """
     
     def request_predicate(ctx):
+        # tools cog must be loaded to use requests.
+        if not loaded_tools(ctx.bot):
+            return False
         # Always pass on help so it shows up in the list.
         if ctx.command.name == 'help':
             return True
