@@ -40,17 +40,24 @@ class Pointless(SessionCog):
             "Conversation": "Tag the bot at the beginning of a message to have a conversation with it.",
             "Reactions": "The bot will react to these words: {}".format(', '.join(self.bot.content.reactions.keys()))
         }
-
-    @text_transform_command()
-    async def aesthetic(self, *, text):
+    
+    @commands.group(name='text', aliases=('t',))
+    async def text_command(self):
+        """Text transformations."""
+    
+    @text_command.command(pass_context=True, aliases=('a',))
+    async def aesthetic(self, ctx):
         """AESTHETIC"""
+        text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
         translated = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ?!\"#$%&\'()*+,-./\\~'
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
-        return text.translate(fullwidth)
+        await self.bot.delete_message(ctx.message)
+        await self.bot.reply(text.translate(fullwidth))
 
-    @text_transform_command()
-    async def zalgo(self, *, text):
+    @text_command.command(pass_context=True, aliases=('z',))
+    async def zalgo(self, ctx):
         """ZALGO"""
+        text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
         zalgo_chars = [chr(i) for i in range(0x0300, 0x036F + 1)]
         zalgo_chars.extend([u'\u0488', u'\u0489'])
         source = text.upper()
@@ -59,16 +66,17 @@ class Pointless(SessionCog):
         zalgoized = []
         for letter in source:
             zalgoized.append(letter)
-            zalgo_num = random.randint(0, 50) + 1
+            zalgo_num = random.randint(0, 25) + 1
             for _ in range(zalgo_num):
                 zalgoized.append(random.choice(zalgo_chars))
         response = random.choice(zalgo_chars).join(zalgoized)
-        return response
+        await self.bot.delete_message(ctx.message)
+        await self.bot.reply(response)
 
-    @text_transform_command()
-    async def emoji(self, *, text):
+    @text_command.command(pass_context=True, aliases=('e',))
+    async def emoji(self, ctx):
         """EMOJI"""
-        text = text.upper()
+        text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
         translated = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'
         translated_to = ''.join([
             '\N{NEGATIVE SQUARED LATIN CAPITAL LETTER A}',
@@ -100,7 +108,8 @@ class Pointless(SessionCog):
             '\N{WARNING SIGN}',
         ])
         emoji = str.maketrans(translated, translated_to)
-        return '        '.join(text.translate(emoji).split())
+        await self.bot.delete_message(ctx.message)
+        await self.bot.reply('      '.join(text.translate(emoji).split()))
 
     @commands.command()
     async def jojoke(self):
