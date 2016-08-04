@@ -11,11 +11,22 @@ from utils import *
 
 
 class Config:
-    def __init__(self, **fields):
-        self.__dict__.update(fields)
+    def __init__(self, path):
+        self.path = path
+        self._db = open_json(path)
+        self.__dict__.update(self._db)
 
     def __getattr__(self, name):
         return self.__dict__.get(name, None)
+
+    def _dump(self):
+        for k in self._db:
+            self._db[k] = self.__dict__[k]
+        with open(self.path, 'w') as f:
+            json.dump(self._db, f, ensure_ascii=True)
+
+    async def save(self):
+        await asyncio.get_event_loop().run_in_executor(None, self._dump)
 
 
 class Weeabot(commands.Bot):
@@ -23,8 +34,8 @@ class Weeabot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
-        self.config = Config(**open_json('config.json'))
-        self.content = Config(**open_json('content.json'))
+        self.config = Config('config.json')
+        self.content = Config('content.json')
         self.formatters = {}
         self.verbose_formatters = {}
         self.defaults = {}
@@ -72,6 +83,10 @@ class Weeabot(commands.Bot):
                 del self.defaults[d]
         super(Weeabot, self).remove_cog(name)
 
+    async def notify(self, message: str):
+        await self.say(message)
+        await self.send_message(self.owner, message)
+
 desc = """
 Weeabot
 I have a lot of (mostly) useless commands. Enjoy!
@@ -88,8 +103,8 @@ async def test():
 @test.command(pass_context=True, name='list')
 @is_owner()
 async def list_test():
-    servs = [bot.get_server(x) for x in bot.config['testing_servers']]
-    chans = [discord.utils.get(bot.get_all_channels(), id=x) for x in bot.config['testing_channels']
+    servs = [bot.get_server(x).name for x in bot.config.testing_servers]
+    chans = [discord.utils.get(bot.get_all_channels(), id=x).name for x in bot.config.testing_channels]
     await bot.say('servers:\n{}\n\nchannels:\n{}'.format(servs, chans))
 
 
@@ -98,12 +113,13 @@ async def list_test():
 async def add_test(ctx, typ: str='channel'):
     """args are 'channel' or 'server'"""
     if typ == 'channel':
-        bot.config['testing_channels'].append(ctx.message.channel.id)
+        bot.config.testing_channels.append(ctx.message.channel.id)
     if typ == 'server':
-        bot.config['testing_servers'].append(ctx.message.server.id)
+        bot.config.testing_servers.append(ctx.message.server.id)
     else:
         await bot.say("Possible args are 'channel' and 'server'")
         return
+    await bot.config.save()
     await bot.say("Added. \N{OK HAND SIGN}")
     
 
@@ -112,12 +128,13 @@ async def add_test(ctx, typ: str='channel'):
 async def remove_test(ctx, typ: str='channel'):
     """args are 'channel' or 'server'"""
     if typ == 'channel':
-        bot.config['testing_channels'].remove(ctx.message.channel.id)
+        bot.config.testing_channels.remove(ctx.message.channel.id)
     if typ == 'server':
-        bot.config['testing_servers'].remove(ctx.message.server.id)
+        bot.config.testing_servers.remove(ctx.message.server.id)
     else:
         await bot.say("Possible args are 'channel' and 'server'")
         return
+    await bot.config.save()
     await bot.say("Removed. \N{OK HAND SIGN}")
 
 

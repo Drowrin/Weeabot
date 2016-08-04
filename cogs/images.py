@@ -143,11 +143,11 @@ class Images(SessionCog):
             raise commands.BadArgument('Invalid Usage: No images.')
         coldir = path.join('images', 'collections')
         if collection not in listdir(coldir):
-            await self.bot.say("That collection doesn't exist, add it?")
+            await self.bot.send_message(self.bot.owner, "That collection doesn't exist, add it?")
             msg = await self.bot.wait_for_message(author=self.bot.owner)
             if 'yes' in msg.content.lower():
                 makedirs(path.join(coldir, collection))
-                await self.bot.say("Added collection: {}".format(collection))
+                await self.bot.notify("Added collection: {}".format(collection))
             else:
                 return
         for link in links:
@@ -155,10 +155,10 @@ class Images(SessionCog):
                 link = imgur.get_image(link.split('/')[-1]).link
             name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
             if name in listdir(path.join(coldir, collection)):
-                await self.bot.say("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
+                await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
                 name = 'temp.png'
             else:
-                await self.bot.say("Image added to {} as {}".format(collection, name))
+                await self.bot.notify("Image added to {} as {}".format(collection, name))
             await download(self.session, link, path.join(coldir, collection, name))
 
     @image.command(name='reddit', aliases=('r',))

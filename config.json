@@ -1,12 +1,1 @@
-{
-  "base_extensions": [
-    "cogs.rng",
-    "cogs.images",
-    "cogs.mal",
-    "cogs.pointless",
-    "cogs.twitch"
-  ],
-  "required_extensions": {
-
-  }
-}
+{"required_extensions": {}, "testing_servers": ["177998961322229760"], "base_extensions": ["cogs.rng", "cogs.images", "cogs.mal", "cogs.pointless", "cogs.twitch"], "testing_channels": []}

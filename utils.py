@@ -10,14 +10,19 @@ def is_owner():
     return commands.check(lambda ctx: ctx.message.author.id == ctx.bot.owner.id)
 
 
+def is_server_owner():
+    """Decorator to allow a command to run only if called by the server owner."""
+    return commands.check(lambda ctx: not ctx.message.channel.is_private and ctx.message.server.owner.id == ctx.message.author.id)
+
+
 def testing(ctx):
     if ctx.message.channel.is_private:
         if ctx.message.author.id == ctx.bot.owner.id:
             return True
         return False
-    if ctx.message.server.id in ctx.bot.config['testing_servers']:
+    if ctx.message.server.id in ctx.bot.config.testing_servers:
         return True
-    if ctx.message.channel.id in ctx.bot.config['testing_channels']:
+    if ctx.message.channel.id in ctx.bot.config.testing_channels:
         return True
     return False
 
@@ -86,7 +91,7 @@ def full_command_name(ctx, command):
     return ' '.join(names)
 
 
-def request_command(base=commands.command, owner_pass=True, **comargs):
+def request_command(base=commands.command, **comargs):
     """Decorator to add a 'request command'.
     
     Request commands follow a set of behaviors:
@@ -94,6 +99,8 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
         2. If another user calls the command, the call is stored, but not acted upon.
         3. Stored commands may be accepted or rejected by the owner.
             If accepted, a request command is invoked as if the original author had called it.
+
+    Requests can not be called from PMs.
     
     Request commands are pickled to disk, so they persist through restarts.
     
@@ -106,23 +113,20 @@ def request_command(base=commands.command, owner_pass=True, **comargs):
         async def wrapp(*args, **kwargs):
             has_self = not isinstance(args[0], commands.Context)
             ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
-            if not testing(ctx):
-                print('blocked testing')
-                return
+            if ctx.message.channel.is_private and ctx.message.author.id != ctx.bot.owner.id:
+                await ctx.bot.say("Requests can not be made from PMs.")
             arglist = [*args]
             if not pass_ctx:
                 del arglist[1 if has_self else 0]
             a = tuple(arglist)
-            if ctx.message not in ctx.bot.tools.all_reqs():
-                if ctx.message.author.id != ctx.bot.owner.id or not owner_pass:
-                    if ctx.message.author == ctx.message.server.owner:
-                        await ctx.bot.say("Sent request to {}.".format(ctx.bot.owner.display_name))
-                        await ctx.bot.tools.add_request(ctx.message, 'owner')
-                        return
-                    else:
-                        await ctx.bot.say("Sent request to {}.".format(ctx.message.server.owner.display_name))
-                        await ctx.bot.tools.add_request(ctx.message, ctx.message.server.id)
-                        return
+            if ctx.message.author.id != ctx.bot.owner.id and ctx.message not in ctx.bot.tools.get_serv('owner')['list']:
+                if ctx.message.author.id == ctx.message.server.owner.id \
+                        or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+                    await ctx.bot.tools.add_request(ctx.message, 'owner')
+                    return
+                else:
+                    await ctx.bot.tools.add_request(ctx.message, ctx.message.server.id)
+                    return
             result = await func(*a, **kwargs)
             return result
         return base(**comargs)(wrapp)

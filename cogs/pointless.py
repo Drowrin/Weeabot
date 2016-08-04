@@ -165,8 +165,13 @@ class Pointless(SessionCog):
     @commands.command(pass_context=True)
     async def do(self, ctx, n: int, *, command):
         """Repeat a command up to 5 times."""
+        banned = ['~req']
+        if any([x in command for x in banned]):
+            await self.bot.say("That command may not be used.")
+            return
         if n > 5:
-            raise commands.BadArgument("Too many times.")
+            await self.bot.say("Too many times.")
+            return
         msg = copy.copy(ctx.message)
         msg.content = command
         for i in range(n):

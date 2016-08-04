@@ -29,11 +29,15 @@ def parse_indexes(indexes: str = None):
 
 
 class Tools(SessionCog):
-    """Commands that only the owner can use."""
-    
+    """Utilities and management commands."""
+
+    user_limit = 5
+    server_limit = 30
+    global_limit = 100
+
     def __init__(self, bot):
         super(Tools, self).__init__(bot)
-        self.path = 'requests.json'
+        self.path = 'requests.pkl'
         try:
             with open(self.path, 'rb') as f:
                 self.requests = pickle.load(f)
@@ -54,6 +58,13 @@ class Tools(SessionCog):
     async def save(self):
         """Save the current data to disk."""
         await self.bot.loop.run_in_executor(None, self._dump)
+
+    def all_req(self):
+        r = []
+        for serv in self.requests:
+            for m in self.requests[serv]['list']:
+                r.append(m)
+        return r
     
     def get_serv(self, server):
         if server not in self.requests:
@@ -63,10 +74,10 @@ class Tools(SessionCog):
     def message(self, server):
         if server == 'owner':
             header = "Global Requests\n-----\n{}"
-            line = '{} | <{1.channel.server}: {1.channel}> {1.author}: `{1.content}`'
+            line = '{0} | <{1.channel.server}: {1.channel}> {1.author}: `{1.content}`'
         else:
-            header = "{} Requests\n-----\n{}".format(self.bot.get_server(server).name, '{}')
-            line = '{} | <{1.channel}> {1.author}: `{1.content}`'
+            header = "{} Requests\n-----\n".format(self.bot.get_server(server).name) + '{}'
+            line = '{0} | <{1.channel}> {1.author}: `{1.content}`'
         cont = []
         for req in self.get_serv(server)['list']:
             ind = self.get_serv(server)['list'].index(req)
@@ -88,12 +99,22 @@ class Tools(SessionCog):
             self.get_serv(server)['msg'] = await self.bot.send_message(dest, self.message(server))
     
     async def add_request(self, mes, server):
+        if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
+            await self.bot.say("{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
+            return
+        if len(list(filter(lambda e: e.server.id == mes.server.id, self.all_req()))) >= self.server_limit:
+            await self.bot.say("{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
+            return
+        if len(self.all_req()) >= self.global_limit:
+            await self.bot.say("Global request limit reached ({}).".format(self.global_limit))
+            return
+        await self.bot.say("Sent request to {}.".format(
+             self.bot.owner.name if server == 'owner' else mes.server.owner.display_name))
         self.get_serv(server)['list'].append(mes)
         await self.save()
         await self.send_req_msg(server)
 
-    @request_command(commands.group, owner_pass=False, pass_context=True,
-                     aliases=('request',), invoke_without_command=True)
+    @request_command(commands.group, pass_context=True, aliases=('request',), invoke_without_command=True)
     async def req(self, ctx, *, command):
         """Send a request for a command."""
         msg = copy.copy(ctx.message)
@@ -105,74 +126,82 @@ class Tools(SessionCog):
             await self.bot.send_message(self.bot.owner, "Todo: {}".format(msg.content))
 
     @req.group(pass_context=True, aliases=('l',), invoke_without_command=True)
-    @is_owner()
+    @is_server_owner()
     async def list(self, ctx):
         """Display current requests."""
         if ctx.message.server is not None:
             servs = [ctx.message.server]
         else:
-            servs = list(filter(lambda e: e.owner.id == ctx.message.author.id, self.bot.servers)) +
-                ['owner' if ctx.message.author.id == self.bot.owner.id]
+            servs = list(filter(lambda e: e.owner.id == ctx.message.author.id, self.bot.servers))
         for server in servs:
-            if len(self.get_serv(server)['list']):
-                await self.bot.say(self.message(server))
+                await self.bot.say(self.message(server.id))
+        if ctx.message.author.id == self.bot.owner.id:
+                await self.bot.say(self.message('owner'))
 
     @list.command(aliases=('g',))
     @is_owner()
     async def glob_list(self):
-        if len(self.get_serv('owner')['list']):
             await self.bot.say(self.message('owner'))
 
     @req.group(pass_context=True, aliases=('a',), invoke_without_command=True)
-    @is_owner()
+    @is_server_owner()
     async def accept(self, ctx, *, indexes: str=None):
         """Accept requests made by users."""
+        form = '{0.author.mention}, Your request was {1}.```{0.content}```'
         indexes = parse_indexes(indexes)
+        rs = []
         for i in indexes:
             try:
-                r = self.get_serv(ctx.message.server.id)['list'][i]
+                rs.append(self.get_serv(ctx.message.server.id)['list'][i])
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
-                return
+        for r in rs:
             if ctx.message.author.id == self.bot.owner.id:
-                await self.bot.send_message(r.channel, '{0.author.mention}, Your request was approved.```{0.content}```'.format(r))
+                await self.bot.send_message(r.channel, form.format(r, 'accepted'))
+                self.get_serv(ctx.message.server.id)['list'].remove(r)
+                self.get_serv('owner')['list'].append(r)
                 await self.bot.process_commands(r)
+                self.get_serv('owner')['list'].remove(r)
             else:
-                await self.bot.send_message(r.channel, '{0.author.mention}, Your request was elevated.```{0.content}```'.format(r))
+                await self.bot.send_message(r.channel, form.format(r, 'elevated'))
                 await self.add_request(r, 'owner')
-            self.get_serv(ctx.message.server.id)['list'].remove(r)
-            await self.send_req_msg(ctx.message.server.id)
+                self.get_serv(ctx.message.server.id)['list'].remove(r)
+        await self.send_req_msg(ctx.message.server.id)
         await self.save()
 
     @accept.group(aliases=('g',))
     @is_owner()
     async def glob_accept(self, *, indexes: str=None):
+        form = '{0.author.mention}, Your request was accepted.```{0.content}```'
         indexes = parse_indexes(indexes)
+        rs = []
         for i in indexes:
             try:
-                r = self.get_serv('owner')['list'][i]
+                rs.append(self.get_serv('owner')['list'][i])
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
-                return
-            await self.bot.send_message(r.channel, '{0.author.mention}, Your request was accepted.```{0.content}```'.format(r))
+        for r in rs:
+            await self.bot.send_message(r.channel, form.format(r))
             await self.bot.process_commands(r)
             self.get_serv('owner')['list'].remove(r)
-            await self.send_req_msg('owner')
+        await self.send_req_msg('owner')
         await self.save()
 
     async def reject_requests(self, server, indexes: [int]):
+        rs = []
         for i in indexes:
             try:
-                r = self.get_serv(server)['list'][i]
-                await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
-                self.get_serv(server)['list'].remove(r)
-                await self.send_req_msg(server)
+                rs.append(self.get_serv(server)['list'][i])
             except IndexError:
                 await self.bot.say('{} is out of range.'.format(i))
+        for r in rs:
+            await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
+        self.get_serv(server)['list'] = []
+        await self.send_req_msg(server)
         await self.save()
 
     @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
-    @is_owner()
+    @is_server_owner()
     async def reject(self, ctx, server: str, *, indexes: str=None):
         """Reject requests made by users.
         
@@ -195,7 +224,7 @@ class Tools(SessionCog):
         await self.reject_requests('owner', indexes)
     
     @req.group(pass_context=True, aliases=('c',), invoke_without_command=True)
-    @is_owner()
+    @is_server_owner()
     async def clear(self, ctx, server: str):
         """Clear remaining requests.
         
@@ -208,12 +237,12 @@ class Tools(SessionCog):
         if serv is None:
             await self.bot.say("Server not found.")
             return
-        await self.reject_requests(serv.id, list(range(len(self.get_serv(serv.id)['list']) - 1)))
+        await self.reject_requests(serv.id, list(range(len(self.get_serv(serv.id)['list']))))
 
     @clear.command(aliases=('g',))
     @is_owner()
     async def glob_clear(self):
-        await self.reject_requests('owner', list(range(len(self.get_serv('owner')['list']) - 1)))
+        await self.reject_requests('owner', list(range(len(self.get_serv('owner')['list']))))
 
     @commands.command(aliases=('oauth',))
     async def invite(self):
@@ -233,7 +262,9 @@ class Tools(SessionCog):
 
     @commands.group()
     async def change(self):
-        """Change a part of the bot's profile."""
+        """Change a part of the bot's profile.
+
+        Subcommands are limited access."""
         pass
         
     @change.command()
@@ -250,7 +281,7 @@ class Tools(SessionCog):
         await self.bot.edit_profile(username=name)
 
     @change.command(pass_context=True)
-    @is_owner()
+    @is_server_owner()
     async def nick(self, ctx, nick: str):
         """Change the bot's nickname."""
         await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
@@ -331,7 +362,7 @@ class Tools(SessionCog):
             return
         
         await self.bot.say(python.format(result))
-    
+
     @commands.command()
     @is_owner()
     async def logout(self):
