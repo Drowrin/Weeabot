@@ -166,39 +166,6 @@ def request_command(base=commands.command, **comargs):
     return dec
 
 
-def text_transform_command(base=commands.command, clean=True, **comargs):
-    """Decorator to add a Text Transform Command.
-    
-    Text transform commands need to behave a bit differently when written.
-    They should take their arguments as normal, but return the value to be said instead of interacting with discord.
-    The decorator handles discord interaction.
-    
-    A 'base' decorator may be passed in. The default is discord.ext.commands.command
-    clean=True by default. if True, it cleans discord mentions to plain text. Used with raw conversion."""
-    pass_ctx = comargs.get('pass_context', False)
-    comargs['pass_context'] = True
-    
-    def dec(func):
-        @wraps(func)
-        async def wrapp(*args, **kwargs):
-            has_self = not isinstance(args[0], commands.Context)
-            ctx = args[1] if has_self else args[0]  # for inside a class where first arg is self
-            arglist = [*args]
-            if not pass_ctx:
-                del arglist[1 if has_self else 0]
-            a = tuple(arglist)
-            if clean:
-                result = await func(*a, **kwargs, text=ctx.invoked_with.join(
-                    ctx.message.clean_content.split(ctx.invoked_with)[1:]))
-            else:
-                result = await func(*a, **kwargs)
-            if not ctx.message.channel.is_private:
-                await ctx.bot.delete_message(ctx.message)
-            await ctx.bot.say('{}: {}'.format(ctx.message.author.mention, result))
-        return base(**comargs)(wrapp)
-    return dec
-
-
 async def download(session: aiohttp.ClientSession, link: str, path: str):
     """Quick and easy download utility."""
     async with session.get(link) as r:
