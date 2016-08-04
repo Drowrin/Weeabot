@@ -107,7 +107,6 @@ class MAL(SessionCog):
     
     @commands.command(pass_context=True, aliases=('fite',))
     @profiles()
-    @is_channel('fights')
     async def fight(self, ctx, user2: str, threshold: int=2):
         """Fight about MAL scores.
         
