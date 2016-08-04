@@ -21,6 +21,10 @@ class Twitch(SessionCog):
         self.loop = None
         self.channels = []
         self.updateloop()
+        self.services = {
+            "Twitch": """Create a channel named 'twitch-streams' to get notifications when server members go live.
+            Members must use the ~addtwitch command to get notifications about their streams."""
+        }
     
     def __unload(self):
         self.stoploop()

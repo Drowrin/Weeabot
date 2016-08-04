@@ -1,6 +1,9 @@
 import json
 import io
 import aiohttp
+import random
+from os import path
+from os import listdir
 from functools import wraps
 from discord.ext import commands
 
@@ -201,6 +204,16 @@ def open_json(fn: str):
         with open(fn, 'w') as f:
             json.dump({}, f)
             return {}
+
+
+def get_random_file(d: str, s: str, t: str = None):
+    """Get a file from a subdirectory."""
+    if s in listdir(d):
+        d = path.join(d, s)
+        if t:
+            return path.join(d, random.choice([f for f in listdir(d) if f.endswith(t)]))
+        else:
+            return path.join(d, random.choice(listdir(d)))
 
 
 class SessionCog:

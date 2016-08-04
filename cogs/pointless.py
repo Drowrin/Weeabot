@@ -36,6 +36,10 @@ class Pointless(SessionCog):
         super(Pointless, self).__init__(bot)
         self.cleverbot = Cleverbot()
         self.oc = 1
+        self.services = {
+            "Conversation": "Tag the bot at the beginning of a message to have a conversation with it.",
+            "Reactions": "The bot will react to these words: {}".format(', '.join(self.bot.content.reactions.keys()))
+        }
 
     @text_transform_command()
     async def aesthetic(self, *, text):
@@ -180,6 +184,14 @@ class Pointless(SessionCog):
     async def on_message(self, message):
         if message.author.bot or is_command_of(self.bot, message):
             return
+        for prompt in self.bot.content.reactions:
+            if prompt in message.content.lower():
+                r = self.bot.content.reactions[prompt][1]
+                i = get_random_file(path.join('images', 'collections'), self.bot.content.reactions[prompt][0])
+                if i is None:
+                    await self.bot.send_message(message.channel, r)
+                else:
+                    await self.bot.send_file(message.channel, i, content=r)
         if "\N{OK HAND SIGN}" in message.content:
             self.oc += 1
             if not self.oc % 3:

@@ -22,39 +22,15 @@ imgur = pyimgur.Imgur(tokens['imgur_token'], tokens["imgur_secret"])
 class Images(SessionCog):
     """Image related commands."""
 
-    async def on_message(self, m):
-        if m.author.bot:
-            return
-        if not m.content.startswith(self.bot.command_prefix):
-            for prompt in self.reactions:
-                if prompt in m.content.lower():
-                    r = self.reactions[prompt][1]
-                    i = self.get_random_file(path.join('images', 'collections'), self.reactions[prompt][0])
-                    if i is None:
-                        await self.bot.send_message(m.channel, r)
-                    else:
-                        await self.bot.send_file(m.channel, i, content=r)
-
     def __init__(self, bot):
         super(Images, self).__init__(bot)
         self.memes = bot.content.memes
-        self.reactions = bot.content.reactions
 
     @staticmethod
     def get_random_image(album_id):
         """Get a random image from an imgur album."""
         image_list = imgur.get_album(album_id).images
         return random.choice(image_list).link
-
-    @staticmethod
-    def get_random_file(d: str, s: str, t: str = None):
-        """Get a file from a subdirectory."""
-        if s in listdir(d):
-            d = path.join(d, s)
-            if t:
-                return path.join(d, random.choice([f for f in listdir(d) if f.endswith(t)]))
-            else:
-                return path.join(d, random.choice(listdir(d)))
 
     async def baka_image(self, t: str):
         t = t[:7] + '...' if len(t) > 10 else t
@@ -101,7 +77,7 @@ class Images(SessionCog):
     @image.command(name='list')
     async def _image_list(self):
         """Get a list of all the categories and reactions."""
-        r_list = [x[0] for x in self.reactions.values() if x[0] is not None]
+        r_list = [x[0] for x in self.bot.content.reactions.values() if x[0] is not None]
         c_list = [x for x in listdir(path.join('images', 'collections')) if x not in r_list]
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
 

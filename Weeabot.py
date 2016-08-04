@@ -68,6 +68,7 @@ class Weeabot(commands.Bot):
 
     def add_cog(self, cog):
         super(Weeabot, self).add_cog(cog)
+        self.services.update(getattr(cog, 'services', {}))
         self.formatters.update(getattr(cog, 'formatters', {}))
         self.verbose_formatters.update(getattr(cog, 'verbose_formatters', {}))
         self.defaults.update(getattr(cog, 'defaults', {}))
