@@ -4,10 +4,11 @@ import discord
 from discord.ext import commands
 
 import random
-
+import traceback
 import asyncio
 
 from utils import *
+from os import listdir
 
 
 class Config:
@@ -36,6 +37,7 @@ class Weeabot(commands.Bot):
         self.owner = None  # set in on_ready
         self.config = Config('config.json')
         self.content = Config('content.json')
+        self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
         self.defaults = {}
@@ -94,48 +96,64 @@ I have a lot of (mostly) useless commands. Enjoy!
 bot = Weeabot(command_prefix='~', description=desc)
 
 
-@bot.group(name='testing')
+@bot.command(name='services')
+async def service_command():
+    """Show how to use non-command features of the bot."""
+    fmt = '```\n{}:\n\n{}\n```'
+    await bot.say('\n'.join([fmt.format(k, v) for k, v in bot.services.items()]))
+
+
+@bot.group(aliases=('e',), invoke_without_command=True)
 @is_owner()
-async def test():
-    pass
+async def extensions():
+    """Extension related commands.
+
+    Invoke without a subcommand to list extensions."""
+    await bot.say('Loaded: {}\nAll: {}'.format(' '.join(bot.cogs.keys()),
+                                               ' '.join([x for x in listdir('cogs') if '.py' in x])))
 
 
-@test.command(pass_context=True, name='list')
+@extensions.command(name='load', alises=('l',))
 @is_owner()
-async def list_test():
-    servs = [bot.get_server(x).name for x in bot.config.testing_servers]
-    chans = [discord.utils.get(bot.get_all_channels(), id=x).name for x in bot.config.testing_channels]
-    await bot.say('servers:\n{}\n\nchannels:\n{}'.format(servs, chans))
-
-
-@test.command(pass_context=True, name='add', no_pm=True)
-@is_owner()
-async def add_test(ctx, typ: str='channel'):
-    """args are 'channel' or 'server'"""
-    if typ == 'channel':
-        bot.config.testing_channels.append(ctx.message.channel.id)
-    if typ == 'server':
-        bot.config.testing_servers.append(ctx.message.server.id)
+async def load_extension(ext):
+    """Load an extension."""
+    # noinspection PyBroadException
+    try:
+        bot.load_extension(ext)
+    except Exception:
+        await bot.say('```py\n{}\n```'.format(traceback.format_exc()))
     else:
-        await bot.say("Possible args are 'channel' and 'server'")
-        return
-    await bot.config.save()
-    await bot.say("Added. \N{OK HAND SIGN}")
-    
+        await bot.say('{} loaded.'.format(ext))
 
-@test.command(pass_context=True, name='remove', no_pm=True)
+
+@extensions.command(name='unload', aliases=('u',))
 @is_owner()
-async def remove_test(ctx, typ: str='channel'):
-    """args are 'channel' or 'server'"""
-    if typ == 'channel':
-        bot.config.testing_channels.remove(ctx.message.channel.id)
-    if typ == 'server':
-        bot.config.testing_servers.remove(ctx.message.server.id)
-    else:
-        await bot.say("Possible args are 'channel' and 'server'")
+async def unload_extension(ext):
+    """Unload an extension."""
+    if ext in bot.config.required_extensions:
+        await bot.say("{} is a required extension.".format(ext))
         return
-    await bot.config.save()
-    await bot.say("Removed. \N{OK HAND SIGN}")
+    # noinspection PyBroadException
+    try:
+        bot.unload_extension(ext)
+    except Exception:
+        await bot.say('```py\n{}\n```'.format(traceback.format_exc()))
+    else:
+        await bot.say('{} unloaded.'.format(ext))
+
+
+@extensions.command(name='reload', aliases=('r',))
+@is_owner()
+async def reload_extension(ext):
+    """Reload an extension."""
+    # noinspection PyBroadException
+    try:
+        bot.unload_extension(ext)
+        bot.load_extension(ext)
+    except Exception:
+        await bot.say('```py\n{}\n```'.format(traceback.format_exc()))
+    else:
+        await bot.say('{} reloaded.'.format(ext))
 
 
 @bot.event
@@ -159,6 +177,7 @@ async def on_command_error(err, ctx):
 async def on_server_join(server):
     """Called when the bot joins a server or creates one."""
     await bot.send_message(bot.owner, "Joined Server: {}".format(server))
+    await bot.send_message(server.default_channel, "Hello! use ~help and ~services to see what I can do.")
 
 
 @bot.event

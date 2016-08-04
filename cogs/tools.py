@@ -284,55 +284,6 @@ class Tools(SessionCog):
     async def nick(self, ctx, nick: str):
         """Change the bot's nickname."""
         await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
-
-    @commands.group(aliases=('e',), invoke_without_command=True)
-    @is_owner()
-    async def extensions(self):
-        """Extension related commands.
-
-        Invoke without a subcommand to list extensions."""
-        await self.bot.say('Loaded: {}\nAll: {}'.format(' '.join(self.bot.cogs.keys()),
-                                                        ' '.join([x for x in listdir('cogs') if '.py' in x])))
-
-    @extensions.command(name='load', alises=('l',))
-    @is_owner()
-    async def load_extension(self, ext):
-        """Load an extension."""
-        # noinspection PyBroadException
-        try:
-            self.bot.load_extension(ext)
-        except Exception:
-            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
-        else:
-            await self.bot.say('{} loaded.'.format(ext))
-
-    @extensions.command(name='unload', aliases=('u',))
-    @is_owner()
-    async def unload_extension(self, ext):
-        """Unload an extension."""
-        if ext in self.bot.config.required_extensions:
-            await self.bot.say("{} is a required extension.".format(ext))
-            return
-        # noinspection PyBroadException
-        try:
-            self.bot.unload_extension(ext)
-        except Exception:
-            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
-        else:
-            await self.bot.say('{} unloaded.'.format(ext))
-    
-    @extensions.command(name='reload', aliases=('r',))
-    @is_owner()
-    async def reload_extension(self, ext):
-        """Reload an extension."""
-        # noinspection PyBroadException
-        try:
-            self.bot.unload_extension(ext)
-            self.bot.load_extension(ext)
-        except Exception:
-            await self.bot.say('```py\n{}\n```'.format(traceback.format_exc()))
-        else:
-            await self.bot.say('{} reloaded.'.format(ext))
     
     @commands.command(pass_context=True)
     @is_owner()
@@ -367,6 +318,46 @@ class Tools(SessionCog):
     async def logout(self):
         """Make the bot log out."""
         await self.bot.logout()
+
+    @commands.group(name='testing')
+    @is_owner()
+    async def test(self):
+        pass
+
+    @test.command(pass_context=True, name='list')
+    @is_owner()
+    async def list_test(self):
+        servs = [self.bot.get_server(x).name for x in self.bot.config.testing_servers]
+        chans = [discord.utils.get(self.bot.get_all_channels(), id=x).name for x in self.bot.config.testing_channels]
+        await self.bot.say('servers:\n{}\n\nchannels:\n{}'.format(servs, chans))
+
+    @test.command(pass_context=True, name='add', no_pm=True)
+    @is_owner()
+    async def add_test(self, ctx, typ: str='channel'):
+        """args are 'channel' or 'server'"""
+        if typ == 'channel':
+            self.bot.config.testing_channels.append(ctx.message.channel.id)
+        if typ == 'server':
+            self.bot.config.testing_servers.append(ctx.message.server.id)
+        else:
+            await self.bot.say("Possible args are 'channel' and 'server'")
+            return
+        await self.bot.config.save()
+        await self.bot.say("Added. \N{OK HAND SIGN}")
+
+    @test.command(pass_context=True, name='remove', no_pm=True)
+    @is_owner()
+    async def remove_test(self, ctx, typ: str='channel'):
+        """args are 'channel' or 'server'"""
+        if typ == 'channel':
+            self.bot.config.testing_channels.remove(ctx.message.channel.id)
+        if typ == 'server':
+            self.bot.config.testing_servers.remove(ctx.message.server.id)
+        else:
+            await self.bot.say("Possible args are 'channel' and 'server'")
+            return
+        await self.bot.config.save()
+        await self.bot.say("Removed. \N{OK HAND SIGN}")
 
 
 def setup(bot):
