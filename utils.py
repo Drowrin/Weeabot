@@ -4,7 +4,6 @@ import aiohttp
 import random
 from os import path
 from os import listdir
-from functools import wraps
 from discord.ext import commands
 
 
@@ -15,7 +14,8 @@ def is_owner():
 
 def is_server_owner():
     """Decorator to allow a command to run only if called by the server owner."""
-    return commands.check(lambda ctx: not ctx.message.channel.is_private and ctx.message.server.owner.id == ctx.message.author.id)
+    return commands.check(lambda ctx: not ctx.message.channel.is_private and
+                          ctx.message.server.owner.id == ctx.message.author.id)
 
 
 def testing(ctx):
@@ -94,7 +94,7 @@ def full_command_name(ctx, command):
     return ' '.join(names)
 
 
-def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
+def request(owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any):
     """Decorator to make a command requestable.
     
     Requestable commands are commands you want to lock down permissions for.
@@ -150,7 +150,8 @@ def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
         if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
             return True
         # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
-        if ctx.message.author.id == ctx.message.server.owner.id or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+        if (ctx.message.author.id == ctx.message.server.owner.id and server_bypass) \
+                or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
             ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, 'owner'))
             return False
         # Otherwise, this is a fresh request, add it to the server level.
@@ -160,11 +161,11 @@ def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
     return commands.check(request_predicate)
 
 
-async def download(session: aiohttp.ClientSession, link: str, path: str):
+async def download(session: aiohttp.ClientSession, link: str, fn: str):
     """Quick and easy download utility."""
     async with session.get(link) as r:
         val = await r.read()
-        with open(path, "wb") as f:
+        with open(fn, "wb") as f:
             f.write(val)
 
 
