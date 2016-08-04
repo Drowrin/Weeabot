@@ -94,20 +94,50 @@ def full_command_name(ctx, command):
     return ' '.join(names)
 
 
-def request_command(base=commands.command, **comargs):
-    """Decorator to add a 'request command'.
+def request():
+    """Decorator to make a command requestable.
     
-    Request commands follow a set of behaviors:
-        1. If the owner calls the command, it goes through normally.
-        2. If another user calls the command, the call is stored, but not acted upon.
-        3. Stored commands may be accepted or rejected by the owner.
-            If accepted, a request command is invoked as if the original author had called it.
+    Requestable commands are commands you want to lock down permissions for.
+    However, requestable commands can still be called by members but will need to be approved before executing.
+    
+    The following behaivior is followed:
+        1. If a member calls the command, a request is sent to the server owner including the command and args.
+        2. Server owners can approve these requests, which are then elevated as requests to the bot owner.
+        3. If a server owner calls the command, a request is sent directly to the bot owner.
+        4. If the bot owner approves the request, it is executed normally.
+        5. If the bot owner calls the command, it executes normally.
+        6. Similarly, if the bot owner accepts a local request on a server they own, it bypasses the global check.
+    
+    Requests can only be called in PMs by the bot owner.
+    
+    Requested commands are pickled to disk, so they persist through restarts.
+    """
+    
+    def request_predicate(ctx):
+        # Always pass on help so it shows up in the list.
+        if ctx.command.name == 'help':
+            return True
+        # Bot owner bypass.
+        if ctx.message.author.id == ctx.bot.owner.id:
+            return True
+        # Not allowed in PMs.
+        if ctx.message.channel.is_private:
+            raise commands.CheckFailure("This command can not be called from PMs.")
+        # If its already at the global level and has been accepted, it passes.
+        if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
+            return True
+        # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
+        if ctx.message.id == ctx.message.server.owner.id or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+            ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, 'owner'))
+            return False
+        # Otherwise, this is a fresh request, add it to the server level.
+        ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, ctx.message.server.id))
+        return False
+    
+    return commands.check(request_predicate)
 
-    Requests can not be called from PMs.
-    
-    Request commands are pickled to disk, so they persist through restarts.
-    
-    A 'base' decorator may be passed in. The default is discord.ext.commands.command"""
+
+def request_command(base=commands.command, **comargs):
     pass_ctx = comargs.get('pass_context', False)
     comargs['pass_context'] = True
 
