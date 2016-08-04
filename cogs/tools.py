@@ -74,10 +74,10 @@ class Tools(SessionCog):
     def message(self, server):
         if server == 'owner':
             header = "Global Requests\n-----\n{}"
-            line = '{0} | <{1.channel.server}: {1.channel}> {1.author}: `{1.content}`'
+            line = '{0} | <{1.channel.server}: {1.channel}> {1.author}: {1.content}'
         else:
             header = "{} Requests\n-----\n".format(self.bot.get_server(server).name) + '{}'
-            line = '{0} | <{1.channel}> {1.author}: `{1.content}`'
+            line = '{0} | <{1.channel}> {1.author}: {1.content}'
         cont = []
         for req in self.get_serv(server)['list']:
             ind = self.get_serv(server)['list'].index(req)
@@ -94,9 +94,8 @@ class Tools(SessionCog):
             return
         dest = dest or self.bot.owner if server == 'owner' else self.bot.get_server(server).owner
         if self.get_serv(server)['msg'] is not None:
-            await self.bot.edit_message(self.get_serv(server)['msg'], self.message(server))
-        else:
-            self.get_serv(server)['msg'] = await self.bot.send_message(dest, self.message(server))
+            await self.bot.delete_message(self.get_serv(server)['msg'])
+        self.get_serv(server)['msg'] = await self.bot.send_message(dest, self.message(server))
     
     async def add_request(self, mes, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
