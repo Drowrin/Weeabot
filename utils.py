@@ -123,6 +123,7 @@ def request(owner_bypass=True, server_bypass=True, bypasses=[], bypasser=any):
     bypasses : list
         A list of bypass predicates accepting ctx to be used on the command.
         This differs from a list of checks in that it immediately bypasses the requests system.
+        An example of a use for this is turning a message into a request if a certain command arg is too high.
         Defaults to an empty list.
     bypasser : callable
         This is a predicate that takes the list of results from 'bypasses'.
