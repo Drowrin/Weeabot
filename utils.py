@@ -1,5 +1,6 @@
 import json
 import io
+import enum
 import aiohttp
 import random
 from os import path
@@ -94,7 +95,11 @@ def full_command_name(ctx, command):
     return ' '.join(names)
 
 
-def request(owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any):
+class RequestLevel(enum.Enum):
+    default, server = range(2)
+
+
+def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any):
     """Decorator to make a command requestable.
     
     Requestable commands are commands you want to lock down permissions for.
@@ -114,6 +119,12 @@ def request(owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any
     
     Attributes
     ----------
+    level : RequestLevel
+        A string identifying the top level a request should go to.
+        Possible values:
+            ``RequestLevel.default`` for a global request.
+            ``RequestLevel.server`` for a server request.
+        Defaults to ``RequestLevel.default``.
     owner_bypass : Optional[bool]
         If ``True``, the bot owner can bypass the requests system entirely.
         Defaults to ``True``.
@@ -152,6 +163,8 @@ def request(owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any
         # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
         if (ctx.message.author.id == ctx.message.server.owner.id and server_bypass) \
                 or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+            if level == RequestLevel.server:
+                return True
             ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, 'owner'))
             return False
         # Otherwise, this is a fresh request, add it to the server level.

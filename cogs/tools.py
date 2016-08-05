@@ -281,7 +281,7 @@ class Tools(SessionCog):
         await self.bot.edit_profile(username=name)
 
     @change.command(pass_context=True)
-    @is_server_owner()
+    @request(level=RequestLevel.server, )
     async def nick(self, ctx, nick: str):
         """Change the bot's nickname."""
         await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
