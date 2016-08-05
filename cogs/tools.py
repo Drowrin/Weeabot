@@ -260,6 +260,11 @@ class Tools(SessionCog):
         perms.external_emojis = True
         await self.bot.say(discord.utils.oauth_url((await self.bot.application_info()).id, perms))
 
+    @commands.command(aliases=('contribute',))
+    async def source(self):
+        """Link to the bot's repository."""
+        await self.bot.say('<https://github.com/Drowrin/Weeabot>')
+
     @commands.group()
     async def change(self):
         """Change a part of the bot's profile.
