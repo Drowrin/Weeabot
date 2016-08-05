@@ -34,7 +34,8 @@ class Pointless(SessionCog):
         text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
         translated = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ?!\"#$%&\'()*+,-./\\~'
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
-        await self.bot.delete_message(ctx.message)
+        if not ctx.message.channel.is_private:
+            await self.bot.delete_message(ctx.message)
         await self.bot.reply(text.translate(fullwidth))
 
     @text_command.command(pass_context=True, aliases=('z',))
@@ -47,7 +48,8 @@ class Pointless(SessionCog):
         source = ''.join([s + random.choice(random_extras) if random.randint(1, 5) == 1 else '' for s in source])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)))
                      for letter in source]
-        await self.bot.delete_message(ctx.message)
+        if not ctx.message.channel.is_private:
+            await self.bot.delete_message(ctx.message)
         await self.bot.reply(''.join(zalgoized))
 
     @text_command.command(pass_context=True, aliases=('e',))
@@ -85,7 +87,8 @@ class Pointless(SessionCog):
             '\N{WARNING SIGN}',
         ])
         emoji = str.maketrans(translated, translated_to)
-        await self.bot.delete_message(ctx.message)
+        if not ctx.message.channel.is_private:
+            await self.bot.delete_message(ctx.message)
         await self.bot.reply('      '.join(text.translate(emoji).split()))
 
     @commands.command()
