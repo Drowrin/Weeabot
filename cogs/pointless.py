@@ -34,9 +34,7 @@ class Pointless(SessionCog):
         text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
         translated = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ?!\"#$%&\'()*+,-./\\~'
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
-        if not ctx.message.channel.is_private:
-            await self.bot.delete_message(ctx.message)
-        await self.bot.reply(text.translate(fullwidth))
+        await self.bot.say(text.translate(fullwidth))
 
     @text_command.command(pass_context=True, aliases=('z',))
     async def zalgo(self, ctx):
@@ -48,9 +46,7 @@ class Pointless(SessionCog):
         source = ''.join([s + random.choice(random_extras) if random.randint(1, 5) == 1 else '' for s in source])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)))
                      for letter in source]
-        if not ctx.message.channel.is_private:
-            await self.bot.delete_message(ctx.message)
-        await self.bot.reply(''.join(zalgoized))
+        await self.bot.say(''.join(zalgoized))
 
     @text_command.command(pass_context=True, aliases=('e',))
     async def emoji(self, ctx):
@@ -87,9 +83,7 @@ class Pointless(SessionCog):
             '\N{WARNING SIGN}',
         ])
         emoji = str.maketrans(translated, translated_to)
-        if not ctx.message.channel.is_private:
-            await self.bot.delete_message(ctx.message)
-        await self.bot.reply('      '.join(text.translate(emoji).split()))
+        await self.bot.say('      '.join(text.translate(emoji).split()))
 
     @commands.command()
     async def jojoke(self):
@@ -137,12 +131,8 @@ class Pointless(SessionCog):
         async with self.session.get(url, headers=headers) as r:
             await self.bot.say(await r.text())
 
-    @commands.command()
+    @commands.command(aliases=('no',))
     async def yes(self):
-        await self.bot.say("yes")
-    
-    @commands.command()
-    async def no(self):
         await self.bot.say("yes")
 
     @commands.command(pass_context=True)
