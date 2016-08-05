@@ -140,6 +140,10 @@ class Pointless(SessionCog):
     @commands.command()
     async def yes(self):
         await self.bot.say("yes")
+    
+    @commands.command()
+    async def no(self):
+        await self.bot.say("yes")
 
     @commands.command(pass_context=True)
     async def rip(self, ctx, ripped: str=None):
