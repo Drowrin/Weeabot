@@ -34,7 +34,7 @@ class Profile(SessionCog):
     Only default support is for command count and custom fields.
     Support for specific fields are added by other cogs so that they are disabled."""
 
-    defaults = {'stat': {'xp': 0}}
+    defaults = {'stat': {'xp': 0}, 'command_count': {}}
     formatters = {'command_count': count_formatter, 'custom': custom_formatter}
     verbose_formatters = {}
 
