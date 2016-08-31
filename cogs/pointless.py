@@ -36,6 +36,11 @@ class Pointless(SessionCog):
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
         await self.bot.say(text.translate(fullwidth))
 
+    @text_command.command(aliases=('r',))
+    async def reverse(self, *, text: str):
+        """esreveR"""
+        await self.bot.say("\N{RIGHT-TO-LEFT OVERRIDE}{}\N{LEFT-TO-RIGHT OVERRIDE}".format(text))
+
     @text_command.command(pass_context=True, aliases=('z',))
     async def zalgo(self, ctx):
         """ZALGO"""
