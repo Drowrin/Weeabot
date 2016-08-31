@@ -131,9 +131,11 @@ class Images(SessionCog):
             if name in listdir(path.join(coldir, collection)):
                 await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
                 name = 'temp.png'
-            else:
+            try:
+                await download(self.session, link, path.join(coldir, collection, name))
                 await self.bot.notify("Image added to {} as {}".format(collection, name))
-            await download(self.session, link, path.join(coldir, collection, name))
+            except OSError:
+                await self.bot.notify("Invalid link. Make sure it points directly to the file and ends with a valid file extension.")
 
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):
