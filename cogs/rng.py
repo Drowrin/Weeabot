@@ -29,6 +29,7 @@ class RNG:
     def __init__(self, bot):
         self.bot = bot
         self.atk = bot.content.attack
+        self.gun = {}
 
     @commands.command(aliases=('pick', 'choice'))
     async def choose(self, *, choices):
@@ -181,6 +182,35 @@ class RNG:
                 except AttributeError:
                     pass
         await self.bot.say('\n'.join(result))
+
+    @commands.group(pass_context=True, aliases=('rr',), invoke_without_command=True)
+    async def russian_roulette(self, ctx):
+        """A game of russian roulette."""
+        if any(self.gun.get(ctx.message.server.id, [])):
+            if self.gun[ctx.message.server.id][0]:
+                self.gun[ctx.message.server.id][0] = 0
+                await self.bot.say(":boom: :gun:")
+            else:
+                await self.bot.say(":gun:")
+            self.gun[ctx.message.server.id] = self.gun[ctx.message.server.id][1:] + self.gun[ctx.message.server.id][:1]
+        else:
+            await self.bot.say("The gun is empty.")
+
+    @russian_roulette.command(pass_context=True)
+    async def spin(self, ctx):
+        """Spin the cylinder."""
+        if self.gun.get(ctx.message.server.id, None):
+            s = random.randint(1, 5)
+            self.gun[ctx.message.server.id] = self.gun[ctx.message.server.id][s:] + self.gun[ctx.message.server.id][:s]
+        await self.bot.say(":gun: :arrows_counterclockwise:")
+
+    @russian_roulette.command(pass_context=True)
+    async def reload(self, ctx, bullets: int):
+        """Reload the gun with a certain number of bullets."""
+        self.gun[ctx.message.server.id] = [0, 0, 0, 0, 0, 0]
+        while sum(self.gun[ctx.message.server.id]) < bullets:
+            self.gun[ctx.message.server.id][random.randint(0, 5)] = 1
+        await self.bot.say("There are now {} bullets in the gun.".format(bullets))
 
 
 def setup(bot):
