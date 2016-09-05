@@ -207,6 +207,9 @@ class RNG:
     @russian_roulette.command(pass_context=True)
     async def reload(self, ctx, bullets: int):
         """Reload the gun with a certain number of bullets."""
+        if bullets not in range(0, 7):
+            await self.bot.say("Slow down there partner.")
+            return
         self.gun[ctx.message.server.id] = [0, 0, 0, 0, 0, 0]
         while sum(self.gun[ctx.message.server.id]) < bullets:
             self.gun[ctx.message.server.id][random.randint(0, 5)] = 1
