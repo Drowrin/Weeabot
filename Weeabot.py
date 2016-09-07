@@ -38,6 +38,7 @@ class Weeabot(commands.Bot):
         self.owner = None  # set in on_ready
         self.config = Config('config.json')
         self.content = Config('content.json')
+        self.server_configs = open_json('servers.json')
         self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
@@ -158,6 +159,21 @@ async def reload_extension(ext):
         await bot.say('{} reloaded.'.format(ext))
 
 
+@bot.command(pass_context=True)
+@is_server_owner()
+async def autorole(ctx, role: str):
+    """Automatically assign a role to new members."""
+    try:
+        role = commands.RoleConverter(ctx, role).convert()
+    except commands.BadArgument:
+        await bot.say("Can't find {}".format(role))
+        return
+    bot.server_configs.get(role.server.id, {})['autorole'] = role.id
+    with open('servers.json', 'w') as f:
+        json.dump(bot.server_configs, f, ensure_ascii=True)
+    await bot.say("New members will now be given the {} role.".format(role.name))
+
+
 @bot.event
 async def on_command_error(err, ctx):
     d = ctx.message.channel
@@ -181,6 +197,17 @@ async def on_server_join(server):
     """Called when the bot joins a server or creates one."""
     await bot.send_message(bot.owner, "Joined Server: {}".format(server))
     await bot.send_message(server.default_channel, "Hello! use ~help and ~services to see what I can do.")
+
+
+@bot.event
+async def on_member_join(member):
+    """Called whenever a new member joins a server."""
+    try:
+        ar = bot.server_configs[member.server.id]['autorole']
+        role = discord.utils.get(member.server.roles, id=ar)
+        bot.add_roles(member, role)
+    except KeyError:
+        pass
 
 
 @bot.event

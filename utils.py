@@ -16,7 +16,8 @@ def is_owner():
 def is_server_owner():
     """Decorator to allow a command to run only if called by the server owner."""
     return commands.check(lambda ctx: not ctx.message.channel.is_private and
-                          ctx.message.server.owner.id == ctx.message.author.id)
+                          (ctx.message.server.owner.id == ctx.message.author.id or
+                           ctx.message.author.id == ctx.bot.owner.id))
 
 
 def testing(ctx):
@@ -60,6 +61,7 @@ def tools():
 
 def is_channel(name: str):
     """Decorator to allow a command to run only if it is in a specified channel (by name)."""
+
     def _is_channel(ctx):
         try:
             ch = commands.ChannelConverter(ctx, name).convert()
@@ -68,6 +70,7 @@ def is_channel(name: str):
         if ctx.message.channel.id != ch.id:
             raise commands.CheckFailure('Only allowed in {}.'.format(ch.mention))
         return True
+
     return commands.check(_is_channel)
 
 
@@ -141,7 +144,7 @@ def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, b
         If ``True`` is returned, the request system is bypassed.
         Defaults to ``any``.
     """
-    
+
     def request_predicate(ctx):
         # tools cog must be loaded to use requests.
         if not loaded_tools(ctx.bot):
@@ -170,7 +173,7 @@ def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, b
         # Otherwise, this is a fresh request, add it to the server level.
         ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, ctx.message.server.id))
         return False
-    
+
     return commands.check(request_predicate)
 
 
@@ -223,6 +226,7 @@ def get_random_file(d: str, s: str, t: str = None):
 
 class SessionCog:
     """Simple class to take care of using a aiohttp session in a cog."""
+
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
