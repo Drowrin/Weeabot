@@ -143,7 +143,7 @@ class Images(SessionCog):
 
         Optional argument is a time window following reddit's time windows."""
         tmp = await self.bot.say("getting image from r/%s" % sub)
-        gal = await self.bot.loop.run_in_executor(imgur.get_subreddit_gallery(sub, sort='top', window=window, limit=50))
+        gal = imgur.get_subreddit_gallery(sub, sort='top', window=window, limit=50)
         if len(gal) <= 1:
             await self.bot.edit_message(tmp, 'no images found at r/%s. did you spell it right?' % sub)
             return
