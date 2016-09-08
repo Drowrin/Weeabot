@@ -46,6 +46,10 @@ class Weeabot(commands.Bot):
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.tools')
         self.loop.create_task(self.load_extensions())
+
+    def dump_server_configs(self):
+        with open('servers.json', 'w') as f:
+            json.dump(self.server_configs, f, ensure_ascii=True)
     
     @property
     def profiles(self):
@@ -173,8 +177,7 @@ async def autorole(ctx, role: str):
         await bot.say("Can't find {}".format(role))
         return
     bot.server_configs.get(role.server.id, {})['autorole'] = role.id
-    with open('servers.json', 'w') as f:
-        json.dump(bot.server_configs, f, ensure_ascii=True)
+    bot.dump_server_configs()
     await bot.say("New members will now be given the {} role.".format(role.name))
 
 
