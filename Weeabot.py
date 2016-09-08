@@ -212,7 +212,7 @@ async def on_member_join(member):
     try:
         ar = bot.server_configs[member.server.id]['autorole']
         role = discord.utils.get(member.server.roles, id=ar)
-        bot.add_roles(member, role)
+        await bot.add_roles(member, role)
     except KeyError:
         pass
 
