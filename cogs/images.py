@@ -126,7 +126,7 @@ class Images(SessionCog):
                 return
         for link in links:
             if '//imgur.com/' in link:
-                link = (await self.bot.loop.run_in_executor(imgur.get_image(link.split('/')[-1]))).link
+                link = imgur.get_image(link.split('/')[-1]).link
             name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
             if name in listdir(path.join(coldir, collection)):
                 await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
