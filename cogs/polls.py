@@ -58,7 +58,8 @@ class Polls:
     @has_polls_channel()
     async def poll(self, ctx, poll_id: str, answer_index: int):
         """Respond to a poll."""
-        if poll_id not in self.polls or ctx.message.server.id != self.polls[poll_id]['server']:
+        if poll_id not in self.polls or ((not ctx.message.channel.is_private) and 
+                                         ctx.message.server.id != self.polls[poll_id]['server']):
             await self.bot.say('Poll not found.')
             return
         try:
