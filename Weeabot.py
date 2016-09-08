@@ -122,6 +122,8 @@ async def load_extension(ext):
     """Load an extension."""
     # noinspection PyBroadException
     try:
+        if not ext.startswith('cogs.'):
+            ext = 'cogs.{}'.format(ext)
         bot.load_extension(ext)
     except Exception:
         await bot.say('```py\n{}\n```'.format(traceback.format_exc()))
@@ -151,6 +153,8 @@ async def reload_extension(ext):
     """Reload an extension."""
     # noinspection PyBroadException
     try:
+        if not ext.startswith('cogs.'):
+            ext = 'cogs.{}'.format(ext)
         bot.unload_extension(ext)
         bot.load_extension(ext)
     except Exception:
