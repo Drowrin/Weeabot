@@ -95,6 +95,7 @@ class Polls:
         }
         self.dump()
         await self.update_polls(ctx.message.server)
+        await self.bot.say("Added poll:\n{} -- {}\n{}".format(poll_id, question, '\n'.join(['{}: {}'.format(i, a) for i, a in enumerate(answers)])))
 
     @poll.command(name='close', pass_context=True)
     @has_polls_channel()
