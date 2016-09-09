@@ -55,7 +55,6 @@ class Polls:
         self.bot.dump_server_configs()
 
     @commands.group(invoke_without_command=True, pass_context=True)
-    @has_polls_channel()
     async def poll(self, ctx, poll_id: str, answer_index: int):
         """Respond to a poll."""
         if poll_id not in self.polls or ((not ctx.message.channel.is_private) and 
