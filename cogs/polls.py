@@ -56,7 +56,10 @@ class Polls:
 
     @commands.group(invoke_without_command=True, pass_context=True)
     async def poll(self, ctx, poll_id: str, answer_index: int):
-        """Respond to a poll."""
+        """Respond to a poll.
+
+        Poll ids are global. This means you can PM the bot this command for anonymous responses.
+        (The bot will still know who made the vote, of course, but your fellow server members won't)"""
         if poll_id not in self.polls or ((not ctx.message.channel.is_private) and 
                                          ctx.message.server.id != self.polls[poll_id]['server']):
             await self.bot.say('Poll not found.')
