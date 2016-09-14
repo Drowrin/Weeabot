@@ -150,7 +150,7 @@ class Pointless(SessionCog):
     @commands.command(pass_context=True)
     async def do(self, ctx, n: int, *, command):
         """Repeat a command up to 5 times."""
-        banned = ['~req']
+        banned = ['~req', '~do']
         if any([x in command for x in banned]):
             await self.bot.say("That command may not be used.")
             return
