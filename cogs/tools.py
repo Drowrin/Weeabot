@@ -1,4 +1,6 @@
 # noinspection PyUnresolvedReferences
+import traceback
+
 import discord
 import inspect
 import copy
@@ -318,6 +320,31 @@ class Tools(SessionCog):
             return
         
         await self.bot.say(python.format(result))
+
+    @commands.command(pass_context=True, aliases=('exec',))
+    @is_owner()
+    async def execute(self, ctx, *, code: str):
+        """Evaluates an expression to see what is happening internally."""
+        code = code.strip('` ')
+        python = '```py\n{}\n```'
+
+        env = {
+            'bot': self.bot,
+            'ctx': ctx,
+            'message': ctx.message,
+            'server': ctx.message.server,
+            'channel': ctx.message.channel,
+            'author': ctx.message.author
+        }
+
+        env.update(globals())
+
+        # noinspection PyBroadException
+        try:
+            exec(code, env)
+            await self.bot.say('\N{OK HAND SIGN}')
+        except Exception:
+            await self.bot.say(python.format(traceback.format_exc()))
 
     @commands.command()
     @is_owner()
