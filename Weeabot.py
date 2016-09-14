@@ -13,9 +13,9 @@ from os import listdir
 
 
 class Config:
-    def __init__(self, path):
-        self.path = path
-        self._db = open_json(path)
+    def __init__(self, config_path):
+        self.path = config_path
+        self._db = open_json(config_path)
         self.__dict__.update(self._db)
 
     def __getattr__(self, name):
