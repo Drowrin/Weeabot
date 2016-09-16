@@ -108,7 +108,7 @@ class Polls:
             message = self.bot.server_configs.get(server.id, {}).get('polls_message', None)
             if message is None:
                 message = await self.bot.send_message(channel, "Polls")
-                self.bot.server_configs.get(server.id, {})['polls_message'] = message.id
+                self.bot.server_configs[server.id]['polls_message'] = message.id
                 self.bot.dump_server_configs()
             else:
                 message = await self.bot.get_message(server.get_channel(polls_channel(self.bot, server)), message)
@@ -130,7 +130,9 @@ class Polls:
     @is_server_owner()
     async def set_polls_channel(self, channel: discord.Channel):
         """Set the channel polls will be displayed in. It is recommended that only the bot and moderators can speak."""
-        self.bot.server_configs.get(channel.server.id, {})['polls_channel'] = channel.id
+        if channel.server.id not in self.bot.server_configs:
+            self.bot.server_configs[channel.server.id] = {}
+        self.bot.server_configs[channel.server.id]['polls_channel'] = channel.id
         await self.bot.say('Polls will be displayed in {}.'.format(channel.mention))
         self.bot.dump_server_configs()
 
