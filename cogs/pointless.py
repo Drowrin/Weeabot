@@ -99,6 +99,15 @@ class Pointless(SessionCog):
         ))
 
     @commands.command()
+    async def nutshack(self):
+        """I T S T H E N U T S H A C K"""
+        await self.bot.say('{} {}{}{}{}'.format('https://youtu.be/0I_OEDuUKYI',
+                                                "Ì ̴̼͓͙̗̞̖̞T͉̿̌̀ͅ ̗́S̵͖͌ͨ͑̓",
+                                                "T̼̹̖̼̙̯͖̔͑̀ͫ ̣̩̭̞͒ͣ̿̆ͧ̌H̜̮̱͖̳͕͈ ̘̟̌̄̓̑̽͒͆͡E͖̲̿͡ ̒ͭ̑̏ͯ",
+                                                "N̵͉̗͉͔͒̏͋̽̉ͅ ̸̖̱̫͔̪͌̃̾̐ͫU̸̺ ̨̖̗̻͖̙͙͔Ṯ̥ͥͭ͘ ̩ͬ̆ͮ",
+                                                "Ș̣̰͕̱̔ͬͯ͌̑ ̲̪̎ͨ̒ͥͤH̠͙̲̠ͤ̿ͤ̚͟ ̶̹͔̑̃A͔̦̰ ̙͚͚̜̮̍̄ͮC͗͌̍̍͋͒͋҉͕̦ ̷̻̩ͅK̲͕̝͜"))
+
+    @commands.command()
     async def charname(self, *, char: str):
         """Look up the name of a char"""
         char = char.replace(' ', '')
