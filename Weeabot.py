@@ -39,6 +39,7 @@ class Weeabot(commands.Bot):
         self.config = Config('config.json')
         self.content = Config('content.json')
         self.server_configs = open_json('servers.json')
+        self.status = open_json('status.json')
         self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
@@ -50,6 +51,10 @@ class Weeabot(commands.Bot):
     def dump_server_configs(self):
         with open('servers.json', 'w') as f:
             json.dump(self.server_configs, f, ensure_ascii=True)
+
+    def dump_status(self):
+        with open('status.json', 'w') as f:
+            json.dump(self.status, f, ensure_ascii=True)
     
     @property
     def profiles(self):
