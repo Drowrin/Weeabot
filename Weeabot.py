@@ -170,8 +170,6 @@ class Weeabot(commands.Bot):
         self.formatters = {}
         self.verbose_formatters = {}
         self.defaults = {}
-        self.load_extension('cogs.profiles')
-        self.load_extension('cogs.tools')
         self.loop.create_task(self.load_extensions())
 
     def dump_server_configs(self):
@@ -193,6 +191,8 @@ class Weeabot(commands.Bot):
     async def load_extensions(self):
         """Load extensions and handle errors."""
         await self.wait_until_ready()
+        self.load_extension('cogs.profiles')
+        self.load_extension('cogs.tools')
         for ext in self.config.base_extensions:
             try:
                 self.load_extension(ext)
