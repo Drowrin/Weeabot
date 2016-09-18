@@ -156,7 +156,7 @@ class Pointless(SessionCog):
         for prompt in self.bot.content.reactions:
             if prompt in message.content.lower():
                 r = self.bot.content.reactions[prompt][1]
-                i = get_random_file(path.join('images', 'collections'), self.bot.content.reactions[prompt][0])
+                i = self.bot.tag_map[self.bot.content.reactions[prompt][0]].image
                 if i is None:
                     await self.bot.send_message(message.channel, r)
                 else:
