@@ -145,7 +145,7 @@ class Tools(SessionCog):
     async def glob_list(self):
             await self.bot.say(self.message('owner'))
 
-    @req.group(pass_context=True, aliases=('a',), invoke_without_command=True)
+    @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
     @is_server_owner()
     async def accept(self, ctx, *, indexes: str=None):
         """Accept requests made by users."""
