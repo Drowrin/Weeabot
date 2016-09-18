@@ -8,8 +8,133 @@ import random
 import traceback
 import asyncio
 
+from collections import defaultdict
+
 from utils import *
-from os import listdir
+import os
+
+
+class TagItem:
+    """Data class containing a response to a tag."""
+
+    async def none(self, ctx):
+        if self.image is not None:
+            await ctx.bot.send_file(ctx.message.channel, self.image, content=self.str(ctx))
+        else:
+            await ctx.bot.send_message(ctx.message.channel, self.str(ctx))
+
+    async def simple(self, ctx):
+        if self.image is not None:
+            await ctx.bot.send_file(ctx.message.channel, self.image, content=self.text)
+        else:
+            await ctx.bot.send_message(ctx.message.channel, self.text)
+
+    methods = {None: none, "simple": simple}
+
+    def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
+                 text: str = None, image: str = None, location: str = None):
+        self.id = item_id
+        self.author = author
+        self.timestamp = timestamp
+        self.tags = tags
+        self.text = text
+        self.image = image
+        self.location = location
+        self.method = method
+
+    def as_json(self):
+        """json safe value."""
+        return {
+            "item_id": self.id,
+            "author": self.author,
+            "timestamp": self.timestamp,
+            "tags": self.tags,
+            "text": self.text,
+            "image": self.image,
+            "location": self.location,
+            "method": self.method
+        }
+
+    def str(self, ctx):
+        if ctx.message.channel.is_private:
+            name = discord.utils.get(ctx.bot.get(ctx.bot.get_all_members(), id=self.author)).name
+        else:
+            name = ctx.message.server.get_member(self.author).display_name
+        return "{}(id:{}) by {} at {}{}".format(', '.join(self.tags), self.id, name, self.timestamp,
+                                                ('\n' + self.text) if self.text is not None else '')
+
+    async def run(self, ctx):
+        """Perform the action specific to this tag."""
+        await self.methods[self.method](self, ctx)
+
+
+class TagMap:
+    """Data structure similar to a map, but items can have multiple keys.
+    Unlike a map, the structure is intended for getting 'an item, any item' matching a description.
+    Since it is sometimes necessary to remove or edit items, they can still be accessed by unique indexes."""
+
+    def __init__(self, json_path: str):
+        """Construct a TagMap from a json file specified by path."""
+        self.path = json_path
+        json_data = open_json(self.path) or {"tags": {}, "items": []}
+        self._tags = defaultdict(list)
+        self._tags.update(json_data["tags"])
+        self._items = [TagItem(**v) for v in json_data["items"]]
+        self.dump()
+
+    def dump(self):
+        """Save the TagMap to the path given originally as a json file."""
+        with open(self.path, 'w') as f:
+            json.dump({"tags": dict(self._tags), "items": [i.as_json() for i in self._items]}, f, ensure_ascii=True)
+
+    def __getitem__(self, item):
+        """Get an item that has the specified tag. Not unique."""
+        if item not in self._tags:
+            raise KeyError
+        return self._items[random.choice(self._tags[item])]
+
+    def __setitem__(self, key, value):
+        """Add a new item and assign it a tag."""
+        index = len(self._items)
+        value.id = index
+        self._items.append(value)
+        self._tags[key].append(index)
+        self.dump()
+
+    @property
+    def taglist(self):
+        """List of all tags."""
+        return self._tags.keys()
+
+    def add_tag(self, item_id: int, name: str):
+        """Add a tag to an already existing item. If an item already has that tag, it will not be duplicated."""
+        if name in self._items[item_id].tags:
+            return
+        self._items[item_id].tags.append(name)
+        self._tags[name].append(item_id)
+        self.dump()
+
+    def remove_tag(self, name: str):
+        """remove a tag from the database. does not remove the items tagged with it unless they have 0 tags left."""
+        items = self._tags.pop(name)
+        for item in items:
+            self._items[item].tags.remove(name)
+            if len(self._items[item].tags) == 0:
+                del self._items[item]
+        self.dump()
+
+    def get_all_tag(self, name: str):
+        """Get all items with a specific tag."""
+        return self._tags[name]
+
+    def get_by_id(self, item_id: int):
+        """Get an item by its unique id."""
+        return self._items[item_id]
+
+    def set_by_id(self, item_id: int, item):
+        """Set an item by its unique id."""
+        self._items[item_id] = item
+        self.dump()
 
 
 class Config:
@@ -40,6 +165,7 @@ class Weeabot(commands.Bot):
         self.content = Config('content.json')
         self.server_configs = open_json('servers.json')
         self.status = open_json('status.json')
+        self.tag_map = TagMap('tag_database.json')
         self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
@@ -122,7 +248,7 @@ async def extensions():
 
     Invoke without a subcommand to list extensions."""
     await bot.say('Loaded: {}\nAll: {}'.format(' '.join(bot.cogs.keys()),
-                                               ' '.join([x for x in listdir('cogs') if '.py' in x])))
+                                               ' '.join([x for x in os.listdir('cogs') if '.py' in x])))
 
 
 @extensions.command(name='load', alises=('l',))
@@ -186,6 +312,84 @@ async def autorole(ctx, role: str):
     await bot.say("New members will now be given the {} role.".format(role.name))
 
 
+@bot.group(pass_context=True, invoke_without_command=True)
+async def tag(ctx, name):
+    """Get a random tag matching the name."""
+    try:
+        await bot.tag_map[name].run(ctx)
+    except KeyError:
+        await bot.say('Tag "{}" not found.'.format(name))
+
+
+@tag.command(pass_context=True, name='id')
+async def _tag_id(ctx, item_id: int):
+    """Get a tag by id."""
+    try:
+        await bot.tag_map.get_by_id(item_id).run(ctx)
+    except IndexError:
+        await bot.say("id not found.")
+
+
+@tag.command(name='list')
+async def _tag_list():
+    """List the available tags."""
+    await bot.say(", ".join(bot.tag_map.taglist))
+
+
+@tag.command(pass_context=True, name='add')
+@request()
+async def _tag_add(ctx, name: str, *, text: str=''):
+    """Add a tag to the database."""
+    i_path = None
+    if len(ctx.message.attachments) > 0:
+        async with aiohttp.ClientSession() as session:
+            link = ctx.message.attachments[0]['url']
+            n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+            await download(session, link, os.path.join('images', n))
+            i_path = os.path.join('images', n)
+    t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text or None, image=i_path)
+    bot.tag_map[name] = t
+    await t.run(ctx)
+
+
+@tag.command(pass_context=True, name='addtags')
+@request()
+async def _addtags(ctx, item_id: int, *names):
+    """Add tags to a response."""
+    try:
+        for n in names:
+            bot.tag_map.add_tag(item_id, n)
+    except IndexError:
+        await bot.say("Response id not found.")
+        return
+    await bot.tag_map.get_by_id(item_id).run(ctx)
+
+
+@tag.command(name='remove')
+@request()
+async def _removetags(*names):
+    """Remove tags. The items will remain unless they reach 0 tags."""
+    for name in names:
+        if name in bot.tag_map.taglist:
+            bot.tag_map.remove_tag(name)
+        else:
+            await bot.say('Tag "{}" not found.'.format(name))
+    await bot.say("\N{OK HAND SIGN}")
+
+
+@tag.command(pass_context=True, name='tagmethod')
+@request()
+async def _tagmethod(ctx, item_id: int, method: str):
+    """Set the method a tag uses."""
+    try:
+        bot.tag_map.get_by_id(item_id).method = method
+        bot.tag_map.dump()
+    except IndexError:
+        await bot.say("Response id not found.")
+        return
+    await bot.tag_map.get_by_id(item_id).run(ctx)
+
+
 @bot.event
 async def on_command_error(err, ctx):
     d = ctx.message.channel
@@ -199,7 +403,8 @@ async def on_command_error(err, ctx):
         if not str(err).startswith('The check functions'):
             await bot.send_message(d, err)
     elif type(err) is commands.CommandNotFound:
-        pass
+        if ctx.invoked_with in ctx.bot.tag_map.taglist:
+            await ctx.bot.tag_map[ctx.invoked_with].run(ctx)
     else:
         raise err
 

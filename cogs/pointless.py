@@ -91,23 +91,6 @@ class Pointless(SessionCog):
         await self.bot.say('      '.join(text.translate(emoji).split()))
 
     @commands.command()
-    async def jojoke(self):
-        """ゴ"""
-        await self.bot.say('{0}\n{0}\n{0}\n\n{1}\n\n{0}\n{0}\n{0}'.format(
-            "ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ ゴ",
-            "ＴＨＩＳ ＭＵＳＴ ＢＥ ＴＨＥ ＷＯＲＫ ＯＦ ＡＮ ＥＮＥＭＹ 「ＳＴＡＮＤ」！！"
-        ))
-
-    @commands.command()
-    async def nutshack(self):
-        """I T S T H E N U T S H A C K"""
-        await self.bot.say('{} {}{}{}{}'.format('https://youtu.be/0I_OEDuUKYI',
-                                                "Ì ̴̼͓͙̗̞̖̞T͉̿̌̀ͅ ̗́S̵͖͌ͨ͑̓",
-                                                "T̼̹̖̼̙̯͖̔͑̀ͫ ̣̩̭̞͒ͣ̿̆ͧ̌H̜̮̱͖̳͕͈ ̘̟̌̄̓̑̽͒͆͡E͖̲̿͡ ̒ͭ̑̏ͯ",
-                                                "N̵͉̗͉͔͒̏͋̽̉ͅ ̸̖̱̫͔̪͌̃̾̐ͫU̸̺ ̨̖̗̻͖̙͙͔Ṯ̥ͥͭ͘ ̩ͬ̆ͮ",
-                                                "Ș̣̰͕̱̔ͬͯ͌̑ ̲̪̎ͨ̒ͥͤH̠͙̲̠ͤ̿ͤ̚͟ ̶̹͔̑̃A͔̦̰ ̙͚͚̜̮̍̄ͮC͗͌̍̍͋͒͋҉͕̦ ̷̻̩ͅK̲͕̝͜"))
-
-    @commands.command()
     async def charname(self, *, char: str):
         """Look up the name of a char"""
         char = char.replace(' ', '')
@@ -137,10 +120,6 @@ class Pointless(SessionCog):
         url = "https://www.foaas.com/{}/{}/{}".format(random.choice(d), name, ctx.message.author.mention)
         async with self.session.get(url, headers=headers) as r:
             await self.bot.say(await r.text())
-
-    @commands.command(aliases=('no',))
-    async def yes(self):
-        await self.bot.say("yes")
 
     @commands.command(pass_context=True)
     async def rip(self, ctx, ripped: str=None):

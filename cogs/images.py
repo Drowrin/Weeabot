@@ -112,7 +112,7 @@ class Images(SessionCog):
 
         If you are not the owner, sends a request to them.
         The owner can add images and also new categories using this command."""
-        links = link or [x['proxy_url'] for x in ctx.message.attachments]
+        links = link or [x['url'] for x in ctx.message.attachments]
         if not links:
             raise commands.BadArgument('Invalid Usage: No images.')
         coldir = path.join('images', 'collections')
