@@ -161,15 +161,22 @@ class Pointless(SessionCog):
                     await self.bot.send_message(message.channel, r)
                 else:
                     await self.bot.send_file(message.channel, i, content=r)
+        if any([
+            (x in message.content.lower()) for x in [
+                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
+            ]
+        ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
+            await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
+            return
+        if message.content.startswith(message.server.me.mention if message.server else self.bot.user.mention):
+            await self.bot.send_message(message.channel, "{} {}".format(
+                message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
+            return
         if "\N{OK HAND SIGN}" in message.content:
             self.oc += 1
             if not self.oc % 3:
                 await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
                 return
-        if message.content.startswith(message.server.me.mention if message.server else self.bot.user.mention):
-            await self.bot.send_message(message.channel, "{} {}".format(
-                message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
-            return
 
 
 def setup(bot):
