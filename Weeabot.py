@@ -82,13 +82,14 @@ class TagMap:
         json_data = open_json(self.path) or {"tags": {}, "items": []}
         self._tags = defaultdict(list)
         self._tags.update(json_data["tags"])
-        self._items = [TagItem(**v) for v in json_data["items"]]
+        self._items = [None if v is None else TagItem(**v) for v in json_data["items"] ]
         self.dump()
 
     def dump(self):
         """Save the TagMap to the path given originally as a json file."""
         with open(self.path, 'w') as f:
-            json.dump({"tags": dict(self._tags), "items": [i.as_json() for i in self._items]}, f, ensure_ascii=True)
+            json.dump({"tags": dict(self._tags),
+                       "items": [None if i is None else i.as_json() for i in self._items]}, f, ensure_ascii=True)
 
     def get(self, item, predicate=None):
         if item not in self._tags:
@@ -120,7 +121,7 @@ class TagMap:
 
     def add_tag(self, item_id: int, name: str):
         """Add a tag to an already existing item. If an item already has that tag, it will not be duplicated."""
-        if name in self._items[item_id].tags:
+        if name in self.get_by_id(item_id).tags:
             return
         self._items[item_id].tags.append(name)
         self._tags[name].append(item_id)
@@ -132,7 +133,15 @@ class TagMap:
         for item in items:
             self._items[item].tags.remove(name)
             if len(self._items[item].tags) == 0:
-                del self._items[item]
+                self.delete(item)
+        self.dump()
+
+    def delete(self, item: int):
+        for t in self.get_by_id(item).tags:
+            self._tags[t].remove(item)
+        self._items[item] = None
+        while self._items[-1] is None:
+            del self._items[-1]
         self.dump()
 
     def get_all_tag(self, name: str):
@@ -141,7 +150,10 @@ class TagMap:
 
     def get_by_id(self, item_id: int):
         """Get an item by its unique id."""
-        return self._items[item_id]
+        t = self._items[item_id]
+        if t is None:
+            raise IndexError
+        return t
 
     def set_by_id(self, item_id: int, item):
         """Set an item by its unique id."""
@@ -349,7 +361,7 @@ async def _tag_list():
 
 
 @tag.command(pass_context=True, name='add')
-@request()
+@request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
 async def _tag_add(ctx, name: str, *, text: str=''):
     """Add a tag to the database."""
     i_path = None
@@ -387,6 +399,26 @@ async def _removetags(*names):
         else:
             await bot.say('Tag "{}" not found.'.format(name))
     await bot.say("\N{OK HAND SIGN}")
+
+
+@tag.command(name='removetag')
+@request()
+async def _remove_tags_from(item_id: int, *names: str):
+    """Removes tags from an item. if all tags are removed from an item, it is deleted."""
+    try:
+        t = bot.tag_map.get_by_id(item_id)
+    except IndexError:
+        await bot.say("id not found.")
+        return
+    for name in names:
+        if name in t.tags:
+            t.tags.remove(name)
+        else:
+            await bot.say("id {} does not have {}.".format(item_id, name))
+    if len(t.tags) == 0:
+        bot.tag_map.delete(item_id)
+    await bot.say("Done.")
+    bot.tag_map.dump()
 
 
 @tag.command(pass_context=True, name='tagmethod')
