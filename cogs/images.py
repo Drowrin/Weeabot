@@ -4,6 +4,8 @@ import discord
 import random
 import pyimgur
 import xmltodict
+import traceback
+import datetime
 
 from PIL import Image, ImageFont, ImageDraw
 
@@ -14,6 +16,8 @@ from os import path
 from os import listdir
 from os import makedirs
 from io import BytesIO
+
+from Weeabot import TagItem
 
 imgur = pyimgur.Imgur(tokens['imgur_token'], tokens["imgur_secret"])
 
@@ -57,20 +61,87 @@ class Images(SessionCog):
                 t = user
         await self.baka_image(t)
 
+    @commands.command()
+    @is_owner()
+    async def convert_images_to_tag(self):
+        """Use to convert preexisting image libraries to the tag system."""
+        col_count = 0
+        tag_count = 0
+        for col in listdir(path.join('images', 'collections')):
+            coldir = path.join('images', 'collections', col)
+            for im in listdir(coldir):
+                # noinspection PyBroadException
+                try:
+                    t = TagItem(
+                        self.bot.user.id,
+                        str(datetime.datetime.fromtimestamp(int(path.getmtime(path.join(coldir, im))))),
+                        [col],
+                        text=None,
+                        image=path.join(coldir, im)
+                    )
+                    self.bot.tag_map[col] = t
+                    tag_count += 1
+                except:
+                    await self.bot.say(traceback.format_exc())
+            col_count += 1
+        await self.bot.say("Imported {} items into {} tags. :ok_hand:".format(tag_count, col_count))
+
     @commands.group(pass_context=True, invoke_without_command=True, aliases=('i',))
     async def image(self, ctx, category: str, filetype: str=None):
         """Image commands.
 
         Get an image from a category or search through several online services with subcommands."""
-        if ctx.invoked_subcommand is None:
-            f = get_random_file(path.join('images', 'collections'), category, filetype)
-            if f is None:
-                await self.bot.reply('Collection not found: {}'.format(category))
+
+        def predicate(tag: TagItem):
+            if tag.image is None:
+                return False
+            if filetype is None:
+                return True
+            if tag.image.endswith(filetype):
+                return True
+            return False
+
+        t = self.bot.tag_map.get(category, predicate=predicate)
+        if t is None:
+            await self.bot.say("None found.")
+            return
+        await t.run(ctx)
+
+    @image.command(pass_context=True, name='add')
+    @request()
+    async def _image_add(self, ctx, collection: str, *link: str):
+        """Request to add an image to a category.
+
+        If you are not the owner, sends a request to them.
+        The owner can add images and also new categories using this command."""
+        links = link or [x['url'] for x in ctx.message.attachments]
+        if not links:
+            raise commands.BadArgument('Invalid Usage: No images.')
+        coldir = path.join('images', 'collections')
+        if collection not in listdir(coldir):
+            await self.bot.send_message(self.bot.owner, "That collection doesn't exist, add it?")
+            msg = await self.bot.wait_for_message(author=self.bot.owner)
+            if 'yes' in msg.content.lower():
+                makedirs(path.join(coldir, collection))
+                await self.bot.notify("Added collection: {}".format(collection))
             else:
-                if 'baka' in f:
-                    await self.baka_image(ctx.message.author.display_name)
-                else:
-                    await self.bot.upload(f)
+                return
+        for link in links:
+            if '//imgur.com/' in link:
+                link = imgur.get_image(link.split('/')[-1]).link
+            name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+            if name in listdir(path.join(coldir, collection)):
+                await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
+                name = 'temp.png'
+            try:
+                await download(self.session, link, path.join(coldir, collection, name))
+                t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [collection],
+                            image=path.join(coldir, collection, name))
+                self.bot.tag_map[collection] = t
+                await t.run(ctx)
+            except OSError:
+                await self.bot.notify(
+                    "Invalid link. Make sure it points directly to the file and ends with a valid file extension.")
 
     @image.command(name='list')
     async def _image_list(self):
@@ -104,38 +175,6 @@ class Images(SessionCog):
                     await self.bot.edit_message(tmp, "No results")
             else:
                 await self.bot.edit_message(tmp, 'Something went wrong')
-
-    @image.command(pass_context=True, name='add')
-    @request()
-    async def _image_add(self, ctx, collection: str, *link: str):
-        """Request to add an image to a category.
-
-        If you are not the owner, sends a request to them.
-        The owner can add images and also new categories using this command."""
-        links = link or [x['url'] for x in ctx.message.attachments]
-        if not links:
-            raise commands.BadArgument('Invalid Usage: No images.')
-        coldir = path.join('images', 'collections')
-        if collection not in listdir(coldir):
-            await self.bot.send_message(self.bot.owner, "That collection doesn't exist, add it?")
-            msg = await self.bot.wait_for_message(author=self.bot.owner)
-            if 'yes' in msg.content.lower():
-                makedirs(path.join(coldir, collection))
-                await self.bot.notify("Added collection: {}".format(collection))
-            else:
-                return
-        for link in links:
-            if '//imgur.com/' in link:
-                link = imgur.get_image(link.split('/')[-1]).link
-            name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
-            if name in listdir(path.join(coldir, collection)):
-                await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
-                name = 'temp.png'
-            try:
-                await download(self.session, link, path.join(coldir, collection, name))
-                await self.bot.notify("Image added to {} as {}".format(collection, name))
-            except OSError:
-                await self.bot.notify("Invalid link. Make sure it points directly to the file and ends with a valid file extension.")
 
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):

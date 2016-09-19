@@ -29,7 +29,10 @@ class TagItem:
         else:
             await ctx.bot.send_message(ctx.message.channel, self.text)
 
-    methods = {None: none, "simple": simple}
+    async def baka(self, ctx):
+        await ctx.bot.get_cog("Images").baka_image(ctx.message.author.display_name)
+
+    methods = {None: none, "simple": simple, "baka": baka}
 
     def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
                  text: str = None, image: str = None, location: str = None):
@@ -87,11 +90,20 @@ class TagMap:
         with open(self.path, 'w') as f:
             json.dump({"tags": dict(self._tags), "items": [i.as_json() for i in self._items]}, f, ensure_ascii=True)
 
-    def __getitem__(self, item):
-        """Get an item that has the specified tag. Not unique."""
+    def get(self, item, predicate=None):
         if item not in self._tags:
             raise KeyError
-        return self._items[random.choice(self._tags[item])]
+        if predicate is not None:
+            items = [x for x in self._tags[item] if predicate(self._items[x])]
+        else:
+            items = self._tags[item]
+        if len(items) == 0:
+            return None
+        return self._items[random.choice(items)]
+
+    def __getitem__(self, item):
+        """Get an item that has the specified tag. Not unique."""
+        return self.get(item)
 
     def __setitem__(self, key, value):
         """Add a new item and assign it a tag."""
