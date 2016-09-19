@@ -104,14 +104,14 @@ class TagMap:
 
     def __getitem__(self, item):
         """Get an item that has the specified tag. Not unique."""
-        return self.get(item)
+        return self.get(item.lower())
 
     def __setitem__(self, key, value):
         """Add a new item and assign it a tag."""
         index = len(self._items)
         value.id = index
         self._items.append(value)
-        self._tags[key].append(index)
+        self._tags[key.lower()].append(index)
         self.dump()
 
     @property
@@ -447,7 +447,7 @@ async def on_command_error(err, ctx):
         if not str(err).startswith('The check functions'):
             await bot.send_message(d, err)
     elif type(err) is commands.CommandNotFound:
-        if ctx.invoked_with in ctx.bot.tag_map.taglist:
+        if ctx.invoked_with.lower() in ctx.bot.tag_map.taglist:
             await ctx.bot.tag_map[ctx.invoked_with].run(ctx)
     else:
         raise err
