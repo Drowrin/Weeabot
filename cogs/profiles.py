@@ -166,8 +166,8 @@ class Profile(SessionCog):
                 except KeyError as e:
                     await self.bot.say('{} not found in {}.\n{}'.format(field, usr.display_name, e))
 
-    @remove.command()
-    async def all(self, field: str):
+    @remove.command(name='all')
+    async def _all(self, field: str):
         """Remove a field from all profiles."""
         field = field.strip('\'"')
         for uid in self._db:

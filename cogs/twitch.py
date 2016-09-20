@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
@@ -78,7 +79,7 @@ class Twitch(SessionCog):
         while not self.bot.is_closed:
             for dest in self.channels:
                 serv = dest.server
-                twitchmembers = [mem for mem in serv.members if 'twitch' in up[mem.id]]
+                twitchmembers = [mem for mem in serv.members if 'twitch' in up.get(mem.id, {})]
                 for mem in twitchmembers:
                     try:
                         i = up[mem.id]['twitch']
@@ -93,6 +94,7 @@ class Twitch(SessionCog):
                             await self.bot.profiles.put_by_id(mem.id, 'twitch', i)
                     except (KeyError, TypeError):
                         pass
+                        # print(traceback.format_exc())
             await asyncio.sleep(300)
 
 
