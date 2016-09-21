@@ -35,7 +35,7 @@ class MAL(SessionCog):
             raise commands.BadArgument("{} has no saved MAL username.".format(user.display_name))
         mn = up['mal']
         params = {'u': mn, 'type': 'anime', 'status': 'all'}
-        async with self.session.get('http://myanimelist.net/malappinfo.php', params=params) as r:
+        async with self.session.get('https://myanimelist.net/malappinfo.php', params=params) as r:
             if r.status != 200:
                 return
             xml = xmltodict.parse(await r.text())
@@ -133,13 +133,14 @@ class MAL(SessionCog):
         common = {title: abs(int(dict1[title]['my_score']) - int(dict2[title]['my_score']))
                   for title in dict1.keys() if title in dict2.keys()}
         common = {title: common[title] for title in common.keys() if common[title] >= threshold and
-                  dict1[title]['myscores'] != '0' and dict2[title]['my_scores'] != '0'}
+                  dict1[title]['my_score'] != '0' and dict2[title]['my_score'] != '0'}
         if len(common) <= 0:
             await self.bot.edit_message(tmp, "Nothing in common, or no disagreements above the threshold.")
             return
-        wlist = [[title]*common[title] for title in common.keys()]
-        chosen = random.choice(wlist)[0]
-        await self.bot.edit_message("{}({}) should fight {}({}) about {}".format(
+        wlist = [title for title in common.keys()]
+        print(wlist)
+        chosen = random.choice(wlist)
+        await self.bot.edit_message(tmp, "{}({}) should fight {}({}) about {}".format(
             user1.mention, dict1[chosen]['my_score'], user2.mention, dict2[chosen]['my_score'], chosen))
 
 
