@@ -62,7 +62,10 @@ class TagItem:
         if ctx.message.channel.is_private:
             name = discord.utils.get(ctx.bot.get(ctx.bot.get_all_members(), id=self.author)).name
         else:
-            name = ctx.message.server.get_member(self.author).display_name
+            try:
+                name = ctx.message.server.get_member(self.author).display_name
+            except AttributeError:
+                name = discord.utils.get(ctx.bot.get(ctx.bot.get_all_members(), id=self.author)).name
         return "{}(id:{}) by {} at {}{}".format(', '.join(self.tags), self.id, name, self.timestamp,
                                                 ('\n' + self.text) if self.text is not None else '')
 
