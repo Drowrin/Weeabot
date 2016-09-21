@@ -138,7 +138,6 @@ class MAL(SessionCog):
             await self.bot.edit_message(tmp, "Nothing in common, or no disagreements above the threshold.")
             return
         wlist = [title for title in common.keys()]
-        print(wlist)
         chosen = random.choice(wlist)
         await self.bot.edit_message(tmp, "{}({}) should fight {}({}) about {}".format(
             user1.mention, dict1[chosen]['my_score'], user2.mention, dict2[chosen]['my_score'], chosen))
