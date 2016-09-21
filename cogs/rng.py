@@ -87,7 +87,7 @@ class RNG:
             else:
                 await self.bot.reply("You rolled a {} out of {}.".format(random.randint(1, int(sides)), sides))
         except ValueError:
-            raise commands.BadArgument("Incorrect die formatting.")
+            await self.bot.say("Incorrect die formatting.")
 
     @commands.command(name='8ball')
     async def eight_ball(self, *, question: str):
