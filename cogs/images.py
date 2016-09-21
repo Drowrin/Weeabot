@@ -101,7 +101,10 @@ class Images(SessionCog):
                 return True
             return False
 
-        t = self.bot.tag_map.get(category, predicate=predicate)
+        try:
+            t = self.bot.tag_map.get(category, predicate=predicate)
+        except KeyError:
+            t = None
         if t is None:
             await self.bot.say("None found.")
             return
