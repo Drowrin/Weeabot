@@ -32,6 +32,8 @@ class Pointless(SessionCog):
     async def aesthetic(self, ctx):
         """AESTHETIC"""
         text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
+        if len(text) == 0:
+            return
         translated = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ?!\"#$%&\'()*+,-./\\~'
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
         await self.bot.say(text.translate(fullwidth))
@@ -39,16 +41,19 @@ class Pointless(SessionCog):
     @text_command.command(aliases=('r',))
     async def reverse(self, *, text: str):
         """esreveR"""
+        # noinspection PyUnresolvedReferences
         await self.bot.say("\N{RIGHT-TO-LEFT OVERRIDE}{}\N{LEFT-TO-RIGHT OVERRIDE}".format(text))
 
     @text_command.command(pass_context=True, aliases=('z',))
     async def zalgo(self, ctx):
         """ZALGO"""
         source = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
+        if len(source) == 0:
+            return
         zalgo_chars = [chr(i) for i in range(0x0300, 0x036F + 1)]
         zalgo_chars.extend(['\u0488', '\u0489'])
         random_extras = [chr(i) for i in range(0x1D023, 0x1D046)]
-        source = ''.join([s + random.choice(random_extras) if random.randint(1, 5) == 1 else '' for s in source])
+        source = ''.join([s + (random.choice(random_extras) if random.randint(1, 5) == 1 else '') for s in source])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)))
                      for letter in source]
         await self.bot.say(''.join(zalgoized))
@@ -57,6 +62,8 @@ class Pointless(SessionCog):
     async def emoji(self, ctx):
         """EMOJI"""
         text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
+        if len(text) == 0:
+            return
         translated = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'
         translated_to = ''.join([
             '\N{NEGATIVE SQUARED LATIN CAPITAL LETTER A}',
