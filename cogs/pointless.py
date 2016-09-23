@@ -52,8 +52,6 @@ class Pointless(SessionCog):
             return
         zalgo_chars = [chr(i) for i in range(0x0300, 0x036F + 1)]
         zalgo_chars.extend(['\u0488', '\u0489'])
-        random_extras = [chr(i) for i in range(0x1D023, 0x1D046)]
-        source = ''.join([s + (random.choice(random_extras) if random.randint(1, 5) == 1 else '') for s in source])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)))
                      for letter in source]
         await self.bot.say(''.join(zalgoized))
@@ -175,7 +173,7 @@ class Pointless(SessionCog):
         ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
             await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
             return
-        if message.content.startswith(message.server.me.mention if message.server else self.bot.user.mention):
+        if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
             await self.bot.send_message(message.channel, "{} {}".format(
                 message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
             return
