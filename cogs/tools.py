@@ -299,7 +299,7 @@ class Tools(SessionCog):
         """Evaluates an expression to see what is happening internally."""
         code = code.strip('` ')
         python = '```py\n{}\n```'
-        
+
         env = {
             'bot': self.bot,
             'ctx': ctx,
@@ -308,9 +308,9 @@ class Tools(SessionCog):
             'channel': ctx.message.channel,
             'author': ctx.message.author
         }
-        
+
         env.update(globals())
-        
+
         try:
             result = eval(code, env)
             if inspect.isawaitable(result):
@@ -318,7 +318,7 @@ class Tools(SessionCog):
         except Exception as e:
             await self.bot.say(python.format('{}: {}'.format(type(e).__name__, e)))
             return
-        
+
         await self.bot.say(python.format(result))
 
     @commands.command(pass_context=True, aliases=('exec',))
@@ -345,6 +345,12 @@ class Tools(SessionCog):
             await self.bot.say('\N{OK HAND SIGN}')
         except Exception:
             await self.bot.say(python.format(traceback.format_exc()))
+
+    @commands.command(pass_context=True)
+    @is_owner()
+    async def inspect(self, ctx, m_id: str):
+        """Inspect the contents of a message."""
+        await self.bot.say(str([c for c in (await self.bot.get_message(ctx.message.channel, m_id)).content]))
 
     @commands.command()
     @is_owner()
