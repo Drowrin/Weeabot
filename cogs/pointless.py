@@ -4,6 +4,7 @@ import unicodedata
 # noinspection PyUnresolvedReferences
 import random
 import copy
+import re
 
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
@@ -15,7 +16,7 @@ from utils import *
 class Pointless(SessionCog):
     """Nothing to see here."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         super(Pointless, self).__init__(bot)
         self.cleverbot = Cleverbot()
         self.oc = 1
@@ -172,6 +173,12 @@ class Pointless(SessionCog):
             ]
         ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
             await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
+            return
+        if any([
+            (x in message.content.lower()) for x in [
+                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]])\
+                and re.search('f[^\s]*k', message.content.lower()) is not None:
+            await self.bot.delete_message(message)
             return
         if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
             await self.bot.send_message(message.channel, "{} {}".format(
