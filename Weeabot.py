@@ -60,7 +60,7 @@ class TagItem:
 
     def str(self, ctx):
         if ctx.message.channel.is_private:
-            name = discord.utils.get(ctx.bot.get(ctx.bot.get_all_members(), id=self.author)).name
+            name = discord.utils.get(ctx.bot.get_all_members(), id=self.author).name
         else:
             try:
                 name = ctx.message.server.get_member(self.author).display_name
@@ -488,7 +488,7 @@ async def random_status():
     while not bot.is_closed:
         n = random.choice(bot.content.statuses)
         g = discord.Game(name=n, url='', type=0)
-        await bot.change_status(game=g, idle=False)
+        await bot.change_presence(game=g)
         await asyncio.sleep(60)
 
 
