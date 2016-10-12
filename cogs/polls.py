@@ -10,7 +10,7 @@ def polls_channel(bot: discord.ext.commands.Bot, server: discord.Server):
 
 
 def has_polls_channel():
-    return commands.check(lambda ctx: polls_channel(ctx.bot, ctx.message.server) is not None)
+    return commands.check(lambda ctx: True if ctx.message.channel.is_private else polls_channel(ctx.bot, ctx.message.server) is not None)
 
 
 class Poll:
