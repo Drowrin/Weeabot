@@ -35,7 +35,7 @@ class Tools(SessionCog):
     server_limit = 30
     global_limit = 100
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         super(Tools, self).__init__(bot)
         self.path = 'requests.pkl'
         try:
@@ -204,15 +204,12 @@ class Tools(SessionCog):
 
     @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
     @is_server_owner()
-    async def reject(self, ctx, server: str, *, indexes: str=None):
+    async def reject(self, ctx, *, indexes: str=None):
         """Reject requests made by users.
         
         Use 'here' as the server argument to accept requests from this server.
         Otherwise use a server name."""
-        if server == 'here':
-            serv = ctx.message.server
-        else:
-            serv = discord.utils.get(self.bot.servers, name=server, owner=ctx.message.author)
+        serv = ctx.message.server
         if serv is None:
             await self.bot.say("Server not found.")
             return
@@ -250,22 +247,31 @@ class Tools(SessionCog):
     async def invite(self):
         """Get the oauth link for the bot."""
         perms = discord.Permissions.none()
-        perms.read_messages = True
-        perms.send_messages = True
-        perms.manage_roles = True
-        perms.ban_members = True
-        perms.kick_members = True
-        perms.manage_messages = True
-        perms.embed_links = True
-        perms.read_message_history = True
-        perms.attach_files = True
-        perms.external_emojis = True
+        perms.administrator = True
         await self.bot.say(discord.utils.oauth_url((await self.bot.application_info()).id, perms))
 
     @commands.command(aliases=('contribute',))
     async def source(self):
         """Link to the bot's repository."""
         await self.bot.say('<https://github.com/Drowrin/Weeabot>')
+
+    @commands.group()
+    async def emoji(self):
+        """Emoji related commands."""
+
+    @emoji.command(name='add', pass_context=True, no_pm=True)
+    @request(level=RequestLevel.server)
+    async def __add(self, ctx, name: str, link: str=None):
+        """Add an emoji by link or attachement."""
+        if link is None and len(ctx.message.attachments) == 0:
+            await self.bot.say("No image proovided.")
+            return
+        link = link or ctx.message.attachments[0]['url']
+        with await download_fp(self.session, link) as image:
+            try:
+                await self.bot.create_custom_emoji(ctx.message.server, name=name, image=image.read())
+            except:
+                await self.bot.say(traceback.print_exc())
 
     @commands.group()
     async def change(self):
