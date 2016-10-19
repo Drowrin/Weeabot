@@ -117,6 +117,9 @@ class TagMap:
         self._tags[key.lower()].append(index)
         self.dump()
 
+    def __len__(self):
+        return len(self._items)
+
     @property
     def taglist(self):
         """List of all tags."""
@@ -450,7 +453,15 @@ async def on_command_error(err, ctx):
         if not str(err).startswith('The check functions'):
             await bot.send_message(d, err)
     elif type(err) is commands.CommandNotFound:
-        if ctx.invoked_with.lower() in ctx.bot.tag_map.taglist:
+        if ctx.invoked_with.isdigit():
+            if int(ctx.invoked_with) < len(ctx.bot.tag_map):
+                try:
+                    await ctx.bot.tag_map.get_by_id(int(ctx.invoked_with)).run(ctx)
+                except IndexError:
+                    await ctx.bot.send_message(ctx.message.channel, "id not found.")
+            else:
+                await ctx.bot.send_message(ctx.message.channel, "id not found.")
+        elif ctx.invoked_with.lower() in ctx.bot.tag_map.taglist:
             await ctx.bot.tag_map[ctx.invoked_with].run(ctx)
     else:
         raise err
