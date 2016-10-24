@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 # noinspection PyUnresolvedReferences
 import discord
 # noinspection PyUnresolvedReferences
@@ -36,7 +37,10 @@ class Twitter(SessionCog):
         """Early implementation of reposting twitter images to discord."""
         await self.bot.wait_until_ready()
         while not self.bot.is_closed:
-            tweet = self.twitter.GetUserTimeline('4462881555')[0]
+            try:
+                tweet = self.twitter.GetUserTimeline('4462881555')[0]
+            except:
+                print("Connection to twitter failed. {}".format(datetime.datetime.now()))
             if tweet.text != self.last:
                 self.last = tweet.text
                 self.bot.status["last_tweet"] = tweet.text
