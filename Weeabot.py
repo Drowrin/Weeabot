@@ -65,7 +65,7 @@ class TagItem:
             try:
                 name = ctx.message.server.get_member(self.author).display_name
             except AttributeError:
-                name = discord.utils.get(ctx.bot.get(ctx.bot.get_all_members(), id=self.author)).name
+                name = discord.utils.get(ctx.bot.get_all_members(), id=self.author).name
         return "{}(id:{}) by {} at {}{}".format(', '.join(self.tags), self.id, name, self.timestamp,
                                                 ('\n' + self.text) if self.text is not None else '')
 
@@ -462,7 +462,7 @@ async def on_command_error(err, ctx):
             else:
                 await ctx.bot.send_message(ctx.message.channel, "id not found.")
         elif ctx.invoked_with.lower() in ctx.bot.tag_map.taglist:
-            await ctx.bot.tag_map[ctx.invoked_with].run(ctx)
+            await ctx.bot.tag_map[ctx.invoked_with.split()[0]].run(ctx)
     else:
         raise err
 
