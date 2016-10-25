@@ -448,7 +448,7 @@ async def on_command_error(err, ctx):
     elif type(err) is commands.DisabledCommand:
         await bot.send_message(d, 'This command is disabled.')
     elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
-        await bot.send_message(d, 'Invalid usage. Use {}help {}'.format(bot.command_prefix, ctx.command.name))
+        await bot.send_message(d, 'Invalid usage. Use {}help {}'.format(bot.command_prefix, full_command_name(ctx, ctx.command)))
     elif type(err) is commands.CheckFailure:
         if not str(err).startswith('The check functions'):
             await bot.send_message(d, err)
