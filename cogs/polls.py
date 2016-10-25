@@ -16,7 +16,7 @@ def has_polls_channel():
 class Poll:
     """Data class for poll variables. Includes a few helper methods."""
 
-    def __init__(self, question: str, answers: str, poll_id: str, ctx=None, **kwargs):
+    def __init__(self, question: str, answers, poll_id: str, ctx=None, **kwargs):
         """Stores poll data."""
         sid = None
         aid = None
@@ -165,7 +165,10 @@ class Polls:
                 p.users[aid] = [False] * len(p.answers)
             if not p.users[aid][answer_index]:
                 p.results[answer_index] += 1
-            p.users[aid][answer_index] = True
+                p.users[aid][answer_index] = True
+            else:
+                p.results[answer_index] -= 1
+                p.users[aid][answer_index] = False
         else:
             if ctx.message.author.id in p.users:
                 p.results[p.users[ctx.message.author.id]] -= 1
@@ -225,6 +228,34 @@ class Polls:
             await self.update_polls(p.server)
         else:
             await self.bot.say("You do not have permission to do that.")
+
+    @poll.command(name='remove', pass_context=True)
+    @has_polls_channel()
+    async def _remove(self, ctx, poll_id: str, answer_index: int=None):
+        """Remove a poll or answer."""
+        author = ctx.message.author
+        try:
+            p = self.polls[poll_id]
+        except KeyError:
+            await self.bot.say("Poll not found.")
+            return
+        if author.id not in [self.bot.owner.id, ctx.message.server.owner.id, p.author]:
+            await self.bot.say("You do not have permission to do that.")
+        if answer_index is None:
+            del self.polls[poll_id]
+            await self.update_polls(p.server)
+            await self.update_polls(p.server)
+            await self.bot.say("Poll {} removed.".format(poll_id))
+        else:
+            del p.answers[answer_index]
+            del p.results[answer_index]
+            if "multiple" in p.type:
+                for u in p.users:
+                    del p.users[u][answer_index]
+            else:
+                p.users = {u: p.users[u] for u in p.users if u != answer_index}
+            await self.update_polls(p.server)
+            await self.bot.say("Option {} removed from poll {}.".format(answer_index, poll_id))
 
     @poll.command(name='refresh', pass_context=True)
     @has_polls_channel()
