@@ -30,7 +30,7 @@ class TagItem:
             await ctx.bot.send_message(ctx.message.channel, self.text)
 
     async def baka(self, ctx):
-        await ctx.bot.get_cog("Images").baka_image(ctx.message.author.display_name)
+        await ctx.bot.get_cog("Images").baka_image(ctx, ctx.message.author.display_name)
 
     methods = {None: none, "simple": simple, "baka": baka}
 
@@ -148,6 +148,7 @@ class TagMap:
         self._items[item] = None
         while self._items[-1] is None:
             del self._items[-1]
+        self._tags = {t: self._tags[t] for t in self._tags if len(self._tags[t]) > 0}
         self.dump()
 
     def get_all_tag(self, name: str):
@@ -370,6 +371,9 @@ async def _tag_list():
 @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
 async def _tag_add(ctx, name: str, *, text: str=''):
     """Add a tag to the database."""
+    if name.isdigit():
+        await ctx.bot.say("Tags can not be numbers.")
+        return
     i_path = None
     if len(ctx.message.attachments) > 0:
         async with aiohttp.ClientSession() as session:
@@ -388,7 +392,10 @@ async def _addtags(ctx, item_id: int, *names):
     """Add tags to a response."""
     try:
         for n in names:
-            bot.tag_map.add_tag(item_id, n)
+            if n.isdigit():
+                await ctx.bot.say("{}: tags can not be numbers".format(n))
+            else:
+                bot.tag_map.add_tag(item_id, n)
     except IndexError:
         await bot.say("Response id not found.")
         return
@@ -397,34 +404,32 @@ async def _addtags(ctx, item_id: int, *names):
 
 @tag.command(name='remove')
 @request()
-async def _removetags(*names):
-    """Remove tags. The items will remain unless they reach 0 tags."""
-    for name in names:
-        if name in bot.tag_map.taglist:
-            bot.tag_map.remove_tag(name)
-        else:
-            await bot.say('Tag "{}" not found.'.format(name))
-    await bot.say("\N{OK HAND SIGN}")
+async def _tag_remove(target: str, *tags):
+    """Remove items or remove tags from an item.
 
-
-@tag.command(name='removetag')
-@request()
-async def _remove_tags_from(item_id: int, *names: str):
-    """Removes tags from an item. if all tags are removed from an item, it is deleted."""
-    try:
-        t = bot.tag_map.get_by_id(item_id)
-    except IndexError:
-        await bot.say("id not found.")
-        return
-    for name in names:
-        if name in t.tags:
-            t.tags.remove(name)
+    Input just an id to remove an item.
+    Input an id and one or more tag names to remove those tags from the item. If an item reaches 0 tags, it is removed.
+    Input a tag name to remove a tag."""
+    if target in bot.tag_map.taglist:
+        bot.tag_map.remove_tag(target)
+    else:
+        try:
+            t = bot.tag_map.get_by_id(int(target))
+        except (IndexError, ValueError):
+            await bot.say("{} not found.".format(target))
+            return
+        if len(tags) > 0:
+            for name in tags:
+                if name in t.tags:
+                    t.tags.remove(name)
+                else:
+                    await bot.say("id {} does not have {}.".format(target, name))
+            if len(t.tags) == 0:
+                bot.tag_map.delete(int(target))
         else:
-            await bot.say("id {} does not have {}.".format(item_id, name))
-    if len(t.tags) == 0:
-        bot.tag_map.delete(item_id)
-    await bot.say("Done.")
+            bot.tag_map.delete(int(target))
     bot.tag_map.dump()
+    await bot.say("\N{OK HAND SIGN}")
 
 
 @tag.command(pass_context=True, name='tagmethod')

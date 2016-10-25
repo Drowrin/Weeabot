@@ -34,7 +34,7 @@ class Images(SessionCog):
         image_list = (await self.bot.loop.run_in_executor(imgur.get_album(album_id))).images
         return random.choice(image_list).link
 
-    async def baka_image(self, t: str):
+    async def baka_image(self, ctx, t: str):
         t = t[:7] + '...' if len(t) > 10 else t
         i = 'you idiot...'
         f = ImageFont.truetype("ZinPenKeba-R.otf", 12)
@@ -47,7 +47,7 @@ class Images(SessionCog):
         with BytesIO() as fp:
             im.save(fp, 'PNG')
             fp.seek(0)
-            await self.bot.upload(fp, filename='baka.png')
+            await self.bot.send_file(ctx.message.channel, fp, filename='baka.png')
 
     @commands.command(pass_context=True, aliases=('b',))
     async def baka(self, ctx, user: str=None):
@@ -59,7 +59,7 @@ class Images(SessionCog):
                 t = commands.MemberConverter(ctx, user).convert().display_name
             except commands.BadArgument:
                 t = user
-        await self.baka_image(t)
+        await self.baka_image(ctx, t)
 
     @commands.command()
     @is_owner()
