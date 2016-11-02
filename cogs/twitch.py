@@ -1,6 +1,8 @@
 import asyncio
 import traceback
 # noinspection PyUnresolvedReferences
+import discord
+# noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
 
@@ -20,13 +22,22 @@ class Twitch(SessionCog):
     def __init__(self, bot):
         super(Twitch, self).__init__(bot)
         self.loop = None
-        self.channels = []
         self.updateloop()
         self.services = {
             "Twitch": """Create a channel named 'twitch-streams' to get notifications when server members go live.
             Members must use the ~addtwitch command to get notifications about their streams."""
         }
-    
+
+    @property
+    def channels(self):
+        return [c for c in [self.get_channel(s) for s in self.bot.servers] if c is not None]
+
+    def get_channel(self, server: discord.Server):
+        try:
+            return server.get_channel(self.bot.server_configs[server.id]['twitch_channel'])
+        except KeyError:
+            return None
+
     def __unload(self):
         self.stoploop()
     
@@ -40,7 +51,6 @@ class Twitch(SessionCog):
         self.loop = None
     
     def updateloop(self):
-        self.channels = list(filter(lambda e: e.name == 'twitch-streams', self.bot.get_all_channels()))
         if len(self.channels):
             self.startloop()
         else:
@@ -67,35 +77,61 @@ class Twitch(SessionCog):
         If the channel doesn't exist, this feature is disabled."""
         try:
             usr = ctx.message.author
-            await self.bot.profiles.put_by_id(usr.id, 'twitch', {'name': twitch, 'lastOnline': '0000-00-00T00:00:00Z'})
+            await self.bot.profiles.put_by_id(usr.id, 'twitch', {'name': twitch.lower(), 'lastOnline': '0000-00-00T00:00:00Z'})
         except commands.BadArgument as e:
             await self.bot.say(e)
             return
         await self.bot.say("Added {} as {}.".format(usr.display_name, twitch))
 
+    @commands.command(pass_context=True)
+    @is_server_owner()
+    async def twitch_channel(self, ctx):
+        """Set the channel twitch streams will be posted to.
+
+        All users in this server who have set their twitch account with the bot
+        will have links posted here when they go live."""
+        channel = ctx.message.channel
+        if channel.server.id not in self.bot.server_configs:
+            self.bot.server_configs[channel.server.id] = {}
+        self.bot.server_configs[channel.server.id]['twitch_channel'] = channel.id
+        await self.bot.say('\N{OK HAND SIGN}')
+        self.bot.dump_server_configs()
+
     async def getstreams(self):
-        up = self.bot.profiles.all()
         headers = {"accept": "application:vnd.twitchtv.v3+json", "Client-ID": tokens['twitch_id']}
+
+        def getstream(name: str, streamlist):
+            for s in streamlist:
+                if name.lower() == s['channel']['name'].lower():
+                    return s
+            return None
+
         while not self.bot.is_closed:
-            for dest in self.channels:
-                serv = dest.server
-                twitchmembers = [mem for mem in serv.members if 'twitch' in up.get(mem.id, {})]
-                for mem in twitchmembers:
-                    try:
-                        i = up[mem.id]['twitch']
-                        api = "https://api.twitch.tv/kraken/streams/{}".format(i['name'])
-                        async with self.session.get(api, headers=headers) as r:
-                            chan = await r.json()
-                        if chan['stream']['created_at'] != i['lastOnline']:
-                            i['lastOnline'] = chan['stream']['created_at']
-                            await self.bot.send_message(dest, "{} is now streaming {} at {}".format(
-                                mem.display_name, chan['stream']['game'],
-                                'https://www.twitch.tv/{}'.format(i['name'])))
-                            await self.bot.profiles.put_by_id(mem.id, 'twitch', i)
-                    except (KeyError, TypeError):
-                        pass
-                        # print(traceback.format_exc())
-            await asyncio.sleep(300)
+            users = {u: self.bot.profiles.get_field_by_id(u, 'twitch')
+                     for u in self.bot.profiles.all()
+                     if 'twitch' in u}
+            api = "https://api.twitch.tv/kraken/streams?channel={}".format(','.join(users.keys()))
+            async with self.session.get(api, headers=headers) as r:
+                response = await r.json()
+            streams = response['streams']
+            if response['_total'] > 0:
+                for c in self.channels:
+                    serv = c.server
+                    users_here = {u: users[u] for u in users if u in [x.id for x in serv.members]}
+                    for uid, t in users_here.items():
+                        try:
+                            stream = getstream(t['name'], streams)
+                            if stream is not None:
+                                if stream['created_at'] != t['lastOnline']:
+                                    t['lastOnline'] = stream['created_at']
+                                    await self.bot.send_message(c, "{} is now streaming {} at {}".format(
+                                        serv.get_member(uid).display_name,
+                                        stream['game'],
+                                        'https://www.twitch.tv/{}'.format(t['name'])
+                                    ))
+                        except (KeyError, TypeError, AttributeError):
+                            traceback.print_exc()
+            await asyncio.sleep(120)
 
 
 def setup(bot):
