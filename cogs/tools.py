@@ -158,16 +158,11 @@ class Tools(SessionCog):
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
-            if ctx.message.author.id == self.bot.owner.id:
-                await self.bot.send_message(r.channel, form.format(r, 'accepted'))
-                self.get_serv(ctx.message.server.id)['list'].remove(r)
-                self.get_serv('owner')['list'].append(r)
-                await self.bot.process_commands(r)
-                self.get_serv('owner')['list'].remove(r)
-            else:
-                await self.bot.send_message(r.channel, form.format(r, 'elevated'))
-                await self.add_request(r, 'owner')
-                self.get_serv(ctx.message.server.id)['list'].remove(r)
+            await self.bot.send_message(r.channel, form.format(r, 'accepted'))
+            self.get_serv(ctx.message.server.id)['list'].remove(r)
+            self.get_serv('owner')['list'].append(r)
+            await self.bot.process_commands(r)
+            self.get_serv('owner')['list'].remove(r)
         await self.send_req_msg(ctx.message.server.id)
         await self.save()
 
