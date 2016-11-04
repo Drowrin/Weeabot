@@ -108,9 +108,9 @@ class Twitch(SessionCog):
 
         while not self.bot.is_closed:
             users = {u: self.bot.profiles.get_field_by_id(u, 'twitch')
-                     for u in self.bot.profiles.all()
-                     if 'twitch' in u}
-            api = "https://api.twitch.tv/kraken/streams?channel={}".format(','.join(users.keys()))
+                     for u, p in self.bot.profiles.all().items()
+                     if 'twitch' in p}
+            api = "https://api.twitch.tv/kraken/streams?channel={}".format(','.join([t['name'] for t in users.values()]))
             async with self.session.get(api, headers=headers) as r:
                 response = await r.json()
             streams = response['streams']
@@ -130,7 +130,9 @@ class Twitch(SessionCog):
                                         'https://www.twitch.tv/{}'.format(t['name'])
                                     ))
                         except (KeyError, TypeError, AttributeError):
+                            print('error processing ' + t['name'])
                             traceback.print_exc()
+            await self.bot.profiles.save()
             await asyncio.sleep(120)
 
 
