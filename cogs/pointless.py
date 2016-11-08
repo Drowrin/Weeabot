@@ -167,13 +167,14 @@ class Pointless(SessionCog):
                     await self.bot.send_message(message.channel, r)
                 else:
                     await self.bot.send_file(message.channel, i, content=r)
-        if any([
-            (x in message.content.lower()) for x in [
-                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
-            ]
-        ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
-            await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
-            return
+        if not message.channel.is_private:
+            if any([
+                (x in message.content.lower()) for x in [
+                        message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
+                ]
+            ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
+                await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
+                return
         if any([
             (x in message.content.lower()) for x in [
                     message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]])\
