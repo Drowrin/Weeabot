@@ -175,21 +175,21 @@ class Pointless(SessionCog):
             ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
                 await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
                 return
-        if any([
-            (x in message.content.lower()) for x in [
-                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]])\
-                and re.search('f[^\s]*k', message.content.lower()) is not None:
-            await self.bot.delete_message(message)
-            return
-        if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
-            await self.bot.send_message(message.channel, "{} {}".format(
-                message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
-            return
-        if "\N{OK HAND SIGN}" in message.content:
-            self.oc += 1
-            if not self.oc % 3:
-                await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
+            if any([
+                (x in message.content.lower()) for x in [
+                        message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]])\
+                    and re.search('f[^\s]*k', message.content.lower()) is not None:
+                await self.bot.delete_message(message)
                 return
+            if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
+                await self.bot.send_message(message.channel, "{} {}".format(
+                    message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
+                return
+            if "\N{OK HAND SIGN}" in message.content:
+                self.oc += 1
+                if not self.oc % 3:
+                    await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
+                    return
 
 
 def setup(bot):
