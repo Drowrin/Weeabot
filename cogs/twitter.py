@@ -41,18 +41,19 @@ class Twitter(SessionCog):
                 tweet = self.twitter.GetUserTimeline('4462881555')[0]
             except:
                 print("Connection to twitter failed. {}".format(datetime.datetime.now()))
-            if tweet.text != self.last:
-                self.last = tweet.text
-                self.bot.status["last_tweet"] = tweet.text
-                self.bot.dump_status()
-                print("Latest shitpost: ", tweet.text)
-                media_url = tweet.media[0].media_url
-                with await download_fp(self.session, media_url) as fp:
-                    for server in self.bot.servers:
-                        if get_shitpost_channel(self.bot, server) is not None:
-                            channel = server.get_channel(get_shitpost_channel(self.bot, server))
-                            await self.bot.send_file(channel, fp, filename="shitpost.jpeg")
-                            fp.seek(0)
+            else:
+                if tweet.text != self.last:
+                    self.last = tweet.text
+                    self.bot.status["last_tweet"] = tweet.text
+                    self.bot.dump_status()
+                    print("Latest shitpost: ", tweet.text)
+                    media_url = tweet.media[0].media_url
+                    with await download_fp(self.session, media_url) as fp:
+                        for server in self.bot.servers:
+                            if get_shitpost_channel(self.bot, server) is not None:
+                                channel = server.get_channel(get_shitpost_channel(self.bot, server))
+                                await self.bot.send_file(channel, fp, filename="shitpost.jpeg")
+                                fp.seek(0)
             await asyncio.sleep(300)
 
 

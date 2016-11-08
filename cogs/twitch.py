@@ -113,26 +113,30 @@ class Twitch(SessionCog):
             api = "https://api.twitch.tv/kraken/streams?channel={}".format(','.join([t['name'] for t in users.values()]))
             async with self.session.get(api, headers=headers) as r:
                 response = await r.json()
-            streams = response['streams']
-            if response['_total'] > 0:
-                for c in self.channels:
-                    serv = c.server
-                    users_here = {u: users[u] for u in users if u in [x.id for x in serv.members]}
-                    for uid, t in users_here.items():
-                        try:
-                            stream = getstream(t['name'], streams)
-                            if stream is not None:
-                                if stream['created_at'] != t['lastOnline']:
-                                    t['lastOnline'] = stream['created_at']
-                                    await self.bot.send_message(c, "{} is now streaming {} at {}".format(
-                                        serv.get_member(uid).display_name,
-                                        stream['game'],
-                                        'https://www.twitch.tv/{}'.format(t['name'])
-                                    ))
-                        except (KeyError, TypeError, AttributeError):
-                            print('error processing ' + t['name'])
-                            traceback.print_exc()
-            await self.bot.profiles.save()
+            try:
+                streams = response['streams']
+            except KeyError:
+                print('Twitch connection error.')
+            else:
+                if response['_total'] > 0:
+                    for c in self.channels:
+                        serv = c.server
+                        users_here = {u: users[u] for u in users if u in [x.id for x in serv.members]}
+                        for uid, t in users_here.items():
+                            try:
+                                stream = getstream(t['name'], streams)
+                                if stream is not None:
+                                    if stream['created_at'] != t['lastOnline']:
+                                        t['lastOnline'] = stream['created_at']
+                                        await self.bot.send_message(c, "{} is now streaming {} at {}".format(
+                                            serv.get_member(uid).display_name,
+                                            stream['game'],
+                                            'https://www.twitch.tv/{}'.format(t['name'])
+                                        ))
+                            except (KeyError, TypeError, AttributeError):
+                                print('error processing ' + t['name'])
+                                traceback.print_exc()
+                await self.bot.profiles.save()
             await asyncio.sleep(120)
 
 
