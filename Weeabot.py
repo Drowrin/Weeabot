@@ -148,7 +148,7 @@ class TagMap:
         self._items[item] = None
         while self._items[-1] is None:
             del self._items[-1]
-        self._tags = {t: self._tags[t] for t in self._tags if len(self._tags[t]) > 0}
+        self._tags = defaultdict(list, {t: self._tags[t] for t in self._tags if len(self._tags[t]) > 0})
         self.dump()
 
     def get_all_tag(self, name: str):
