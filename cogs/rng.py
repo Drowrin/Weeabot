@@ -89,7 +89,7 @@ class RNG:
         except ValueError:
             await self.bot.say("Incorrect die formatting.")
 
-    @commands.command(name='8ball')
+    @commands.command(name='8ball', rest_is_raw=True)
     async def eight_ball(self, *, question: str):
         """8ball responses to your questions."""
         r = [
