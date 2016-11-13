@@ -52,7 +52,10 @@ class Twitter(SessionCog):
                         for server in self.bot.servers:
                             if get_shitpost_channel(self.bot, server) is not None:
                                 channel = server.get_channel(get_shitpost_channel(self.bot, server))
-                                await self.bot.send_file(channel, fp, filename="shitpost.jpeg")
+                                try:
+                                    await self.bot.send_file(channel, fp, filename="shitpost.jpeg")
+                                except discord.errors.HTTPException:
+                                    print("could not post twitter image.")
                                 fp.seek(0)
             await asyncio.sleep(300)
 
