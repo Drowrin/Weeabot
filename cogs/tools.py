@@ -200,10 +200,7 @@ class Tools(SessionCog):
     @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
     @is_server_owner()
     async def reject(self, ctx, *, indexes: str=None):
-        """Reject requests made by users.
-        
-        Use 'here' as the server argument to accept requests from this server.
-        Otherwise use a server name."""
+        """Reject requests made by users."""
         serv = ctx.message.server
         if serv is None:
             await self.bot.say("Server not found.")
