@@ -102,7 +102,7 @@ class RequestLevel(enum.Enum):
     default, server = range(2)
 
 
-def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any):
+def request(level: RequestLevel=RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(), bypasser=any):
     """Decorator to make a command requestable.
     
     Requestable commands are commands you want to lock down permissions for.
@@ -144,8 +144,11 @@ def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, b
         If ``True`` is returned, the request system is bypassed.
         Defaults to ``any``.
     """
+    form = '{0.author.mention}, Your request was {1}.```{0.content}```'
 
     def request_predicate(ctx):
+        do = ctx.bot.loop.create_task
+
         # tools cog must be loaded to use requests.
         if not loaded_tools(ctx.bot):
             return False
@@ -162,13 +165,17 @@ def request(level=RequestLevel.default, owner_bypass=True, server_bypass=True, b
             return True
         # If its already at the global level and has been accepted, it passes.
         if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
+            ctx.bot.tools.get_serv('owner')['list'].remove(ctx.message)
+            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
             return True
         # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
         if (ctx.message.author.id == ctx.message.server.owner.id and server_bypass) \
                 or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
             if level == RequestLevel.server:
+                do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
                 return True
-            ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, 'owner'))
+            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'elevated')))
+            do(ctx.bot.tools.add_request(ctx.message, 'owner'))
             return False
         # Otherwise, this is a fresh request, add it to the server level.
         ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, ctx.message.server.id))

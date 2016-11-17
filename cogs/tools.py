@@ -105,8 +105,10 @@ class Tools(SessionCog):
         if len(self.all_req()) >= self.global_limit:
             await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
             return
-        await self.bot.send_message(mes.channel, "Sent request to {}.".format(
-             self.bot.owner.name if server == 'owner' else mes.server.owner.display_name))
+        await self.bot.send_message(mes.channel, "Sent request to {} at index {}.".format(
+            self.bot.owner.name if server == 'owner' else mes.server.owner.display_name,
+            len(self.get_serv(server)['list'])
+        ))
         self.get_serv(server)['list'].append(mes)
         await self.save()
         await self.send_req_msg(server)
@@ -149,7 +151,6 @@ class Tools(SessionCog):
     @is_server_owner()
     async def accept(self, ctx, *, indexes: str=None):
         """Accept requests made by users."""
-        form = '{0.author.mention}, Your request was {1}.```{0.content}```'
         indexes = parse_indexes(indexes)
         rs = []
         for i in indexes:
@@ -158,18 +159,14 @@ class Tools(SessionCog):
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
-            await self.bot.send_message(r.channel, form.format(r, 'accepted'))
-            self.get_serv(ctx.message.server.id)['list'].remove(r)
-            self.get_serv('owner')['list'].append(r)
             await self.bot.process_commands(r)
-            self.get_serv('owner')['list'].remove(r)
+            self.get_serv(ctx.message.server.id)['list'].remove(r)
         await self.send_req_msg(ctx.message.server.id)
         await self.save()
 
     @accept.group(aliases=('g',))
     @is_owner()
     async def glob_accept(self, *, indexes: str=None):
-        form = '{0.author.mention}, Your request was accepted.```{0.content}```'
         indexes = parse_indexes(indexes)
         rs = []
         for i in indexes:
@@ -178,9 +175,7 @@ class Tools(SessionCog):
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
-            await self.bot.send_message(r.channel, form.format(r))
             await self.bot.process_commands(r)
-            self.get_serv('owner')['list'].remove(r)
         await self.send_req_msg('owner')
         await self.save()
 
