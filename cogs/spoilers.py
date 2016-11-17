@@ -65,7 +65,7 @@ class Spoilers:
     (a group of people working through a long series for example)."""
 
     @spoiler.command(pass_context=True, name='add', no_pm=True)
-    @request(level='server', owner_bypass=False)
+    @request(level=RequestLevel.server, owner_bypass=False)
     async def _add(self, ctx, name: str):
         """Add a spoiler channel."""
         if ctx.message.server.id not in self.bot.server_configs:
