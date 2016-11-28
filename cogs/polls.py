@@ -3,6 +3,7 @@ import discord
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
+import checks
 
 
 def polls_channel(bot: discord.ext.commands.Bot, server: discord.Server):
@@ -127,7 +128,7 @@ class Polls:
             await self.bot.edit_message(message, '\n{0}{0}\n\n'.format(self.sep).join(polls_text))
 
     @commands.command()
-    @is_server_owner()
+    @checks.is_server_owner()
     async def set_polls_channel(self, channel: discord.Channel):
         """Set the channel polls will be displayed in. It is recommended that only the bot and moderators can speak."""
         if channel.server.id not in self.bot.server_configs:

@@ -5,6 +5,7 @@ import discord
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
+import checks
 
 
 # noinspection PyUnusedLocal
@@ -84,7 +85,7 @@ class Twitch(SessionCog):
         await self.bot.say("Added {} as {}.".format(usr.display_name, twitch))
 
     @commands.command(pass_context=True)
-    @is_server_owner()
+    @checks.is_server_owner()
     async def twitch_channel(self, ctx):
         """Set the channel twitch streams will be posted to.
 

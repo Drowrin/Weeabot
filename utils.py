@@ -5,19 +5,8 @@ import aiohttp
 import random
 from os import path
 from os import listdir
+import discord
 from discord.ext import commands
-
-
-def is_owner():
-    """Decorator to allow a command to run only if it is called by the owner."""
-    return commands.check(lambda ctx: ctx.message.author.id == ctx.bot.owner.id)
-
-
-def is_server_owner():
-    """Decorator to allow a command to run only if called by the server owner."""
-    return commands.check(lambda ctx: not ctx.message.channel.is_private and
-                          (ctx.message.server.owner.id == ctx.message.author.id or
-                           ctx.message.author.id == ctx.bot.owner.id))
 
 
 def testing(ctx):
@@ -32,17 +21,17 @@ def testing(ctx):
     return False
 
 
-def is_testing():
-    """Only allowed in 'safe' environments.
-    
-    Servers and channels approved by the bot owner, or in PMs by the bot owner.
-    
-    Intended for testing new features before making them more public."""
-    return commands.check(testing)
-
-
 def loaded_profiles(bot):
     return bot.profiles is not None
+
+
+def is_testing():
+    """Only allowed in 'safe' environments.
+
+    Servers and channels approved by the bot owner, or in PMs by the bot owner.
+
+    Intended for testing new features before making them more public."""
+    return commands.check(testing)
 
 
 def profiles():
@@ -52,6 +41,17 @@ def profiles():
 
 def loaded_tools(bot):
     return bot.tools is not None
+
+
+def loaded_requests(bot):
+    return bot.requestsystem is not None
+
+
+def request_channel(bot, server: discord.Server):
+    try:
+        return server.get_channel(bot.server_configs.get(server.id, {}).get('request_channel', None))
+    except AttributeError:
+        return None
 
 
 def tools():
@@ -149,8 +149,14 @@ def request(level: RequestLevel=RequestLevel.default, owner_bypass=True, server_
     def request_predicate(ctx):
         do = ctx.bot.loop.create_task
 
-        # tools cog must be loaded to use requests.
-        if not loaded_tools(ctx.bot):
+        # Not allowed in PMs.
+        if ctx.message.channel.is_private:
+            raise commands.CheckFailure("This command can not be called from PMs.")
+        # requests cog must be loaded to use requests.
+        if not loaded_requests(ctx.bot):
+            return False
+        # requests must be enabled on the server.
+        if request_channel(ctx.bot, ctx.message.channel.server) is None:
             return False
         # Always pass on help so it shows up in the list.
         if ctx.command.name == 'help':
@@ -158,27 +164,30 @@ def request(level: RequestLevel=RequestLevel.default, owner_bypass=True, server_
         # Bot owner bypass.
         if ctx.message.author.id == ctx.bot.owner.id and owner_bypass:
             return True
-        # Not allowed in PMs.
-        if ctx.message.channel.is_private:
-            raise commands.CheckFailure("This command can not be called from PMs.")
+        # bypass predicates
         if bypasser(bypass(ctx) for bypass in bypasses):
             return True
         # If its already at the global level and has been accepted, it passes.
-        if ctx.message in ctx.bot.tools.get_serv('owner')['list']:
-            ctx.bot.tools.get_serv('owner')['list'].remove(ctx.message)
+        if ctx.message in ctx.bot.requestsystem.get_serv('owner'):
+            ctx.bot.requestsystem.get_serv('owner').remove(ctx.message)
             do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
             return True
-        # If it is at the server level and has been accepted, elevate it. Also, server owner bypass.
-        if (ctx.message.author.id == ctx.message.server.owner.id and server_bypass) \
-                or ctx.message in ctx.bot.tools.get_serv(ctx.message.server.id)['list']:
+        # Server owner bypass. Elevate if necessary.
+        if ctx.message.author.id == ctx.message.server.owner.id and server_bypass:
+            if level == RequestLevel.server:
+                return True
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
+            return False
+        # If it is at the server level and has been accepted, elevate it.
+        if ctx.message in ctx.bot.requestsystem.get_serv(ctx.message.server.id):
             if level == RequestLevel.server:
                 do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
                 return True
             do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'elevated')))
-            do(ctx.bot.tools.add_request(ctx.message, 'owner'))
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
             return False
         # Otherwise, this is a fresh request, add it to the server level.
-        ctx.bot.loop.create_task(ctx.bot.tools.add_request(ctx.message, ctx.message.server.id))
+        ctx.bot.loop.create_task(ctx.bot.requestsystem.add_request(ctx.message, ctx.message.server.id))
         return False
 
     return commands.check(request_predicate)

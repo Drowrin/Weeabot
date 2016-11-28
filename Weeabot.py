@@ -11,6 +11,7 @@ import asyncio
 from collections import defaultdict
 
 from utils import *
+import checks
 import os
 
 
@@ -219,11 +220,16 @@ class Weeabot(commands.Bot):
     def tools(self):
         return self.get_cog('Tools')
 
+    @property
+    def requestsystem(self):
+        return self.get_cog('RequestSystem')
+
     async def load_extensions(self):
         """Load extensions and handle errors."""
         await self.wait_until_ready()
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.tools')
+        self.load_extension('cogs.requestsystem')
         for ext in self.config.base_extensions:
             try:
                 self.load_extension(ext)
@@ -273,7 +279,7 @@ async def service_command():
 
 
 @bot.group(aliases=('e',), invoke_without_command=True)
-@is_owner()
+@checks.is_owner()
 async def extensions():
     """Extension related commands.
 
@@ -283,7 +289,7 @@ async def extensions():
 
 
 @extensions.command(name='load', alises=('l',))
-@is_owner()
+@checks.is_owner()
 async def load_extension(ext):
     """Load an extension."""
     # noinspection PyBroadException
@@ -298,7 +304,7 @@ async def load_extension(ext):
 
 
 @extensions.command(name='unload', aliases=('u',))
-@is_owner()
+@checks.is_owner()
 async def unload_extension(ext):
     """Unload an extension."""
     if ext in bot.config.required_extensions:
@@ -314,7 +320,7 @@ async def unload_extension(ext):
 
 
 @extensions.command(name='reload', aliases=('r',))
-@is_owner()
+@checks.is_owner()
 async def reload_extension(ext):
     """Reload an extension."""
     # noinspection PyBroadException
@@ -330,7 +336,7 @@ async def reload_extension(ext):
 
 
 @bot.command(pass_context=True)
-@is_server_owner()
+@checks.is_server_owner()
 async def autorole(ctx, role: str):
     """Automatically assign a role to new members."""
     try:

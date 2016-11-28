@@ -12,6 +12,7 @@ from PIL import Image, ImageFont, ImageDraw
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
+import checks
 from os import path
 from os import listdir
 from os import makedirs
@@ -62,7 +63,7 @@ class Images(SessionCog):
         await self.baka_image(ctx, t)
 
     @commands.command()
-    @is_owner()
+    @checks.is_owner()
     async def convert_images_to_tag(self):
         """Use to convert preexisting image libraries to the tag system."""
         col_count = 0

@@ -5,6 +5,7 @@ import discord
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from utils import *
+import checks
 
 from twitter import Api
 
@@ -24,7 +25,7 @@ class Twitter(SessionCog):
         self.bot.loop.create_task(self.twitter_repost())
 
     @commands.command(pass_context=True)
-    @is_server_owner()
+    @checks.is_server_owner()
     async def shitpost_channel(self, ctx):
         channel = ctx.message.channel
         if channel.server.id not in self.bot.server_configs:
