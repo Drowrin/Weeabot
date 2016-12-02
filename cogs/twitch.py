@@ -71,18 +71,18 @@ class Twitch(SessionCog):
     
     @commands.command(pass_context=True)
     @profiles()
-    async def addtwitch(self, ctx, twitch: str):
+    async def addtwitch(self, ctx, twitch_username: str):
         """Add your twitch name to your profile.
         
-        Automatic updates when you go live will be posted in a channel called 'twitch-streams'.
+        Automatic updates when you go live will be posted in the twitch stream channel'.
         If the channel doesn't exist, this feature is disabled."""
         try:
             usr = ctx.message.author
-            await self.bot.profiles.put_by_id(usr.id, 'twitch', {'name': twitch.lower(), 'lastOnline': '0000-00-00T00:00:00Z'})
+            await self.bot.profiles.put_by_id(usr.id, 'twitch', {'name': twitch_username.lower(), 'lastOnline': '0000-00-00T00:00:00Z'})
         except commands.BadArgument as e:
             await self.bot.say(e)
             return
-        await self.bot.say("Added {} as {}.".format(usr.display_name, twitch))
+        await self.bot.say("Added {} as {}.".format(usr.display_name, twitch_username))
 
     @commands.command(pass_context=True)
     @checks.is_server_owner()
