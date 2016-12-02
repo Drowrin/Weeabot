@@ -408,6 +408,30 @@ async def _addtags(ctx, item_id: int, *names):
     await bot.tag_map.get_by_id(item_id).run(ctx)
 
 
+@tag.command(pass_context=True, alias=('author',))
+@request()
+async def credit(ctx, item_id: int, user: discord.Member):
+    """credit a tag to a user."""
+    try:
+        bot.tag_map.get_by_id(item_id).author = user.id
+        bot.tag_map.dump()
+        await bot.tag_map.get_by_id(item_id).run(ctx)
+    except IndexError:
+        await bot.say("id not found.")
+
+
+@tag.command(pass_context=True)
+@request()
+async def claim(ctx, item_id: int):
+    """Claim a tag. Useful for tags imported from before author was tracked, or tags readded by others."""
+    try:
+        bot.tag_map.get_by_id(item_id).author = ctx.message.author.id
+        bot.tag_map.dump()
+        await bot.tag_map.get_by_id(item_id).run(ctx)
+    except IndexError:
+        await bot.say("id not found.")
+
+
 @tag.command(name='remove')
 @request()
 async def _tag_remove(target: str, *tags):
