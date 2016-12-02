@@ -182,8 +182,9 @@ class Pointless(SessionCog):
                 await self.bot.delete_message(message)
                 return
             if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
-                await self.bot.send_message(message.channel, "{} {}".format(
-                    message.author.mention, self.cleverbot.ask(message.content[(len(self.bot.user.mention) + 1):])))
+                l = len(self.bot.user.mention) if message.channel.is_private else len(message.server.me.mention)
+                c = message.content[l:]
+                await self.bot.send_message(message.channel, "{} {}".format(message.author.mention, self.cleverbot.ask(c)))
                 return
             if "\N{OK HAND SIGN}" in message.content:
                 self.oc += 1
