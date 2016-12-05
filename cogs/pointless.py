@@ -5,12 +5,14 @@ import unicodedata
 import random
 import copy
 import re
+import asyncio
 
 # noinspection PyUnresolvedReferences
 from discord.ext import commands
 from cleverbot import Cleverbot
 
 from utils import *
+import checks
 
 
 class Pointless(SessionCog):
@@ -24,11 +26,11 @@ class Pointless(SessionCog):
             "Conversation": "Tag the bot at the beginning of a message to have a conversation with it.",
             "Reactions": "The bot will react to these words: {}".format(', '.join(self.bot.content.reactions.keys()))
         }
-    
+
     @commands.group(name='text', aliases=('t',))
     async def text_command(self):
         """Text transformations."""
-    
+
     @text_command.command(pass_context=True, aliases=('a',))
     async def aesthetic(self, ctx):
         """AESTHETIC"""
@@ -128,7 +130,7 @@ class Pointless(SessionCog):
             await self.bot.say(await r.text())
 
     @commands.command(pass_context=True)
-    async def rip(self, ctx, ripped: str=None):
+    async def rip(self, ctx, ripped: str = None):
         """RIP"""
         if ripped is None:
             ripped = ctx.message.author.display_name
@@ -169,28 +171,38 @@ class Pointless(SessionCog):
                     await self.bot.send_file(message.channel, i, content=r)
         if not message.channel.is_private:
             if any([
-                (x in message.content.lower()) for x in [
-                        message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
+                       (x in message.content.lower()) for x in [
+                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
                 ]
-            ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
-                await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
+                       ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
+                await self.bot.send_message(message.channel,
+                                            "You're welcome {}".format(random.choice(self.bot.content.emoji)))
                 return
             if any([
-                (x in message.content.lower()) for x in [
-                        message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]])\
+                       (x in message.content.lower()) for x in [
+                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]]) \
                     and re.search('f[^\s]*k', message.content.lower()) is not None:
                 await self.bot.delete_message(message)
                 return
-            if message.content.startswith(self.bot.user.mention) or (message.server and message.content.startswith(message.server.me.mention)):
+            if message.content.startswith(self.bot.user.mention) or (
+                message.server and message.content.startswith(message.server.me.mention)):
                 l = len(self.bot.user.mention) if message.channel.is_private else len(message.server.me.mention)
                 c = message.content[l:]
-                await self.bot.send_message(message.channel, "{} {}".format(message.author.mention, self.cleverbot.ask(c)))
+                await self.bot.send_message(message.channel,
+                                            "{} {}".format(message.author.mention, self.cleverbot.ask(c)))
                 return
             if "\N{OK HAND SIGN}" in message.content:
                 self.oc += 1
                 if not self.oc % 3:
                     await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
                     return
+
+    @commands.command(pass_context=True)
+    @checks.is_owner()
+    async def typing(self, ctx):
+        while True:
+            await self.bot.send_typing(ctx.message.channel)
+            await asyncio.sleep(10)
 
 
 def setup(bot):
