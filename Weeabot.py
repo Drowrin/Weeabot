@@ -462,6 +462,27 @@ async def _tag_remove(target: str, *tags):
     await bot.say("\N{OK HAND SIGN}")
 
 
+@tag.command(pass_context=True, name='edit')
+@request()
+async def _tagedit(ctx, item_id: int, *, content: str):
+    """edit the contents of a tag."""
+    try:
+        bot.tag_map.get_by_id(item_id).text = content
+        if len(ctx.message.attachments) > 0:
+            async with aiohttp.ClientSession() as session:
+                link = ctx.message.attachments[0]['url']
+                n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+                await download(session, link, os.path.join('images', n))
+                bot.tag_map.get_by_id(item_id).image = os.path.join('images', n)
+        else:
+            bot.tag_map.get_by_id(item_id).image = None
+        bot.tag_map.dump()
+    except IndexError:
+        await bot.say("Response id not found.")
+        return
+    await bot.tag_map.get_by_id(item_id).run(ctx)
+
+
 @tag.command(pass_context=True, name='tagmethod')
 @request()
 async def _tagmethod(ctx, item_id: int, method: str):
