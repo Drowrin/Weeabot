@@ -18,7 +18,7 @@ from os import listdir
 from os import makedirs
 from io import BytesIO
 
-from Weeabot import TagItem
+from cogs.tagsystem import TagItem
 
 imgur = pyimgur.Imgur(tokens['imgur_token'], tokens["imgur_secret"])
 
