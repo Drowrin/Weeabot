@@ -223,7 +223,7 @@ class RequestSystem:
         self.remove_from_serv(server, rs)
         await self.save()
 
-    @req.group(pass_context=True, aliases=('r',), invoke_without_command=True)
+    @req.group(pass_context=True, aliases=('r', 'deny', 'd'), invoke_without_command=True)
     @checks.is_server_owner()
     async def reject(self, ctx, *, indexes: str=None):
         """Reject requests made by users."""
