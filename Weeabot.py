@@ -3,6 +3,7 @@ import traceback
 import asyncio
 import os
 import json
+import sys
 
 import pyimgur
 
@@ -147,7 +148,8 @@ class Weeabot(commands.Bot):
                 await self.tag_map[ctx.invoked_with.split()[0]].run(ctx)
 
         else:
-            raise err
+            print('Ignoring exception in command {}'.format(ctx.command), file=sys.stderr)
+            traceback.print_exception(type(err), err, err.__traceback__, file=sys.stderr)
 
     async def on_server_join(self, server):
         """Called when the bot joins a server or creates one."""
