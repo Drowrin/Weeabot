@@ -110,6 +110,9 @@ class Weeabot(commands.Bot):
         await self.send_message(self.owner, message)
 
     async def on_command_error(self, err, ctx):
+        if hasattr(ctx.command, "on_error"):
+            return
+
         d = ctx.message.channel
 
         if type(err) is commands.NoPrivateMessage:
@@ -124,6 +127,9 @@ class Weeabot(commands.Bot):
 
         elif type(err) is utils.CheckMsg:
             await self.send_message(d, err)
+
+        elif type(err) is commands.CheckFailure:
+            pass
 
         elif type(err) is commands.CommandNotFound:
             if ctx.invoked_with.isdigit():
