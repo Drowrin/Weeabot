@@ -49,15 +49,14 @@ class Twitter(utils.SessionCog):
                     self.bot.dump_status()
                     print("Latest shitpost: ", tweet.text)
                     media_url = tweet.media[0].media_url
-                    with await utils.download_fp(self.session, media_url) as fp:
-                        for server in self.bot.servers:
-                            if get_shitpost_channel(self.bot, server) is not None:
-                                channel = server.get_channel(get_shitpost_channel(self.bot, server))
-                                try:
-                                    await self.bot.send_file(channel, fp, filename="shitpost.jpeg")
-                                except discord.errors.HTTPException:
-                                    print("could not post twitter image.")
-                                fp.seek(0)
+                    for server in self.bot.servers:
+                        if get_shitpost_channel(self.bot, server) is not None:
+                            channel = server.get_channel(get_shitpost_channel(self.bot, server))
+                            try:
+                                e = discord.Embed().set_image(url=media_url)
+                                await self.bot.send_message(channel, embed=e)
+                            except discord.errors.HTTPException:
+                                print("could not post twitter image.")
             await asyncio.sleep(300)
 
 
