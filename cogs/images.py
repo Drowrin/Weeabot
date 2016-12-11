@@ -20,8 +20,6 @@ import checks
 from cogs.tagsystem import TagItem
 from cogs.requestsystem import request
 
-imgur = pyimgur.Imgur(utils.tokens['imgur_token'], utils.tokens["imgur_secret"])
-
 
 class Images(utils.SessionCog):
     """Image related commands."""
@@ -32,7 +30,7 @@ class Images(utils.SessionCog):
     
     async def get_random_image(self, album_id):
         """Get a random image from an imgur album."""
-        image_list = (await self.bot.loop.run_in_executor(imgur.get_album(album_id))).images
+        image_list = (await self.bot.loop.run_in_executor(self.bot.imgur.get_album(album_id))).images
         return random.choice(image_list).link
 
     async def baka_image(self, ctx, t: str):
@@ -132,7 +130,7 @@ class Images(utils.SessionCog):
                 return
         for link in links:
             if '//imgur.com/' in link:
-                link = imgur.get_image(link.split('/')[-1]).link
+                link = self.bot.imgur.get_image(link.split('/')[-1]).link
             name = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
             if name in listdir(path.join(coldir, collection)):
                 await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
@@ -186,13 +184,13 @@ class Images(utils.SessionCog):
 
         Optional argument is a time window following reddit's time windows."""
         tmp = await self.bot.say("getting image from r/%s" % sub)
-        gal = imgur.get_subreddit_gallery(sub, sort='top', window=window, limit=50)
+        gal = self.bot.imgur.get_subreddit_gallery(sub, sort='top', window=window, limit=50)
         if len(gal) <= 1:
             await self.bot.edit_message(tmp, 'no images found at r/%s. did you spell it right?' % sub)
             return
         im = random.choice(gal)
         if im is pyimgur.Album:
-            im = await self.bot.loop.run_in_executor(imgur.get_image(self.get_random_image(im.id)))
+            im = await self.bot.loop.run_in_executor(self.bot.imgur.get_image(self.get_random_image(im.id)))
         if im.is_nsfw:
             await self.bot.edit_message(tmp, "no ecchi.")
             return

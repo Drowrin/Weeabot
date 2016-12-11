@@ -4,6 +4,8 @@ import asyncio
 import os
 import json
 
+import pyimgur
+
 import discord
 from discord.ext import commands
 
@@ -41,6 +43,7 @@ class Weeabot(commands.Bot):
         self.content = Config('content.json')
         self.server_configs = utils.open_json('servers.json')
         self.status = utils.open_json('status.json')
+        self.imgur = pyimgur.Imgur(utils.tokens['imgur_token'], utils.tokens["imgur_secret"])
         self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
