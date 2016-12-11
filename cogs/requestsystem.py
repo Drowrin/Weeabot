@@ -56,7 +56,7 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
         If ``True`` is returned, the request system is bypassed.
         Defaults to ``any``.
     """
-    form = '{0.author.mention}, Your request was {1}.```{0.content}```'
+    form = '{0.author.mention}, Your request was {1}.'
 
     def request_predicate(ctx):
         do = ctx.bot.loop.create_task
@@ -133,7 +133,7 @@ class RequestSystem:
     server_limit = 30
     global_limit = 100
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.path = 'requests.pkl'
         try:
@@ -204,22 +204,32 @@ class RequestSystem:
         self.bot.server_configs.get(ctx.message.server.id, {})['request_channel'] = None
         self.bot.dump_server_configs()
 
-    @staticmethod
-    def req_message(server, req, ind) -> dict:
-        if server == 'owner':
-            line = '<{0.channel.server}: {0.channel}> {0.author}: {0.content}'
-        else:
-            line = '{0.channel.mention} {0.author.mention}: {0.content}'
-        return {'name': str(ind), 'value': line.format(req)}
-
-    async def send_req_msg(self, server, msg, ind, *, dest=None):
+    async def send_req_msg(self, server, msg: discord.Message, ind, *, dest=None):
         dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner
-        e = discord.Embed(colour=msg.author.colour)
-        # noinspection PyArgumentList
-        e.add_field(**self.req_message(server, msg, ind))
-        await self.bot.send_message(dest, embed=e)
+        e = discord.Embed(
+            title="Index: {}".format(ind),
+            description=msg.content,
+            colour=msg.author.colour,
+            timestamp=msg.timestamp
+        )
+        url = discord.Embed.Empty
+        if len(msg.attachments) == 1:
+            url = msg.attachments[0]['url']
+            e.set_image(url=url)
+        e.set_author(
+            name=msg.author.display_name,
+            icon_url=msg.author.default_avatar_url if not msg.author.avatar else msg.author.avatar_url,
+            url=url
+        )
+        if server == 'owner':
+            if msg.channel.is_private:
+                source = "PM"
+            else:
+                source = "{}: {}".format(msg.server.name, msg.channel.name)
+            e.add_field(name="Source", value=source)
+        return await self.bot.send_message(dest, embed=e)
 
-    async def add_request(self, mes, server):
+    async def add_request(self, mes: discord.Message, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
             await self.bot.send_message(mes.channel,
                                         "{}, user request limit reached ({}).".format(mes.author.display_name,
@@ -232,14 +242,23 @@ class RequestSystem:
         if len(self.all_req()) >= self.global_limit:
             await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
             return
+
+        # rehost images on imgur, since we will be deleting the original image
+        if len(mes.attachments) == 1:
+            url = mes.attachments[0]['url']
+            im = self.bot.imgur.upload_image(url=url)
+            mes.attachments[0]['url'] = im.link
+
         ind = len(self.get_serv(server))
-        await self.bot.send_message(mes.channel, "Sent request to {} at index {}.".format(
-            self.bot.owner.name if server == 'owner' else mes.server.owner.display_name,
-            ind
-        ))
+        await self.send_req_msg(server, mes, ind)
+        if server != 'owner':
+            await self.send_req_msg(server, mes, ind, dest=mes.channel)
         self.get_serv(server).append(mes)
         await self.save()
-        await self.send_req_msg(server, mes, ind)
+        try:
+            await self.bot.delete_message(mes)
+        except discord.NotFound:
+            pass
 
     @commands.group(name='request', aliases=('req', 'r'))
     async def req(self):
@@ -261,20 +280,14 @@ class RequestSystem:
     @checks.is_server_owner()
     async def list(self, ctx):
         """Display current requests."""
-        e = discord.Embed(title='Requests', colour=ctx.message.server.me.colour)
         for ind, r in enumerate(self.get_serv(ctx.message.server.id)):
-            # noinspection PyArgumentList
-            e.add_field(**self.req_message(ctx.message.server.id, r, ind))
-        await self.bot.say(embed=e)
+            await self.send_req_msg(ctx.message.server.id, r, ind, dest=ctx.message.channel)
 
-    @list.command(aliases=('g',))
+    @list.command(aliases=('g',), pass_context=True)
     @checks.is_owner()
-    async def glob_list(self):
-        e = discord.Embed(title='Requests')
+    async def glob_list(self, ctx):
         for ind, r in self.get_serv('owner'):
-            # noinspection PyArgumentList
-            e.add_field(**self.req_message('owner', r, ind))
-        await self.bot.say(embed=e)
+            await self.send_req_msg('owner', r, ind, dest=ctx.message.channel)
 
     @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
     @checks.is_server_owner()
@@ -322,7 +335,7 @@ class RequestSystem:
             except IndexError:
                 await self.bot.say('{} is out of range.'.format(i))
         for r in rs:
-            await self.bot.send_message(r.channel, '{0.author}, Your request was denied.```{0.content}```'.format(r))
+            await self.bot.send_message(r.channel, '{0.author}, Your request was denied.'.format(r))
         self.remove_from_serv(server, rs)
         await self.save()
 
