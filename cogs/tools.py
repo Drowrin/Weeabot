@@ -1,15 +1,15 @@
-# noinspection PyUnresolvedReferences
 import traceback
-
 import inspect
 
-# noinspection PyUnresolvedReferences
+import discord
 from discord.ext import commands
-from utils import *
+
 import checks
+import utils
+from cogs.requestsystem import request, RequestLevel
 
 
-class Tools(SessionCog):
+class Tools(utils.SessionCog):
     """Utilities and management commands."""
 
     def __init__(self, bot: commands.Bot):
@@ -28,24 +28,6 @@ class Tools(SessionCog):
         await self.bot.say('<https://github.com/Drowrin/Weeabot>')
 
     @commands.group()
-    async def emoji(self):
-        """Emoji related commands."""
-
-    @emoji.command(name='add', pass_context=True, no_pm=True)
-    @request(level=RequestLevel.server)
-    async def __add(self, ctx, name: str, link: str=None):
-        """Add an emoji by link or attachement."""
-        if link is None and len(ctx.message.attachments) == 0:
-            await self.bot.say("No image proovided.")
-            return
-        link = link or ctx.message.attachments[0]['url']
-        with await download_fp(self.session, link) as image:
-            try:
-                await self.bot.create_custom_emoji(ctx.message.server, name=name, image=image.read())
-            except:
-                await self.bot.say(traceback.print_exc())
-
-    @commands.group()
     async def change(self):
         """Change a part of the bot's profile.
 
@@ -56,7 +38,7 @@ class Tools(SessionCog):
     @checks.is_owner()
     async def avatar(self, link: str):
         """Change the bot's avatar."""
-        with await download_fp(self.session, link) as fp:
+        with await utils.download_fp(self.session, link) as fp:
             await self.bot.edit_profile(avatar=fp.read())
 
     @change.command()

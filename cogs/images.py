@@ -1,29 +1,29 @@
-# noinspection PyUnresolvedReferences
-import discord
-# noinspection PyUnresolvedReferences
 import random
+import json
 import pyimgur
 import xmltodict
 import traceback
 import datetime
 
 from PIL import Image, ImageFont, ImageDraw
-
-# noinspection PyUnresolvedReferences
-from discord.ext import commands
-from utils import *
-import checks
 from os import path
 from os import listdir
 from os import makedirs
 from io import BytesIO
 
+from discord.ext import commands
+
+import utils
+import checks
+
+
 from cogs.tagsystem import TagItem
+from cogs.requestsystem import request
 
-imgur = pyimgur.Imgur(tokens['imgur_token'], tokens["imgur_secret"])
+imgur = pyimgur.Imgur(utils.tokens['imgur_token'], utils.tokens["imgur_secret"])
 
 
-class Images(SessionCog):
+class Images(utils.SessionCog):
     """Image related commands."""
 
     def __init__(self, bot):
@@ -138,7 +138,7 @@ class Images(SessionCog):
                 await self.bot.notify("{} already existed, adding as temp. Correct soon so it isn't lost".format(name))
                 name = 'temp.png'
             try:
-                await download(self.session, link, path.join(coldir, collection, name))
+                await utils.download(self.session, link, path.join(coldir, collection, name))
                 t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [collection],
                             image=path.join(coldir, collection, name))
                 self.bot.tag_map[collection] = t
@@ -215,7 +215,7 @@ class Images(SessionCog):
             for r in replacements:
                 tt = tt.replace(r[0], r[1])
                 tb = tb.replace(r[0], r[1])
-            with await download_fp(self.session, "http://memegen.link/custom/{0}/{1}.jpg?alt={2}".format(
+            with await utils.download_fp(self.session, "http://memegen.link/custom/{0}/{1}.jpg?alt={2}".format(
                     tt, tb, self.memes[name])) as fp:
                 await self.bot.upload(fp, filename='meme.jpg')
 

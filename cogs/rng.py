@@ -1,9 +1,9 @@
-# noinspection PyUnresolvedReferences
-import discord
 import random
-# noinspection PyUnresolvedReferences
+
+import discord
 from discord.ext import commands
-from utils import *
+
+import checks
 
 
 def atk_formatter(ctx, field, fields):
@@ -129,7 +129,7 @@ class RNG:
             up['r'][uid] += 1
 
     @commands.command(pass_context=True, aliases=('a', 'shoot', 'kill',))
-    @profiles()
+    @checks.profiles()
     async def attack(self, ctx, *targets: str):
         """Attempt to attack some users."""
         

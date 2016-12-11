@@ -1,22 +1,20 @@
-# noinspection PyUnresolvedReferences
-import discord
-# noinspection PyUnresolvedReferences
-from discord.ext import commands
-
-# noinspection PyUnresolvedReferences
 import random
 import traceback
 import asyncio
-
-from utils import *
-import checks
 import os
+import json
+
+import discord
+from discord.ext import commands
+
+import utils
+import checks
 
 
 class Config:
     def __init__(self, config_path):
         self.path = config_path
-        self._db = open_json(config_path)
+        self._db = utils.open_json(config_path)
         self.__dict__.update(self._db)
 
     def __getattr__(self, name):
@@ -35,12 +33,14 @@ class Config:
 class Weeabot(commands.Bot):
     """Simple additions to commands.Bot"""
     def __init__(self, *args, **kwargs):
+        if 'description' not in kwargs:
+            kwargs['description'] = "Weeabot"
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
         self.config = Config('config.json')
         self.content = Config('content.json')
-        self.server_configs = open_json('servers.json')
-        self.status = open_json('status.json')
+        self.server_configs = utils.open_json('servers.json')
+        self.status = utils.open_json('status.json')
         self.services = {}
         self.formatters = {}
         self.verbose_formatters = {}
@@ -109,11 +109,59 @@ class Weeabot(commands.Bot):
         await self.say(message)
         await self.send_message(self.owner, message)
 
-desc = """
-Weeabot
-I have a lot of (mostly) useless commands. Enjoy!
-"""
-bot = Weeabot(command_prefix='~', description=desc)
+    async def on_command_error(self, err, ctx):
+        d = ctx.message.channel
+
+        if type(err) is commands.NoPrivateMessage:
+            await self.send_message(d, '{} can not be used in private messages.'.format(ctx.command.name))
+
+        elif type(err) is commands.DisabledCommand:
+            await self.send_message(d, 'This command is disabled.')
+
+        elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
+            name = utils.full_command_name(ctx, ctx.command)
+            await self.send_message(d, 'Invalid usage. Use {}help {}'.format(self.command_prefix, name))
+
+        elif type(err) is utils.CheckMsg:
+            await self.send_message(d, err)
+
+        elif type(err) is commands.CommandNotFound:
+            if ctx.invoked_with.isdigit():
+                if int(ctx.invoked_with) < len(self.tag_map):
+                    try:
+                        await self.tag_map.get_by_id(int(ctx.invoked_with)).run(ctx)
+                    except IndexError:
+                        await self.send_message(ctx.message.channel, "id not found.")
+                else:
+                    await self.send_message(ctx.message.channel, "id not found.")
+            elif ctx.invoked_with.lower() in self.tag_map.taglist:
+                await self.tag_map[ctx.invoked_with.split()[0]].run(ctx)
+
+        else:
+            raise err
+
+    async def on_server_join(self, server):
+        """Called when the bot joins a server or creates one."""
+        await bot.send_message(self.owner, "Joined Server: {}".format(server))
+        await bot.send_message(server.default_channel, "Hello! use ~help and ~services to see what I can do.")
+
+    async def on_member_join(self, member):
+        """Called whenever a new member joins a server."""
+        try:
+            ar = self.server_configs[member.server.id]['autorole']
+            role = discord.utils.get(member.server.roles, id=ar)
+            await self.add_roles(member, role)
+        except KeyError:
+            pass
+
+    async def on_ready(self):
+        await self.update_owner()
+        print('Bot: {0.name}:{0.id}'.format(bot.user))
+        print('Owner: {0.name}:{0.id}'.format(bot.owner))
+        print('------------------')
+
+
+bot = Weeabot(command_prefix='~')
 
 
 @bot.command(name='services')
@@ -194,69 +242,15 @@ async def autorole(ctx, role: str):
     await bot.say("New members will now be given the {} role.".format(role.name))
 
 
-@bot.event
-async def on_command_error(err, ctx):
-    d = ctx.message.channel
-    if type(err) is commands.NoPrivateMessage:
-        await bot.send_message(d, '{} can not be used in private messages.'.format(ctx.command.name))
-    elif type(err) is commands.DisabledCommand:
-        await bot.send_message(d, 'This command is disabled.')
-    elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
-        await bot.send_message(d, 'Invalid usage. Use {}help {}'.format(bot.command_prefix, full_command_name(ctx, ctx.command)))
-    elif type(err) is commands.CheckFailure:
-        if not str(err).startswith('The check functions'):
-            await bot.send_message(d, err)
-    elif type(err) is commands.CommandNotFound:
-        if ctx.invoked_with.isdigit():
-            if int(ctx.invoked_with) < len(ctx.bot.tag_map):
-                try:
-                    await ctx.bot.tag_map.get_by_id(int(ctx.invoked_with)).run(ctx)
-                except IndexError:
-                    await ctx.bot.send_message(ctx.message.channel, "id not found.")
-            else:
-                await ctx.bot.send_message(ctx.message.channel, "id not found.")
-        elif ctx.invoked_with.lower() in ctx.bot.tag_map.taglist:
-            await ctx.bot.tag_map[ctx.invoked_with.split()[0]].run(ctx)
-    else:
-        raise err
-
-
-@bot.event
-async def on_server_join(server):
-    """Called when the bot joins a server or creates one."""
-    await bot.send_message(bot.owner, "Joined Server: {}".format(server))
-    await bot.send_message(server.default_channel, "Hello! use ~help and ~services to see what I can do.")
-
-
-@bot.event
-async def on_member_join(member):
-    """Called whenever a new member joins a server."""
-    try:
-        ar = bot.server_configs[member.server.id]['autorole']
-        role = discord.utils.get(member.server.roles, id=ar)
-        await bot.add_roles(member, role)
-    except KeyError:
-        pass
-
-
-@bot.event
-async def on_ready():
-    await bot.update_owner()
-    print('Bot: {0.name}:{0.id}'.format(bot.user))
-    print('Owner: {0.name}:{0.id}'.format(bot.owner))
-    print('------------------')
-
-
 async def random_status():
     """Rotating statuses."""
     await bot.wait_until_ready()
     while not bot.is_closed:
         n = random.choice(bot.content.statuses)
-        g = discord.Game(name=n, url='', type=0)
-        await bot.change_presence(game=g)
+        await bot.change_presence(game=discord.Game(name=n, url='', type=0))
         await asyncio.sleep(60)
 
 
 if __name__ == '__main__':
     bot.loop.create_task(random_status())
-    bot.run(tokens['discord_token'])
+    bot.run(utils.tokens['discord_token'])

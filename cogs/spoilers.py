@@ -1,8 +1,7 @@
-import asyncio
-import traceback
 import discord
 from discord.ext import commands
-from utils import *
+
+from cogs.requestsystem import request, RequestLevel
 
 
 def get_channel(ctx):

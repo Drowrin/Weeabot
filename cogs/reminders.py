@@ -1,12 +1,11 @@
 import asyncio
 import re
-import traceback
 import time
-# noinspection PyUnresolvedReferences
+
 import discord
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
-from utils import *
+
+import utils
 
 
 class Reminders:
@@ -21,6 +20,7 @@ class Reminders:
     @commands.command(pass_context=True)
     async def remindme(self, ctx, message, *, duration: str):
         """The bot will send you a reminder. Make sure the message is in quotes if it is not one word.
+        The format for the duration uses units. For example, something like 3 hours and 20 minutes or 4m 15s.
 
         If the bot is restarted, the timing will potentially be less accurate by a few minutes."""
         def gettime(s: str, d: str):

@@ -1,8 +1,9 @@
-# noinspection PyUnresolvedReferences
+import json
+
 import discord
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
-from utils import *
+
+import utils
 import checks
 
 
@@ -91,7 +92,7 @@ class Polls:
 
     def __init__(self, bot):
         self.bot = bot
-        raw_polls = open_json('polls.json')
+        raw_polls = utils.open_json('polls.json')
         self.polls = {k: Poll(**raw_polls[k], bot=self.bot, poll_id=k) for k in raw_polls}
 
     def dump(self):

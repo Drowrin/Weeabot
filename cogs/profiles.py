@@ -1,11 +1,10 @@
 import operator
-# noinspection PyUnresolvedReferences
 import json
-# noinspection PyUnresolvedReferences
+
 import discord
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
-from utils import *
+
+import utils
 
 
 # noinspection PyUnusedLocal
@@ -28,7 +27,7 @@ def level(xp: int):
     return int(xp ** .5)
 
 
-class Profile(SessionCog):
+class Profile(utils.SessionCog):
     """Profile related commands.
 
     Only default support is for command count and custom fields.
@@ -102,7 +101,7 @@ class Profile(SessionCog):
     
     async def on_command_completion(self, command, ctx):
         """Event listener for command_completion."""
-        await self.inc_use(ctx.message.author.id, full_command_name(ctx, command))
+        await self.inc_use(ctx.message.author.id, utils.full_command_name(ctx, command))
     
     async def on_message(self, message):
         """Event listener to record message length."""
@@ -133,7 +132,7 @@ class Profile(SessionCog):
                 await self.bot.say(e)
                 return
             fields.append('\\~\\~\\~\\~\\~\\~\\~\\~\\~\\~')
-            with await download_fp(self.session, usr.avatar_url) as fp:
+            with await utils.download_fp(self.session, usr.avatar_url) as fp:
                 await self.bot.upload(fp, filename='avatar.png', content='\n'.join(fields))
 
     @commands.command(pass_context=True)

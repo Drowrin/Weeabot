@@ -1,21 +1,17 @@
-# noinspection PyUnresolvedReferences
-import discord
 import unicodedata
-# noinspection PyUnresolvedReferences
 import random
 import copy
 import re
 import asyncio
 
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
 from cleverbot import Cleverbot
 
-from utils import *
+import utils
 import checks
 
 
-class Pointless(SessionCog):
+class Pointless(utils.SessionCog):
     """Nothing to see here."""
 
     def __init__(self, bot: commands.Bot):
@@ -159,7 +155,7 @@ class Pointless(SessionCog):
             await self.bot.process_commands(msg)
 
     async def on_message(self, message):
-        if message.author.bot or is_command_of(self.bot, message):
+        if message.author.bot or utils.is_command_of(self.bot, message):
             return
         for prompt in self.bot.content.reactions:
             if prompt in message.content.lower():

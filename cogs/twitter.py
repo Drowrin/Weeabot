@@ -1,10 +1,10 @@
 import asyncio
 import datetime
-# noinspection PyUnresolvedReferences
+
 import discord
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
-from utils import *
+
+import utils
 import checks
 
 from twitter import Api
@@ -14,13 +14,13 @@ def get_shitpost_channel(b: discord.ext.commands.Bot, server: discord.Server):
     return b.server_configs.get(server.id, {}).get('shitpost_channel', None)
 
 
-class Twitter(SessionCog):
+class Twitter(utils.SessionCog):
     """"""
 
     def __init__(self, bot):
         super(Twitter, self).__init__(bot)
         self.bot = bot
-        self.twitter = Api(**tokens['twitter'])
+        self.twitter = Api(**utils.tokens['twitter'])
         self.last = self.bot.status.get("last_tweet", None)
         self.bot.loop.create_task(self.twitter_repost())
 
@@ -49,7 +49,7 @@ class Twitter(SessionCog):
                     self.bot.dump_status()
                     print("Latest shitpost: ", tweet.text)
                     media_url = tweet.media[0].media_url
-                    with await download_fp(self.session, media_url) as fp:
+                    with await utils.download_fp(self.session, media_url) as fp:
                         for server in self.bot.servers:
                             if get_shitpost_channel(self.bot, server) is not None:
                                 channel = server.get_channel(get_shitpost_channel(self.bot, server))

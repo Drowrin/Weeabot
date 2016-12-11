@@ -1,10 +1,10 @@
 import asyncio
 import traceback
-# noinspection PyUnresolvedReferences
+
 import discord
-# noinspection PyUnresolvedReferences
 from discord.ext import commands
-from utils import *
+
+import utils
 import checks
 
 
@@ -13,7 +13,7 @@ def twitch_formatter(ctx, field, fields):
     fields.append('Twitch: <https://www.twitch.tv/{}>'.format(field['name']))
 
 
-class Twitch(SessionCog):
+class Twitch(utils.SessionCog):
     """Check Twitch stream status for users who have linked their accounts.
     
     If a channel exists with the name 'twitch-streams', automatic updates will be posted there when a user goes live."""
@@ -70,7 +70,7 @@ class Twitch(SessionCog):
         self.updateloop()
     
     @commands.command(pass_context=True)
-    @profiles()
+    @checks.profiles()
     async def addtwitch(self, ctx, twitch_username: str):
         """Add your twitch name to your profile.
         
@@ -78,7 +78,10 @@ class Twitch(SessionCog):
         If the channel doesn't exist, this feature is disabled."""
         try:
             usr = ctx.message.author
-            await self.bot.profiles.put_by_id(usr.id, 'twitch', {'name': twitch_username.lower(), 'lastOnline': '0000-00-00T00:00:00Z'})
+            await self.bot.profiles.put_by_id(usr.id, 'twitch', {
+                'name': twitch_username.lower(),
+                'lastOnline': '0000-00-00T00:00:00Z'
+            })
         except commands.BadArgument as e:
             await self.bot.say(e)
             return
@@ -99,7 +102,7 @@ class Twitch(SessionCog):
         self.bot.dump_server_configs()
 
     async def getstreams(self):
-        headers = {"accept": "application:vnd.twitchtv.v3+json", "Client-ID": tokens['twitch_id']}
+        headers = {"accept": "application:vnd.twitchtv.v3+json", "Client-ID": utils.tokens['twitch_id']}
 
         def getstream(name: str, streamlist):
             for s in streamlist:
@@ -111,8 +114,9 @@ class Twitch(SessionCog):
             users = {u: self.bot.profiles.get_field_by_id(u, 'twitch')
                      for u, p in self.bot.profiles.all().items()
                      if 'twitch' in p}
-            api = "https://api.twitch.tv/kraken/streams?channel={}".format(','.join([t['name'] for t in users.values()]))
-            async with self.session.get(api, headers=headers) as r:
+            api = "https://api.twitch.tv/kraken/streams"
+            params = {'channel': ','.join([t['name'] for t in users.values()])}
+            async with self.session.get(api, headers=headers, params=params) as r:
                 response = await r.json()
             try:
                 streams = response['streams']

@@ -1,8 +1,14 @@
 import os
+import json
+import random
+import aiohttp
+from collections import defaultdict
+
 import discord
 from discord.ext import commands
-from utils import *
-from collections import defaultdict
+
+import utils
+from cogs.requestsystem import request
 
 
 class TagItem:
@@ -74,7 +80,7 @@ class TagMap:
         """Construct a TagMap from a json file specified by path."""
         self.bot = bot
         self.path = json_path
-        json_data = open_json(self.path) or {"tags": {}, "items": []}
+        json_data = utils.open_json(self.path) or {"tags": {}, "items": []}
         self._tags = defaultdict(list)
         self._tags.update(json_data["tags"])
         self._items = [None if v is None else TagItem(**v) for v in json_data["items"]]
@@ -184,17 +190,25 @@ class TagMap:
     @tag.command(pass_context=True, name='add')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
     async def _tag_add(self, ctx, name: str, *, text: str=''):
-        """Add a tag to the database."""
+        """Add a tag to the database.
+
+        Tag names must be alphanumeric, and must contain at least one letter to differentiate from tag IDs."""
+        if not name.isalnum():
+            await self.bot.say("Tag names must be alphanumeric.")  # TODO possibly create "require" system like scala
+            return
         if name.isdigit():
-            await self.bot.say("Tags can not be numbers.")
+            await self.bot.say("Tags can not be only numbers.")
             return
         i_path = None
         if len(ctx.message.attachments) > 0:
             async with aiohttp.ClientSession() as session:
                 link = ctx.message.attachments[0]['url']
                 n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
-                await download(session, link, os.path.join('images', n))
+                await utils.download(session, link, os.path.join('images', n))
                 i_path = os.path.join('images', n)
+        if text == '' and i_path is None:
+            await self.bot.say("Can not create empty tag.")
+            return
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text or None, image=i_path)
         self[name] = t
         await t.run(ctx)
@@ -275,7 +289,7 @@ class TagMap:
                 async with aiohttp.ClientSession() as session:
                     link = ctx.message.attachments[0]['url']
                     n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
-                    await download(session, link, os.path.join('images', n))
+                    await utils.download(session, link, os.path.join('images', n))
                     self.get_by_id(item_id).image = os.path.join('images', n)
             else:
                 self.get_by_id(item_id).image = None

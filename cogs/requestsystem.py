@@ -1,12 +1,115 @@
-# noinspection PyUnresolvedReferences
-import traceback
 import copy
 import pickle
+import enum
 
-# noinspection PyUnresolvedReferences
+import discord
 from discord.ext import commands
-from utils import *
+
+import utils
 import checks
+
+
+class RequestLevel(enum.Enum):
+    default, server = range(2)
+
+
+def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(),
+            bypasser=any):
+    """Decorator to make a command requestable.
+
+    Requestable commands are commands you want to lock down permissions for.
+    However, requestable commands can still be called by members but will need to be approved before executing.
+
+    The following behaivior is followed:
+        1. If a member calls the command, a request is sent to the server owner including the command and args.
+        2. Server owners can approve these requests, which are then elevated as requests to the bot owner.
+        3. If a server owner calls the command, a request is sent directly to the bot owner.
+        4. If the bot owner approves the request, it is executed normally.
+        5. If the bot owner calls the command, it executes normally.
+        6. Similarly, if the bot owner accepts a local request on a server they own, it bypasses the global check.
+
+    Requests can only be called in PMs by the bot owner.
+
+    Requested commands are pickled to disk, so they persist through restarts.
+
+    Attributes
+    ----------
+    level : RequestLevel
+        A string identifying the top level a request should go to.
+        Possible values:
+            ``RequestLevel.default`` for a global request.
+            ``RequestLevel.server`` for a server request.
+        Defaults to ``RequestLevel.default``.
+    owner_bypass : Optional[bool]
+        If ``True``, the bot owner can bypass the requests system entirely.
+        Defaults to ``True``.
+    server_bypass : Optional[bool]
+        If ``True``, the server owner can bypass the server level of requests.
+        Defaults to ``True``.
+    bypasses : list
+        A list of bypass predicates accepting ctx to be used on the command.
+        This differs from a list of checks in that it immediately bypasses the requests system.
+        An example of a use for this is turning a message into a request if a certain command arg is too high.
+        Defaults to an empty list.
+    bypasser : callable
+        This is a predicate that takes the list of results from 'bypasses'.
+        If ``True`` is returned, the request system is bypassed.
+        Defaults to ``any``.
+    """
+    form = '{0.author.mention}, Your request was {1}.```{0.content}```'
+
+    def request_predicate(ctx):
+        do = ctx.bot.loop.create_task
+
+        # Not allowed in PMs.
+        if ctx.message.channel.is_private:
+            raise commands.NoPrivateMessage()
+        # requests cog must be loaded to use requests.
+        if ctx.bot.requestsystem is None:
+            return False
+        # requests must be enabled on the server.
+        if request_channel(ctx.bot, ctx.message.channel.server) is None:
+            return False
+        # Always pass on help so it shows up in the list.
+        if ctx.command.name == 'help':
+            return True
+        # Bot owner bypass.
+        if ctx.message.author.id == ctx.bot.owner.id and owner_bypass:
+            return True
+        # bypass predicates
+        if bypasser(bypass(ctx) for bypass in bypasses):
+            return True
+        # If its already at the global level and has been accepted, it passes.
+        if ctx.message in ctx.bot.requestsystem.get_serv('owner'):
+            ctx.bot.requestsystem.get_serv('owner').remove(ctx.message)
+            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
+            return True
+        # Server owner bypass. Elevate if necessary.
+        if ctx.message.author.id == ctx.message.server.owner.id and server_bypass:
+            if level == RequestLevel.server:
+                return True
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
+            return False
+        # If it is at the server level and has been accepted, elevate it.
+        if ctx.message in ctx.bot.requestsystem.get_serv(ctx.message.server.id):
+            if level == RequestLevel.server:
+                do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
+                return True
+            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'elevated')))
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
+            return False
+        # Otherwise, this is a fresh request, add it to the server level.
+        ctx.bot.loop.create_task(ctx.bot.requestsystem.add_request(ctx.message, ctx.message.server.id))
+        return False
+
+    return commands.check(request_predicate)
+
+
+def request_channel(bot, server: discord.Server):
+    try:
+        return server.get_channel(bot.server_configs.get(server.id, {}).get('request_channel', None))
+    except AttributeError:
+        return None
 
 
 def parse_indexes(indexes: str = None):
@@ -148,7 +251,7 @@ class RequestSystem:
         """Send a request for a command, or request a feature."""
         msg = copy.copy(ctx.message)
         msg.content = command
-        if is_command_of(ctx.bot, msg):
+        if utils.is_command_of(ctx.bot, msg):
             await self.bot.process_commands(msg)
         else:
             await self.bot.send_message(msg.channel, "Added to todo list.")

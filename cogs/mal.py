@@ -1,10 +1,12 @@
-# noinspection PyUnresolvedReferences
-import discord
 import xmltodict
 import asyncio
-# noinspection PyUnresolvedReferences
+import random
+
+import discord
 from discord.ext import commands
-from utils import *
+
+import checks
+import utils
 
 
 # noinspection PyUnusedLocal
@@ -12,7 +14,7 @@ def mal_formatter(ctx, field, fields):
     fields.append('MAL: <http://myanimelist.net/animelist/{}>'.format(field))
 
 
-class MAL(SessionCog):
+class MAL(utils.SessionCog):
     """Commands that access MyAnimeList."""
     
     formatters = {'mal': mal_formatter}
@@ -74,7 +76,7 @@ class MAL(SessionCog):
         await self.bot.profiles.put_by_id(uid, 'mal', mal)
     
     @commands.command(pass_context=True)
-    @profiles()
+    @checks.profiles()
     async def addmal(self, ctx, mal: str, user: str=None):
         """Add a mal username to the profile of a user."""
         try:
@@ -89,7 +91,7 @@ class MAL(SessionCog):
         await self.bot.say("Added {} as {}.".format(mal, usr.display_name))
     
     @commands.command(pass_context=True)
-    @profiles()
+    @checks.profiles()
     async def watch(self, ctx, user: str=None):
         """Select a show to watch based on a MAL user.
         
@@ -97,7 +99,7 @@ class MAL(SessionCog):
         await self.pick_anime(ctx, ['3', '6'], user)
         
     @commands.command(pass_context=True)
-    @profiles()
+    @checks.profiles()
     async def rewatch(self, ctx, user: str=None):
         """Select a show to rewatch based on a MAL user.
         
@@ -105,7 +107,7 @@ class MAL(SessionCog):
         await self.pick_anime(ctx, ['2'], user)
     
     @commands.command(pass_context=True, aliases=('fite',))
-    @profiles()
+    @checks.profiles()
     async def fight(self, ctx, user2: str, threshold: int=2):
         """Fight about MAL scores.
         
