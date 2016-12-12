@@ -8,9 +8,8 @@ import utils
 import checks
 
 
-# noinspection PyUnusedLocal
-def twitch_formatter(ctx, field, fields):
-    fields.append('Twitch: <https://www.twitch.tv/{}>'.format(field['name']))
+def twitch_formatter(field):
+    return {'name': 'Twitch', 'content': '<https://www.twitch.tv/{}>'.format(field['name'])}
 
 
 class Twitch(utils.SessionCog):

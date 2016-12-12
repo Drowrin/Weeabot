@@ -7,19 +7,32 @@ from discord.ext import commands
 import utils
 
 
-# noinspection PyUnusedLocal
-def count_formatter(ctx, field, fields):
-    top_command = max(field, key=field.get)
-    fields.append('Most used command: ({}) {}'.format(field[top_command], top_command))
+def count_formatter(field):
+    maxcoms = 5
+    digits = lambda v: len(str(v))
+
+    def addcom(l, coms):
+        if len(l) == maxcoms or len(coms) == 0:
+            return l
+        i = max(coms, key=coms.get)
+        l.append(i)
+        return addcom(l, {k: v for k, v in coms.items() if k != i})
+
+    f = addcom([], field)
+    if len(f) > 0:
+        cw = digits(max([field[x] for x in f]))
+        iw = digits(maxcoms)
+        content = '\n'.join(['`|{:>{iw}}|{:>{cw}}| ~{}`'.format(i + 1, field[x], x, iw=iw, cw=cw) for i, x in enumerate(f)])
+    else:
+        content = 'None'
+    return {'name': 'Top Commands', 'content': content}
 
 
-# noinspection PyUnusedLocal
-def custom_formatter(ctx, field, fields):
-    fields.append('Cusomt fields: {}'.format(field))
+def custom_formatter(field):
+    return {'name': 'Custom', 'content': field}
 
 
-# noinspection PyUnusedLocal
-def default_formatter(ctx, field, fields):
+def default_formatter(field):
     pass
 
 
@@ -123,17 +136,23 @@ class Profile(utils.SessionCog):
                     await self.bot.say(e)
                     return
             up = self._db[usr.id]
-            fields = ['**{}**\nLevel {}\n{}\n\\~\\~\\~\\~\\~\\~\\~\\~\\~\\~'.format(
-                usr.display_name, level(up['stat']['xp']), usr.top_role)]
-            try:
-                for name, field in up.items():
-                    self.bot.formatters.get(name, default_formatter)(ctx, field, fields)
-            except commands.BadArgument as e:
-                await self.bot.say(e)
-                return
-            fields.append('\\~\\~\\~\\~\\~\\~\\~\\~\\~\\~')
-            with await utils.download_fp(self.session, usr.avatar_url) as fp:
-                await self.bot.upload(fp, filename='avatar.png', content='\n'.join(fields))
+            e = discord.Embed(
+                color=usr.colour,
+                timestamp=usr.joined_at,
+                description="{} | Level {}".format(usr.top_role, level(up['stat']['xp']))
+            )
+            e.set_author(name=usr.display_name)
+            e.set_thumbnail(url=usr.avatar_url)
+            e.set_footer(text="Joined at")
+            order = ['command_count', 'mal', 'twitch']
+            for name in order:
+                try:
+                    value = self.bot.formatters.get(name, default_formatter)(up[name])
+                except KeyError:
+                    value = None
+                if value is not None:
+                    e.add_field(name=value['name'], value=value['content'], inline=False)
+            await self.bot.say(embed=e)
 
     @commands.command(pass_context=True)
     async def leaderboard(self, ctx):

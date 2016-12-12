@@ -9,9 +9,8 @@ import checks
 import utils
 
 
-# noinspection PyUnusedLocal
-def mal_formatter(ctx, field, fields):
-    fields.append('MAL: <http://myanimelist.net/animelist/{}>'.format(field))
+def mal_formatter(field):
+    return {'name': 'MyAnimeList', 'content': '<https://myanimelist.net/animelist/{}>'.format(field)}
 
 
 class MAL(utils.SessionCog):

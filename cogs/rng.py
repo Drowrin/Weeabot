@@ -6,7 +6,7 @@ from discord.ext import commands
 import checks
 
 
-def atk_formatter(ctx, field, fields):
+def atk_formatter(field):
     stats = {
         'KD': field['k'] / field['d'],
         'ACC': field['k'] / field['a'],
@@ -14,9 +14,10 @@ def atk_formatter(ctx, field, fields):
         'SDEATH': field['s'] / field['a']
     }
     rank = {'KD': 'Tryhard', 'ACC': 'Lucky', 'SUR': 'Slippery', 'SDEATH': 'Sdeath'}[max(stats, key=stats.get)]
-    rival = discord.utils.get(ctx.bot.get_all_members(), id=max(field['r'], key=field['r'].get))
-    fields.append('{}\n\nRIVAL: {}\nRANK: {}'.format(
-        '\n'.join(['{}: {}'.format(k, v) for k, v in stats.items()]), rival.display_name, rank))
+    return {
+        'name': 'Attack',
+        'content': '{}\n\nRANK: {}'.format('\n'.join(['{}: {}'.format(k, v) for k, v in stats.items()]), rank)
+    }
 
 
 class RNG:
