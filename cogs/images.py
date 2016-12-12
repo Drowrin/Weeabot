@@ -107,6 +107,8 @@ class Images(utils.SessionCog):
         if t is None:
             await self.bot.say("None found.")
             return
+        if self.bot.profiles is not None:
+            await self.bot.profiles.inc_use(ctx.message.author.id, "tag " + category)
         await t.run(ctx)
 
     @image.command(pass_context=True, name='add')

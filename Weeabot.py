@@ -5,6 +5,8 @@ import os
 import json
 import sys
 
+from collections import defaultdict
+
 import pyimgur
 
 import discord
@@ -42,6 +44,8 @@ class Weeabot(commands.Bot):
         self.owner = None  # set in on_ready
         self.config = Config('config.json')
         self.content = Config('content.json')
+        self.stats = defaultdict(dict)
+        self.stats.update(utils.open_json('stats.json'))
         self.server_configs = utils.open_json('servers.json')
         self.status = utils.open_json('status.json')
         self.imgur = pyimgur.Imgur(utils.tokens['imgur_token'], utils.tokens["imgur_secret"])
@@ -58,6 +62,10 @@ class Weeabot(commands.Bot):
     def dump_status(self):
         with open('status.json', 'w') as f:
             json.dump(self.status, f, ensure_ascii=True)
+
+    def dump_stats(self):
+        with open('stats.json', 'w') as f:
+            json.dump(self.stats, f, ensure_ascii=True)
     
     @property
     def profiles(self):
@@ -113,6 +121,18 @@ class Weeabot(commands.Bot):
         await self.say(message)
         await self.send_message(self.owner, message)
 
+    def inc_use(self, fcn):
+        if fcn not in self.stats['command_use']:
+            self.stats['command_use'][fcn] = 0
+        self.stats['command_use'][fcn] += 1
+        self.dump_stats()
+
+    async def on_command_completion(self, command, ctx):
+        """Event listener for command_completion."""
+        fcn = utils.full_command_name(ctx, command)
+        if "tag" not in fcn and ("image" not in fcn and fcn not in ["image reddit", "image booru"]):
+            self.inc_use(fcn)
+
     async def on_command_error(self, err, ctx):
         if hasattr(ctx.command, "on_error"):
             return
@@ -145,7 +165,10 @@ class Weeabot(commands.Bot):
                 else:
                     await self.send_message(ctx.message.channel, "id not found.")
             elif ctx.invoked_with.lower() in self.tag_map.taglist:
-                await self.tag_map[ctx.invoked_with.split()[0]].run(ctx)
+                t = ctx.invoked_with.split()[0]
+                if self.profiles is not None:
+                    await self.profiles.inc_use(ctx.message.author.id, "tag " + t)
+                await self.tag_map[t].run(ctx)
 
         else:
             print('Ignoring exception in command {}'.format(ctx.command), file=sys.stderr)

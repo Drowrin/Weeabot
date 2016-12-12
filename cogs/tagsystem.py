@@ -101,6 +101,7 @@ class TagMap:
             items = self._tags[item]
         if len(items) == 0:
             return None
+        self.bot.inc_use("tag " + item)
         return self._items[random.choice(items)]
 
     def __getitem__(self, item):
@@ -170,7 +171,11 @@ class TagMap:
     async def tag(self, ctx, name):
         """Get a random tag matching the name."""
         try:
-            await self[name].run(ctx)
+            t = self[name]
+            if t is not None:
+                if self.bot.profiles is not None:
+                    await self.bot.profiles.inc_use(ctx.message.author.id, "tag " + name)
+                await t.run(ctx)
         except KeyError:
             await self.bot.say('Tag "{}" not found.'.format(name))
 
