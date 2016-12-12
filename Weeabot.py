@@ -37,6 +37,9 @@ class Config:
 
 class Weeabot(commands.Bot):
     """Simple additions to commands.Bot"""
+
+    tracking_filter = ['debug', 'exec', 'help', 'req', 'profile']
+
     def __init__(self, *args, **kwargs):
         if 'description' not in kwargs:
             kwargs['description'] = "Weeabot"
@@ -121,17 +124,28 @@ class Weeabot(commands.Bot):
         await self.say(message)
         await self.send_message(self.owner, message)
 
-    def inc_use(self, fcn):
+    def inc_use(self, uid, fcn):
+        if any([x in fcn for x in self.tracking_filter]):
+            return
         if fcn not in self.stats['command_use']:
             self.stats['command_use'][fcn] = 0
         self.stats['command_use'][fcn] += 1
+        if self.profiles is not None:
+            if uid not in self.profiles.all():
+                self.profiles.all()[uid] = {}
+            if 'command_count' not in self.profiles.all()[uid]:
+                self.profiles.all()[uid]['command_count'] = {}
+            if fcn not in self.profiles.all()[uid]['command_count']:
+                self.profiles.all()[uid]['command_count'][fcn] = 0
+            self.profiles.all()[uid]['command_count'][fcn] += 1
+            self.profiles.dump()
         self.dump_stats()
 
     async def on_command_completion(self, command, ctx):
         """Event listener for command_completion."""
         fcn = utils.full_command_name(ctx, command)
         if "tag" not in fcn and ("image" not in fcn and fcn not in ["image reddit", "image booru"]):
-            self.inc_use(fcn)
+            self.inc_use(ctx.message.author.id, fcn)
 
     async def on_command_error(self, err, ctx):
         if hasattr(ctx.command, "on_error"):
@@ -166,9 +180,7 @@ class Weeabot(commands.Bot):
                     await self.send_message(ctx.message.channel, "id not found.")
             elif ctx.invoked_with.lower() in self.tag_map.taglist:
                 t = ctx.invoked_with.split()[0]
-                if self.profiles is not None:
-                    await self.profiles.inc_use(ctx.message.author.id, "tag " + t)
-                await self.tag_map[t].run(ctx)
+                await self.tag_map.get(ctx.message, t).run(ctx)
 
         else:
             print('Ignoring exception in command {}'.format(ctx.command), file=sys.stderr)
