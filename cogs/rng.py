@@ -20,12 +20,16 @@ def atk_formatter(field):
     }
 
 
+def atk_default():
+    return {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}
+
+
 class RNG:
     """Commands based on a randomly selected value."""
 
     formatters = {}
     verbose_formatters = {'atk': atk_formatter}
-    defaults = {'atk': {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}}
+    defaults = {'atk': atk_default}
 
     def __init__(self, bot):
         self.bot = bot

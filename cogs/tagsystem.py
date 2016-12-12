@@ -92,7 +92,7 @@ class TagMap:
             json.dump({"tags": dict(self._tags),
                        "items": [None if i is None else i.as_json() for i in self._items]}, f, ensure_ascii=True)
 
-    def get(self, item, predicate=None):
+    def get(self, message, item, predicate=None):
         if item not in self._tags:
             raise KeyError
         if predicate is not None:
@@ -101,12 +101,8 @@ class TagMap:
             items = self._tags[item]
         if len(items) == 0:
             return None
-        self.bot.inc_use("tag " + item)
+        self.bot.inc_use(message.author.id, "tag " + item)
         return self._items[random.choice(items)]
-
-    def __getitem__(self, item):
-        """Get an item that has the specified tag. Not unique."""
-        return self.get(item.lower())
 
     def __setitem__(self, key, value):
         """Add a new item and assign it a tag."""
@@ -171,7 +167,7 @@ class TagMap:
     async def tag(self, ctx, name):
         """Get a random tag matching the name."""
         try:
-            t = self[name]
+            t = self.get(ctx.message, name)
             if t is not None:
                 if self.bot.profiles is not None:
                     await self.bot.profiles.inc_use(ctx.message.author.id, "tag " + name)

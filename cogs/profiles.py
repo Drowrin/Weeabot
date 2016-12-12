@@ -9,7 +9,9 @@ import utils
 
 def count_formatter(field):
     maxcoms = 5
-    digits = lambda v: len(str(v))
+
+    def digits(v):
+        return len(str(v))
 
     def addcom(l, coms):
         if len(l) == maxcoms or len(coms) == 0:
@@ -22,14 +24,11 @@ def count_formatter(field):
     if len(f) > 0:
         cw = digits(max([field[x] for x in f]))
         iw = digits(maxcoms)
-        content = '\n'.join(['`|{:>{iw}}|{:>{cw}}| ~{}`'.format(i + 1, field[x], x, iw=iw, cw=cw) for i, x in enumerate(f)])
-    else:
-        content = 'None'
-    return {'name': 'Top Commands', 'content': content}
+        return {'name': 'Top Commands', 'content': '\n'.join(['`|{:>{iw}}|{:>{cw}}| ~{}`'.format(i + 1, field[x], x, iw=iw, cw=cw) for i, x in enumerate(f)])}
 
 
 def custom_formatter(field):
-    return {'name': 'Custom', 'content': field}
+    return field
 
 
 def default_formatter(field):
@@ -40,13 +39,21 @@ def level(xp: int):
     return int(xp ** .5)
 
 
+def stat_default():
+    return {'xp': 0}
+
+
+def command_count_default():
+    return {}
+
+
 class Profile(utils.SessionCog):
     """Profile related commands.
 
     Only default support is for command count and custom fields.
     Support for specific fields are added by other cogs so that they are disabled."""
 
-    defaults = {'stat': {'xp': 0}, 'command_count': {}}
+    defaults = {'stat': stat_default, 'command_count': command_count_default}
     formatters = {'command_count': count_formatter, 'custom': custom_formatter}
     verbose_formatters = {}
 
@@ -58,34 +65,39 @@ class Profile(utils.SessionCog):
                 self._db = json.load(f)
         except FileNotFoundError:
             self._db = {}
+        for f in bot.tracking_filter:
+            for u in self._db:
+                if 'command_count' in self._db[u]:
+                    self._db[u]['command_count'] = {k: v for k, v in self._db[u]['command_count'].items() if f not in k}
+        self.dump()
 
-    def _dump(self):
+    def dump(self):
         with open(self.path, 'w') as f:
             json.dump(self._db, f, ensure_ascii=True)
-    
+
     async def save(self):
         """Save the current data to disk."""
-        await self.bot.loop.run_in_executor(None, self._dump)
-    
+        await self.bot.loop.run_in_executor(None, self.dump)
+
     def get_by_id(self, uid: str):
         """Get the whole profile sructure of a user by their id. Generates if needed."""
         if uid not in self._db:
-            self._db[uid] = self.bot.defaults
+            self._db[uid] = {k: v() for k, v in self.bot.defaults.items()}
         return self._db[uid]
-    
+
     def get_field_by_id(self, uid: str, key: str):
         up = self.get_by_id(uid)
         if key not in up:
-            up[key] = self.bot.defaults[key]
+            up[key] = self.bot.defaults[key]()
         return up[key]
-    
+
     async def put_by_id(self, uid: str, key: str, value):
         """Adda a profile, if needed, and edit it."""
         if uid not in self._db:
             self._db[uid] = {}
         self._db[uid][key] = value
         await self.save()
-    
+
     async def remove_by_id(self, uid: str):
         """Remove a profile from the structure."""
         del self._db[uid]
@@ -95,27 +107,16 @@ class Profile(utils.SessionCog):
         """Remove an element of a profile."""
         del self._db[uid][key]
         await self.save()
-    
+
     def __contains__(self, item):
         return self._db.__contains__(item)
-    
+
     def __len__(self):
         return self._db.__len__()
-    
+
     def all(self):
         return self._db
-    
-    async def inc_use(self, uid: str, func: str):
-        cc = self.get_field_by_id(uid, 'command_count')
-        if func not in cc:
-            cc[func] = 0
-        cc[func] += 1
-        await self.put_by_id(uid, 'command_count', cc)
-    
-    async def on_command_completion(self, command, ctx):
-        """Event listener for command_completion."""
-        await self.inc_use(ctx.message.author.id, utils.full_command_name(ctx, command))
-    
+
     async def on_message(self, message):
         """Event listener to record message length."""
         stat = self.get_field_by_id(message.author.id, 'stat')
@@ -135,7 +136,7 @@ class Profile(utils.SessionCog):
                 except commands.BadArgument as e:
                     await self.bot.say(e)
                     return
-            up = self._db[usr.id]
+            up = self.get_by_id(usr.id)
             e = discord.Embed(
                 color=usr.colour,
                 timestamp=usr.joined_at,
@@ -144,7 +145,7 @@ class Profile(utils.SessionCog):
             e.set_author(name=usr.display_name)
             e.set_thumbnail(url=usr.avatar_url)
             e.set_footer(text="Joined at")
-            order = ['command_count', 'mal', 'twitch']
+            order = ['command_count', 'mal', 'twitch', 'custom']
             for name in order:
                 try:
                     value = self.bot.formatters.get(name, default_formatter)(up[name])

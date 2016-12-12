@@ -126,7 +126,7 @@ class Pointless(utils.SessionCog):
             await self.bot.say(await r.text())
 
     @commands.command(pass_context=True)
-    async def rip(self, ctx, ripped: str = None):
+    async def rip(self, ctx, ripped: str=None):
         """RIP"""
         if ripped is None:
             ripped = ctx.message.author.display_name
@@ -160,7 +160,7 @@ class Pointless(utils.SessionCog):
         for prompt in self.bot.content.reactions:
             if prompt in message.content.lower():
                 r = self.bot.content.reactions[prompt][1]
-                i = self.bot.tag_map[self.bot.content.reactions[prompt][0]].image
+                i = self.bot.tag_map.get(message, self.bot.content.reactions[prompt][0]).image
                 if i is None:
                     await self.bot.send_message(message.channel, r)
                 else:

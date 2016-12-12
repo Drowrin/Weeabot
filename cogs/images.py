@@ -101,14 +101,12 @@ class Images(utils.SessionCog):
             return False
 
         try:
-            t = self.bot.tag_map.get(category, predicate=predicate)
+            t = self.bot.tag_map.get(ctx.message, category, predicate=predicate)
         except KeyError:
             t = None
         if t is None:
             await self.bot.say("None found.")
             return
-        if self.bot.profiles is not None:
-            await self.bot.profiles.inc_use(ctx.message.author.id, "tag " + category)
         await t.run(ctx)
 
     @image.command(pass_context=True, name='add')
