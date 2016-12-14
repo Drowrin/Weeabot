@@ -295,7 +295,7 @@ class RequestSystem:
 
     @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
     @checks.is_server_owner()
-    async def accept(self, ctx, *, indexes: str=None):
+    async def accept(self, ctx, *, indexes: str="0"):
         """Accept requests made by users."""
         try:
             indexes = parse_indexes(indexes)
@@ -315,7 +315,7 @@ class RequestSystem:
 
     @accept.group(aliases=('g',))
     @checks.is_owner()
-    async def glob_accept(self, *, indexes: str=None):
+    async def glob_accept(self, *, indexes: str="0"):
         try:
             indexes = parse_indexes(indexes)
         except ValueError:
