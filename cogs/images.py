@@ -232,10 +232,9 @@ class Images(utils.SessionCog):
         if name in self.memes.keys():
             await self.bot.say("{} already taken.".format(name))
             return
-        with open('content.json', "w+") as content:
-            self.memes[name] = link
-            self.bot.content.memes = self.memes
-            content.write(json.dumps(self.bot.content))
+        self.memes[name] = link
+        self.bot.content.memes = self.memes
+        await self.bot.content.save()
         await self.bot.say('Added {}'.format(name))
 
 
