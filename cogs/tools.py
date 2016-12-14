@@ -52,6 +52,12 @@ class Tools(utils.SessionCog):
     async def nick(self, ctx, nick: str):
         """Change the bot's nickname."""
         await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
+
+    @commands.command(pass_context=True)
+    @checks.is_owner()
+    async def pickmessage(self, ctx, message_id):
+        """puts a message object in bot.temp_message"""
+        self.bot.temp_message = await self.bot.get_message(ctx.message.channel, message_id)
     
     @commands.command(pass_context=True)
     @checks.is_owner()
