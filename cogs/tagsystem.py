@@ -2,6 +2,7 @@ import os
 import json
 import random
 import aiohttp
+import re
 from collections import defaultdict
 
 import discord
@@ -29,7 +30,56 @@ class TagItem:
     async def baka(self, ctx):
         await ctx.bot.get_cog("Images").baka_image(ctx, ctx.message.author.display_name)
 
-    methods = {None: none, "simple": simple, "baka": baka}
+    async def embed(self, ctx):
+        constructors = ["title", "description", "url", "timestamp", "colour"]
+        content = json.loads(self.text)
+        if "colour" in content and isinstance(content["colour"], str):
+            try:
+                content["colour"] = commands.MemberConverter(ctx, content["colour"].split(":")[1]).convert().colour.value
+            except commands.BadArgument:
+                await ctx.bot.say("Note: Could not find color member.")
+
+        e = discord.Embed(**{k: v for k, v in content.items() if k in constructors})
+        e.timestamp = discord.utils.parse_time(self.timestamp)
+        try:
+            e.set_footer(text=self.detail(ctx), icon_url=ctx.bot.content.icons['tag'])
+        except KeyError:
+            e.set_footer(text=self.detail(ctx))
+
+        if "image" in content:
+            try:
+                e.set_image(**content['image'])
+            except TypeError:
+                try:
+                    m = commands.MemberConverter(ctx, content['image']).convert()
+                    e.set_image(url=m.avatar_url)
+                except commands.BadArgument:
+                    await ctx.bot.say("Note: Could not find member for image.")
+        if "thumbnail" in content:
+            try:
+                e.set_thumbnail(**content['thumbnail'])
+            except TypeError:
+                try:
+                    m = commands.MemberConverter(ctx, content['thumbnail']).convert()
+                    e.set_thumbnail(url=m.avatar_url)
+                except commands.BadArgument:
+                    await ctx.bot.say("Note: Could not find member for thumbnail.")
+        if "author" in content:
+            try:
+                e.set_author(**content['author'])
+            except TypeError:
+                try:
+                    m = commands.MemberConverter(ctx, content['author']).convert()
+                    e.set_author(name=m.display_name, icon_url=m.avatar_url)
+                except commands.BadArgument:
+                    await ctx.bot.say("Note: Could not find author.")
+        if "fields" in content:
+            for f in content['fields']:
+                e.add_field(**f)
+
+        await ctx.bot.send_message(ctx.message.channel, embed=e)
+
+    methods = {None: none, "simple": simple, "baka": baka, "embed": embed}
 
     def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
                  text: str = None, image: str = None, location: str = None):
@@ -55,7 +105,7 @@ class TagItem:
             "method": self.method
         }
 
-    def str(self, ctx):
+    def detail(self, ctx):
         if ctx.message.channel.is_private:
             name = discord.utils.get(ctx.bot.get_all_members(), id=self.author).name
         else:
@@ -63,8 +113,10 @@ class TagItem:
                 name = ctx.message.server.get_member(self.author).display_name
             except AttributeError:
                 name = discord.utils.get(ctx.bot.get_all_members(), id=self.author).name
-        return "{}(id:{}) by {} at {}{}".format(', '.join(self.tags), self.id, name, self.timestamp,
-                                                ('\n' + self.text) if self.text is not None else '')
+        return "{}(id:{}) by {}".format(', '.join(self.tags), self.id, name)
+
+    def str(self, ctx):
+        return "{} at {}{}".format(self.detail(ctx), self.timestamp, '' if self.text is None else ('\n' + self.text))
 
     async def run(self, ctx):
         """Perform the action specific to this tag."""
@@ -106,9 +158,15 @@ class TagMap:
 
     def __setitem__(self, key, value):
         """Add a new item and assign it a tag."""
-        index = len(self._items)
-        value.id = index
-        self._items.append(value)
+        try:
+            index = next((i for i, x in enumerate(self._items) if x is None))
+            value.id = index
+            self._items[index] = value
+        except StopIteration:
+            index = len(self._items)
+            value.id = index
+            self._items.append(value)
+            self._items.append(None)
         self._tags[key.lower()].append(index)
         self.dump()
 
@@ -139,12 +197,11 @@ class TagMap:
 
     def delete(self, item: int):
         for t in self.get_by_id(item).tags:
-            self._tags[t].remove(item)
+            self._tags[t] = [x for x in self._tags[t] if x != item]
         self._items[item] = None
-        while self._items[-1] is None:
-            del self._items[-1]
-        self._tags = defaultdict(list)
-        self._tags.update({t: self._tags[t] for t in self._tags if len(self._tags[t]) > 0})
+        d = defaultdict(list)
+        d.update({t: self._tags[t] for t in self._tags if len(self._tags[t]) > 0})
+        self._tags = d
         self.dump()
 
     def get_all_tag(self, name: str):
@@ -186,7 +243,7 @@ class TagMap:
     @tag.command(name='list')
     async def _tag_list(self):
         """List the available tags."""
-        await self.bot.say(", ".join(self.taglist))
+        await self.bot.say("Tags: " + ", ".join(self.taglist))
 
     @tag.command(pass_context=True, name='add')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
@@ -195,7 +252,7 @@ class TagMap:
 
         Tag names must be alphanumeric, and must contain at least one letter to differentiate from tag IDs."""
         if not name.isalnum():
-            await self.bot.say("Tag names must be alphanumeric.")  # TODO possibly create "require" system like scala
+            await self.bot.say("Tag names must be alphanumeric.")
             return
         if name.isdigit():
             await self.bot.say("Tags can not be only numbers.")
@@ -214,6 +271,95 @@ class TagMap:
         self[name] = t
         if ctx.bypassed:
             await self.bot.delete_message(ctx.message)
+        await t.run(ctx)
+
+    @tag.command(pass_context=True, name='embed')
+    @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
+    async def _tag_embed(self, ctx, name: str, *, values):
+        """Add an embed tag to the database.
+
+        More complicated than regular tags, but also fancier.
+        It is important to note that no files are saved. If images linked to are deleted, they will no longer display.
+        Use the ~embed tag to see what fields can be set and what they do.
+
+        To set a field:
+            ~tag embed <name> <field> = <content>
+        You can set multiple fields:
+            ~tag embed <name> <field> = <content> <field2> = <content2>
+        If a value has multiple words, you can put the content in quotes:
+            ~tag embed <name> <field> = "<content> <with spaces>" <field2>=<content2>
+
+        Fields and possible values:
+            title: text
+            description: text
+            url: url
+            color/colour: hex code, usertag (will take that user's color)
+            image/thumbnail: url, usertag (will take that user's avatar)
+            author: usertag, comma seperated name and avatar url (avatar url and comma can be left out)
+        Anything else will become a custome field.
+        """
+        if not name.isalnum():
+            await self.bot.say("Tag names must be alphanumeric.")
+            return
+        if name.isdigit():
+            await self.bot.say("Tags can not be only numbers.")
+            return
+        if len(values) == 0:
+            await self.bot.say("Can not create empty tag.")
+            return
+
+        reg = re.compile(r'(\S+\s*=\s*("?)[^"]+?[^"\s]+\2)')
+        fields = [r[0] for r in reg.findall(values)]
+        if len(fields) == 0:
+            await self.bot.say("No valid values found.")
+            return
+
+        data = {}
+
+        for f in fields:
+            try:
+                ftype, content = f.split('=')
+            except ValueError:
+                await self.bot.say("Invalid formatting: `{}`".format(f))
+                return
+
+            ftype = ftype.strip()
+            content = content.strip('" ')
+
+            if ftype in ("title", "description", "url"):
+                data[ftype] = content
+            elif ftype in ("color", "colour"):
+                try:
+                    data["colour"] = "member:" + commands.MemberConverter(ctx, content).convert().id
+                except commands.BadArgument:
+                    try:
+                        data["colour"] = int(content, 16)
+                    except ValueError:
+                        await self.bot.say("Not a valid hex code: {}".format(content))
+                        return
+            elif ftype in ("image", "thumbnail"):
+                try:
+                    data[ftype] = commands.MemberConverter(ctx, content).convert().id
+                except commands.BadArgument:
+                    data[ftype] = {"url": content}
+            elif ftype == "author":
+                try:
+                    data[ftype] = commands.MemberConverter(ctx, content).convert().id
+                except commands.BadArgument:
+                    if ',' in content:
+                        d = content.split(',')
+                        data[ftype] = {"name": d[0].strip(' '), "icon_url": d[1].strip(' ')}
+                    else:
+                        data[ftype] = {"name": content}
+            else:
+                if "fields" not in data:
+                    data["fields"] = []
+                data["fields"].append({"name": ftype, "value": content, "inline": True})
+
+        datastring = json.dumps(data)
+        t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=datastring, image=None)
+        t.method = "embed"
+        self[name] = t
         await t.run(ctx)
 
     @tag.command(pass_context=True, name='addtags')
