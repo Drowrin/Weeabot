@@ -75,11 +75,14 @@ class Tools(utils.SessionCog):
             result = eval(code, env)
             if inspect.isawaitable(result):
                 result = await result
-        except Exception as e:
-            await self.bot.say(python.format('{}: {}'.format(type(e).__name__, e)))
+        except Exception:
+            await self.bot.say(python.format(traceback.format_exc()))
             return
 
-        await self.bot.say(python.format(result))
+        try:
+            await self.bot.say(python.format(result))
+        except discord.HTTPException:
+            await self.bot.say("Output too large")
 
     @commands.command(pass_context=True, aliases=('exec',))
     @checks.is_owner()
@@ -99,12 +102,13 @@ class Tools(utils.SessionCog):
 
         env.update(globals())
 
-        # noinspection PyBroadException
         try:
             exec(code, env)
-            await self.bot.say('\N{OK HAND SIGN}')
         except Exception:
             await self.bot.say(python.format(traceback.format_exc()))
+            return
+
+        await self.bot.say('\N{OK HAND SIGN}')
 
     @commands.command(pass_context=True)
     @checks.is_owner()
