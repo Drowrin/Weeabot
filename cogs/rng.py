@@ -113,7 +113,7 @@ class RNG:
     async def rate(self, *, thing: str):
         """Rate something. Anything. Go nuts."""
         s = sum([hash(c) % 10 for c in list(thing)])
-        await self.bot.say("I give it a {}/10.".format((s % 10) + 1))
+        await self.bot.say("I give it a {}/10.".format((s if "&knuckles" in thing else s % 10) + 1))
 
     def get_atk(self, uid: str):
         return self.bot.profiles.get_field_by_id(uid, 'atk')

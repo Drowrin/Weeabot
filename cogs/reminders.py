@@ -25,8 +25,8 @@ class Reminders:
         If the bot is restarted, the timing will potentially be less accurate by a few minutes."""
         def gettime(s: str, d: str):
             try:
-                r = re.search("\d[\d.]*\s*{}".format(s), d)
-                return int(re.match("\d+", r.group()).group())
+                r = re.search(r"\d[\d.]*\s*{}".format(s), d)
+                return int(re.match(r"\d+", r.group()).group())
             except (TypeError, ValueError, AttributeError):
                 return 0
         seconds = gettime('s', duration)
@@ -35,10 +35,8 @@ class Reminders:
         seconds += gettime('d', duration) * 86400
         current_time = int(time.time())
         finished = current_time + seconds
-        await self.bot.say('I will remind you: "{}" in {} seconds. Does this sound correct?'.format(message, seconds))
-        m = await self.bot.wait_for_message(author=ctx.message.author, channel=ctx.message.channel)
-        if 'y' in m.content:
-            await self.bot.say("\N{OK HAND SIGN}")
+        if await self.bot.confirm(f'I will remind you: "{message}" in {seconds} seconds. Does this sound correct?'):
+            await self.bot.affirmative()
         else:
             await self.bot.say("Cancelled.")
             return

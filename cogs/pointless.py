@@ -142,9 +142,9 @@ class Pointless(utils.SessionCog):
     @commands.command(pass_context=True)
     async def do(self, ctx, n: int, *, command):
         """Repeat a command up to 5 times."""
-        banned = ['~req', '~do']
+        banned = [f'{self.bot.commad_prefix}req', '{self.bot.commad_prefix}do']
         if any([x in command for x in banned]):
-            await self.bot.say("That command may not be used in ~do.")
+            await self.bot.say(f"That command may not be used in {self.bot.commad_prefix}do.")
             return
         if n > 5:
             await self.bot.say("Too many times.")
@@ -190,7 +190,7 @@ class Pointless(utils.SessionCog):
             if "\N{OK HAND SIGN}" in message.content:
                 self.oc += 1
                 if not self.oc % 3:
-                    await self.bot.send_message(message.channel, "\N{OK HAND SIGN}")
+                    await self.bot.send_affirmative(message)
                     return
 
     @commands.command(pass_context=True)

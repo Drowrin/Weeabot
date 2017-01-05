@@ -24,8 +24,8 @@ class Twitch(utils.SessionCog):
         self.loop = None
         self.updateloop()
         self.services = {
-            "Twitch": """Create a channel named 'twitch-streams' to get notifications when server members go live.
-            Members must use the ~addtwitch command to get notifications about their streams."""
+            "Twitch": f"""Create a channel named 'twitch-streams' to get notifications when server members go live.
+            Members must use the {bot.command_prefix}addtwitch command to get notifications about their streams."""
         }
 
     @property
@@ -97,7 +97,7 @@ class Twitch(utils.SessionCog):
         if channel.server.id not in self.bot.server_configs:
             self.bot.server_configs[channel.server.id] = {}
         self.bot.server_configs[channel.server.id]['twitch_channel'] = channel.id
-        await self.bot.say('\N{OK HAND SIGN}')
+        await self.bot.affirmative()
         self.bot.dump_server_configs()
 
     async def getstreams(self):

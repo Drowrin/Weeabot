@@ -31,7 +31,7 @@ class Twitter(utils.SessionCog):
         if channel.server.id not in self.bot.server_configs:
             self.bot.server_configs[channel.server.id] = {}
         self.bot.server_configs[channel.server.id]['shitpost_channel'] = channel.id
-        await self.bot.say('\N{OK HAND SIGN}')
+        await self.bot.affirmative()
         self.bot.dump_server_configs()
 
     async def twitter_repost(self):

@@ -79,7 +79,8 @@ class TagItem:
 
         await ctx.bot.send_message(ctx.message.channel, embed=e)
 
-    methods = {None: none, "simple": simple, "baka": baka, "embed": embed}
+    methods = defaultdict(lambda: TagItem.none)
+    methods.update({None: none, "simple": simple, "baka": baka, "embed": embed})
 
     def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
                  text: str = None, image: str = None, location: str = None):
@@ -426,7 +427,7 @@ class TagMap:
             else:
                 self.delete(int(target))
         self.dump()
-        await self.bot.say("\N{OK HAND SIGN}")
+        await self.bot.affirmative()
 
     @tag.command(pass_context=True, name='edit')
     @request()

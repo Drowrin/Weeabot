@@ -153,7 +153,7 @@ class Tools(utils.SessionCog):
             await self.bot.say("Possible args are 'channel' and 'server'")
             return
         await self.bot.config.save()
-        await self.bot.say("Added. \N{OK HAND SIGN}")
+        await self.bot.affirmative()
 
     @test.command(pass_context=True, name='remove', no_pm=True)
     @checks.is_owner()
@@ -167,7 +167,7 @@ class Tools(utils.SessionCog):
             await self.bot.say("Possible args are 'channel' and 'server'")
             return
         await self.bot.config.save()
-        await self.bot.say("Removed. \N{OK HAND SIGN}")
+        await self.bot.affirmative()
 
 
 def setup(bot):

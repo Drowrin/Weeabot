@@ -6,6 +6,7 @@ from discord.ext import commands
 
 import utils
 
+from Weeabot import bot
 
 def count_formatter(field):
     maxcoms = 5
@@ -24,7 +25,7 @@ def count_formatter(field):
     if len(f) > 0:
         cw = digits(max([field[x] for x in f]))
         iw = digits(maxcoms)
-        return {'name': 'Top Commands', 'content': '\n'.join(['`|{:>{iw}}|{:>{cw}}| ~{}`'.format(i + 1, field[x], x, iw=iw, cw=cw) for i, x in enumerate(f)])}
+        return {'name': 'Top Commands', 'content': '\n'.join([f'`|{i + 1:>{iw}}|{field[x]:>{cw}}| {bot.command_prefix}{x}`' for i, x in enumerate(f)])}
 
 
 def custom_formatter(field):

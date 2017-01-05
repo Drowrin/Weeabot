@@ -11,6 +11,7 @@ import pyimgur
 
 import discord
 from discord.ext import commands
+from discord.ext.commands.bot import _get_variable
 
 import utils
 import checks
@@ -121,8 +122,71 @@ class Weeabot(commands.Bot):
         super(Weeabot, self).remove_cog(name)
 
     async def notify(self, message: str):
+        """Send a message to the channel and also PM to the bot owner."""
         await self.say(message)
         await self.send_message(self.owner, message)
+
+    async def send_affirmative(self, message: discord.Message):
+        """React to a message with the affirmative emote.
+
+        If that is not available due to permissions, the emote will be said instead. If even that is unavailable, PM."""
+        try:
+            await self.add_reaction(message, '\N{OK HAND SIGN}')
+        except discord.Forbidden:
+            try:
+                await self.send_message(message.channel, '\N{OK HAND SIGN}')
+            except discord.Forbidden:
+                await self.send_message(message.author, f'`{message.clean_content}` in `{message.channel}` success.')
+
+    async def affirmative(self):
+        """Equivalent to send_affirmative(ctx.message)
+
+        React to the message that called the command with the affirmative emote.
+
+        If that is not available due to permissions, the emote will be said instead. If even that is unavailable, PM."""
+        await self.send_affirmative(_get_variable('_internal_message'))
+
+    async def send_negative(self, message: discord.Message):
+        """React to a message with the affirmative emote.
+
+        If that is not available due to permissions, the emote will be said instead. If even that is unavailable, PM."""
+        try:
+            await self.add_reaction(message, '\N{CROSS MARK}')
+        except discord.Forbidden:
+            try:
+                await self.send_message(message.channel, '\N{CROSS MARK}')
+            except discord.Forbidden:
+                await self.send_message(message.author, f'`{message.clean_content}` in `{message.channel}` failure.')
+
+    async def negative(self):
+        """Equivalent to send_negative(ctx.message)
+
+        React to the message that called the command with the negative emote.
+
+        If that is not available due to permissions, the emote will be said instead. If even that is unavailable, PM."""
+        await self.send_negative(_get_variable('_internal_message'))
+
+    async def confirm(self, message, user=None):
+        """Use reactions to get a Yes/No response from the user.
+
+        If message is a discord.Message, that message will be used for the reactions.
+        If message is a string or an embed, a new message will be sent with `bot.say()` (only in commands)."""
+        if isinstance(message, str):
+            message = await self.say(content=message)
+        elif isinstance(message, discord.Embed):
+            message = await self.say(embed=message)
+        await self.add_reaction(message, '\N{THUMBS UP SIGN}')
+        await self.add_reaction(message, '\N{THUMBS DOWN SIGN}')
+        user = user or _get_variable('_internal_author')
+        reaction = await self.wait_for_reaction(['\N{THUMBS UP SIGN}', '\N{THUMBS DOWN SIGN}'], user=user, message=message)
+        await self.remove_reaction(message, '\N{THUMBS UP SIGN}', message.server.me)
+        await self.remove_reaction(message, '\N{THUMBS DOWN SIGN}', message.server.me)
+        return reaction.reaction.emoji == '\N{THUMBS UP SIGN}'
+
+    async def process_commands(self, message):
+        """Override process_commands to add _internal_message"""
+        _internal_message = message
+        await super(Weeabot, self).process_commands(message)
 
     def inc_use(self, uid, fcn):
         if any([x in fcn for x in self.tracking_filter]):
@@ -154,14 +218,14 @@ class Weeabot(commands.Bot):
         d = ctx.message.channel
 
         if type(err) is commands.NoPrivateMessage:
-            await self.send_message(d, '{} can not be used in private messages.'.format(ctx.command.name))
+            await self.send_message(d, f'{ctx.command.name} can not be used in private messages.')
 
         elif type(err) is commands.DisabledCommand:
             await self.send_message(d, 'This command is disabled.')
 
         elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
             name = utils.full_command_name(ctx, ctx.command)
-            await self.send_message(d, 'Invalid usage. Use {}help {}'.format(self.command_prefix, name))
+            await self.send_message(d, f'Invalid usage. Use {self.command_prefix}help {name}')
 
         elif type(err) is utils.CheckMsg:
             await self.send_message(d, err)
@@ -183,13 +247,13 @@ class Weeabot(commands.Bot):
                 await self.tag_map.get(ctx.message, t).run(ctx)
 
         else:
-            print('Ignoring exception in command {}'.format(ctx.command), file=sys.stderr)
+            print(f'Ignoring exception in command {ctx.command}', file=sys.stderr)
             traceback.print_exception(type(err), err, err.__traceback__, file=sys.stderr)
 
     async def on_server_join(self, server):
         """Called when the bot joins a server or creates one."""
-        await bot.send_message(self.owner, "Joined Server: {}".format(server))
-        await bot.send_message(server.default_channel, "Hello! use ~help and ~services to see what I can do.")
+        await bot.send_message(self.owner, f"Joined Server: {server}")
+        await bot.send_message(server.default_channel, f"Hello! use {self.command_prefix}help and {self.command_prefix}services to see what I can do.")
 
     async def on_member_join(self, member):
         """Called whenever a new member joins a server."""
@@ -202,8 +266,8 @@ class Weeabot(commands.Bot):
 
     async def on_ready(self):
         await self.update_owner()
-        print('Bot: {0.name}:{0.id}'.format(bot.user))
-        print('Owner: {0.name}:{0.id}'.format(bot.owner))
+        print(f'Bot: {bot.user.name}:{bot.user.id}')
+        print(f'Owner: {bot.owner.name}:{bot.owner.id}')
         print('------------------')
 
 
@@ -213,8 +277,7 @@ bot = Weeabot(command_prefix='~')
 @bot.command(name='services')
 async def service_command():
     """Show how to use non-command features of the bot."""
-    fmt = '```\n{}:\n\n{}\n```'
-    await bot.say('\n'.join([fmt.format(k, v) for k, v in bot.services.items()]))
+    await bot.say('\n'.join([f'```\n{k}:\n\n{v}\n```' for k, v in bot.services.items()]))
 
 
 @bot.group(aliases=('e',), invoke_without_command=True)
@@ -223,8 +286,9 @@ async def extensions():
     """Extension related commands.
 
     Invoke without a subcommand to list extensions."""
-    await bot.say('Loaded: {}\nAll: {}'.format(' '.join(bot.cogs.keys()),
-                                               ' '.join([x for x in os.listdir('cogs') if '.py' in x])))
+    loaded = ' '.join(bot.cogs.keys())
+    all_ex = ' '.join([x for x in os.listdir('cogs') if '.py' in x])
+    await bot.say(f'Loaded: {loaded}\nAll: {all_ex}')
 
 
 @extensions.command(name='load', alises=('l',))

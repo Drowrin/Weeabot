@@ -110,25 +110,34 @@ class Spoilers:
     async def _list(self, ctx):
         """List the spoiler channels on this server."""
         try:
-            await self.bot.say(', '.join(self.bot.server_configs[ctx.message.server.id]['spoilers']))
+            await self.bot.say('\n'.join([f'{n}: {s.get("status", "No status listed.")}' for n, s in self.bot.server_configs[ctx.message.server.id]['spoilers'].items()]))
         except (TypeError, KeyError):
             await self.bot.say('None')
+
+    @spoiler.command(pass_context=True, name='status', no_pm=True)
+    async def _status(self, ctx, name: str):
+        """Check the status of a spoiler channel."""
+        if name not in self.bot.server_configs[ctx.message.server.id].get('spoilers', {}):
+            await self.bot.say(f"{name} not found")
+            return
+        try:
+            stat = self.bot.server_configs[ctx.message.server.id]['spoilers'][name].get('status', 'No status listed.')
+            await self.bot.say(f'Status of {name}: {stat}')
+        except KeyError:
+            await self.bot.say("No status listed.")
 
     @spoiler.command(pass_context=True, name='join', no_pm=True)
     async def _join(self, ctx, name: str):
         """Join a spoiler channel."""
         if name in [r.name for r in ctx.message.author.roles]:
-            await self.bot.say("You are already in that channel.")
+            await self.bot.say(f"You are already in that channel.")
             return
         try:
             c = self.bot.server_configs[ctx.message.server.id]['spoilers'][name]
             role = discord.utils.get(ctx.message.server.roles, id=c['role'])
             role_present = discord.utils.get(ctx.message.server.roles, id=c['role_present'])
             await self.bot.add_roles(ctx.message.author, role, role_present)
-            await self.bot.send_message(discord.Object(c['id']), "Welcome {} to {}.".format(
-                ctx.message.author.mention,
-                name
-            ))
+            await self.bot.send_message(discord.Object(c['id']), f"Welcome {ctx.message.author.mention} to {name}.")
         except KeyError:
             await self.bot.say("not found.")
 
@@ -140,7 +149,7 @@ class Spoilers:
         _, spoil = get_channel(ctx)
         spoil['trusted'].append(user.id)
         self.bot.dump_server_configs()
-        await self.bot.say("{} is now trusted.".format(user.display_name))
+        await self.bot.say(f"{user.display_name} is now trusted.")
 
     @spoiler.command(pass_context=True, name='untrust', no_pm=True)
     @is_spoiler_channel()
@@ -153,22 +162,46 @@ class Spoilers:
             return
         spoil['trusted'].remove(user.id)
         self.bot.dump_server_configs()
-        await self.bot.say("{} is now untrusted.".format(user.display_name))
+        await self.bot.say(f"{user.display_name} is now untrusted.")
 
     @spoiler.command(pass_context=True, name='update', no_pm=True)
     @is_spoiler_channel()
     @is_trusted()
-    async def _update(self, ctx):
+    async def _update(self, ctx, *, status=None):
         """Update this spoiler channel.
 
-        This will block everyone from viewing this channel until they catch up."""
-        _, spoil = get_channel(ctx)
+        This will block everyone from viewing this channel until they catch up.
+
+        The status will be sent to all users, and displayed to users when they view this channel's status.
+        As such, it should not contain spoilers itself. Instead, you could list an episode/chapter number or a
+        description (such as 'new arc')."""
+        name, spoil = get_channel(ctx)
+        message = f'{ctx.message.author.mention} updated {name} in {ctx.message.server.name} with status: "{status}"'
         users = [u for u in ctx.message.server.members if
-                 (spoil['role_present'] in [r.id for r in u.roles]) and
+                 (spoil['role'] in [r.id for r in u.roles]) and
                  u.id != ctx.message.author.id]
         for m in users:
             await self.bot.remove_roles(m, discord.utils.get(ctx.message.server.roles, id=spoil['role_present']))
-        await self.bot.say("\N{OK HAND SIGN}")
+            await self.bot.send_message(m, message)
+        spoil['status'] = status
+        self.bot.dump_server_configs()
+        await self.bot.affirmative()
+
+    @spoiler.command(pass_context=True, no_pm=True)
+    @is_spoiler_channel()
+    @is_trusted()
+    async def set_status(self, ctx, *, status=None):
+        """Set the status of the channel without updating it."""
+        name, spoil = get_channel(ctx)
+        spoil['status'] = status or "No status listed."
+        message = f'{ctx.message.author.mention} changed status {name} in {ctx.message.server.name} to: "{status}"'
+        users = [u for u in ctx.message.server.members if
+                 (spoil['role'] in [r.id for r in u.roles]) and
+                 u.id != ctx.message.author.id]
+        for m in users:
+            await self.bot.send_message(m, message)
+        self.bot.dump_server_configs()
+        await self.bot.affirmative()
 
     @spoiler.command(pass_context=True, name='catchup', no_pm=True)
     async def _catchup(self, ctx, name: str):
@@ -180,10 +213,7 @@ class Spoilers:
             c = self.bot.server_configs[ctx.message.server.id]['spoilers'][name]
             role_present = discord.utils.get(ctx.message.server.roles, id=c['role_present'])
             await self.bot.add_roles(ctx.message.author, role_present)
-            await self.bot.send_message(discord.Object(c['id']), "{} is now caught up on {}.".format(
-                ctx.message.author.display_name,
-                name
-            ))
+            await self.bot.send_message(discord.Object(c['id']), f"{ctx.message.author.display_name} is now caught up on {name}.")
         except KeyError:
             await self.bot.say("not found.")
 

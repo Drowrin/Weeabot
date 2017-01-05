@@ -200,9 +200,7 @@ class Polls:
                     poll_type[it] = st
         server = ctx.message.server.id
         if ctx.message.author.id == self.bot.owner.id:
-            await self.bot.say("Is this poll global?")
-            msg = await self.bot.wait_for_message(author=ctx.message.author)
-            if 'yes' in msg.content.lower():
+            if await self.bot.confirm("Is this poll global?"):
                 server = 'global'
         try:
             poll_id = str(int(max(self.polls)) + 1)

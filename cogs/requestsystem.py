@@ -176,7 +176,7 @@ class RequestSystem:
     @checks.is_server_owner()
     async def enable_requests(self, ctx):
         """Enable requests in this server."""
-        await self.bot.say(
+        if not await self.bot.confirm(
             "This will enable the requests system in this server. Several new features will become available.\n"
             "These are features that would generally be limited to moderater/admin/bot-owner control.\n"
             "However, with this system, normal members can 'request' these commands, and those with proper privelege\n"
@@ -185,11 +185,9 @@ class RequestSystem:
             "This will create a new channel, where requests will be sent.\n"
             "Anyone you give access to this channel will be able to approve requests.\n"
             "\n"
-            "Are you sure you want to enable this (yes|no)?\n"
+            "Are you sure you want to enable this?\n"
             "It can be disabled at any time with command disable_requests.\n"
-        )
-        response = await self.bot.wait_for_message(author=ctx.message.author)
-        if not response.content.startswith('y'):
+        ):
             await self.bot.say("Cancelled.")
             return
         e_overwrite = discord.PermissionOverwrite(read_messages=False)

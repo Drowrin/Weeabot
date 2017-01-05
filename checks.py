@@ -48,9 +48,9 @@ def is_channel(name: str):
         try:
             ch = commands.ChannelConverter(ctx, name).convert()
         except commands.BadArgument:
-            raise commands.CheckFailure('Only allowed in a channel called {}.'.format(name))
+            raise commands.CheckFailure(f'Only allowed in a channel called {name}.')
         if ctx.message.channel.id != ch.id:
-            raise commands.CheckFailure('Only allowed in {}.'.format(ch.mention))
+            raise commands.CheckFailure(f'Only allowed in {ch.mention}.')
         return True
 
     return commands.check(_is_channel)

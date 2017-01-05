@@ -121,9 +121,7 @@ class Images(utils.SessionCog):
             raise commands.BadArgument('Invalid Usage: No images.')
         coldir = path.join('images', 'collections')
         if collection not in listdir(coldir):
-            await self.bot.send_message(self.bot.owner, "That collection doesn't exist, add it?")
-            msg = await self.bot.wait_for_message(author=self.bot.owner)
-            if 'yes' in msg.content.lower():
+            if await self.bot.confirm("That collection doesn't exist, add it?", self.bot.owner):
                 makedirs(path.join(coldir, collection))
                 await self.bot.notify("Added collection: {}".format(collection))
             else:
