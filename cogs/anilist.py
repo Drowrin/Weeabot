@@ -1,58 +1,80 @@
-import asyncio
 import json
-import datetime
+from datetime import datetime, timedelta
+import dateutil.parser
 
 import discord
 from discord.ext import commands
-
-import checks
 import utils
 
+
 class AniList(utils.SessionCog):
-	"""Commands that access AniList. Mostly just for seasonal anime."""
-	
-	
-	@commands.command(pass_context=True)
-	async def anime_list( self, ctx, season = None, year = None ):
-		"""Lists anime airing in a given season, or the current season if none is specified. 
-		
-		Can take both year and season because of the rollover into winter season."""
-		token = await check_token()
-		now = datetime.now()
-		seasons = [ "winter", "spring", "summer", "fall" ]
-		if season is None:
-			season = seasons[ now.month//3 ]
-		if year is None:	
-			year = now.year
-		shows = {}
-		types = [ "tv", "tv short"]
-		for t in types:
-			params = { "year": year, "season" : season, "access_token" : token,  "type" : t }
-			url = "https://anilist.co/api/browse/anime"
-			async with self.session.get( url, params ) as r:
-				if r.status != 200:
-					return
-				js = json.load( await r.text() )
-				for anime is js:
-					if anime["adult"] == false:
-						shows[ anime[ "title_romaji" ] ] = anime[ "start_date_fuzzy" ]
-		e = discord.Embed()
-		e.set_author( name = "{season.title()} {year} Anime")
-		for title, date in shows:
-			formatted_date = "{}/{}/{}".format( date%10000//100, date%100, date//10000 )
-			e.add_field( name = title, value = formatted_date, inline = false )
-		await self.bot.say(embed=e)				
-	
-	async def check_token():
-		token = 0
-		params = { "client_id" : "svered-p2ppj", "client_secret" : R8rzQ8EbGyva0iL3YaqUo }
-		url = "https://anilist.co/api/auth/access_token"
-		async with self.session.post( url, params ) as r:
-			if r.status != 200:
+    """Commands that access AniList. Mostly just for seasonal anime."""
+
+    @commands.command()
+    @commands.cooldown(1, 1800, commands.BucketType.channel)
+    async def anime_list(self, season=None, year=None):
+        """Lists anime airing in a given season, or the current season if none is specified.
+
+        Can take both year and season because of the rollover into winter season."""
+        daynames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        def datestr(da: datetime):
+            if da is None:
+                return "Not Listed"
+            return dateutil.parser.parse(da).strftime("%m/%d/%Y")
+
+        token = await self.check_token()
+        now = datetime.now()
+        seasons = ["winter", "spring", "summer", "fall"]
+        season = season or seasons[now.month // 3]
+        year = year or now.year
+        days = [[], [], [], [], [], [], []]
+        types = ["tv", "tv short"]
+
+        m = await self.bot.say("collecting info")
+
+        for t in types:
+            params = {"access_token": token, "year": year, "season": season, "type": t}
+            url = "https://anilist.co/api/browse/anime"
+            async with self.session.get(url, params=params) as r:
+                js = await r.json()
+                if r.status != 200:
+                    await self.bot.edit_message(m, f"error in api call: response {r.status}\n{r.reason}\n{js['error_message']}")
+                    return
+                for anime in js:
+                    if not anime["adult"]:
+                        url = f"https://anilist.co/api/anime/{anime['id']}"
+                        async with self.session.get(url, params={"access_token": token}) as r2:
+                            anime = await r2.json()
+                            d = dateutil.parser.parse(anime["start_date"])
+                            days[d.weekday()].append(anime)
+        anilist_url = f'http://anilist.co/browse/anime?sort=start_date-desc&year={year}&season={season}'
+        e: discord.Embed = discord.Embed(title=f"{season.title()} {year} Anime", url=anilist_url)
+        for day, shows in enumerate(days):
+            shows = sorted(shows, key=lambda a: a['start_date_fuzzy'])
+            value = [
+                f"""*{anime['title_romaji']}*
+                {datestr(anime['start_date'])} — {datestr(anime['end_date'])}
+                {f"Time until next episode: {timedelta(seconds=anime['airing']['countdown'])}"
+                    if anime['airing'] is not None and 'countdown' in anime['airing'] else ''
+                }
+                """
+                for anime in shows
+            ]
+            e.add_field(name=daynames[day], value='\n'.join(value), inline=False)
+        await self.bot.delete_message(m)
+        await self.bot.say(embed=e)
+
+    async def check_token(self):
+        params = {"client_id": utils.tokens['anilist_id'], "client_secret": utils.tokens['anilist_secret'], "grant_type": "client_credentials"}
+        url = "https://anilist.co/api/auth/access_token"
+        async with self.session.post(url, params=params) as r:
+            if r.status != 200:
+                await self.bot.say(f"error in check_token call: response {r.status}")
                 return
-			token = json.load( await r.text() )["access_token"]
-			return token
-            
-	
+            token = (await r.json())["access_token"]
+            return token
+
+
 def setup(bot):
     bot.add_cog(AniList(bot))
