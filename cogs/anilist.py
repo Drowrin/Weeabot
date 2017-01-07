@@ -61,7 +61,18 @@ class AniList(utils.SessionCog):
                 """
                 for anime in shows
             ]
-            e.add_field(name=daynames[day], value='\n'.join(value), inline=False)
+
+            pages = [[]]
+            for v in value:
+                if len('\n'.join(pages[-1])) + len(v) < 1024:
+                    pages[-1].append(v)
+                else:
+                    pages.append([v])
+
+            e.add_field(name=daynames[day], value='\n'.join(pages[0]), inline=False)
+            for p in pages[1:]:
+                e.add_field(name='\N{ZERO WIDTH SPACE}', value='\n'.join(p), inline=False)
+
         await self.bot.delete_message(m)
         await self.bot.say(embed=e)
 
