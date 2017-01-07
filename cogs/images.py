@@ -170,7 +170,7 @@ class Images(utils.SessionCog):
                             return
                         else:
                             im = im['@file_url']
-                    await self.bot.edit_message(tmp, im)
+                    await self.bot.edit_message(tmp, "http:" + im)
                 else:
                     await self.bot.edit_message(tmp, "No results")
             else:
