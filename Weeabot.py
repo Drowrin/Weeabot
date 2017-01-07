@@ -6,6 +6,7 @@ import json
 import sys
 
 from collections import defaultdict
+from datetime import timedelta
 
 import pyimgur
 
@@ -232,6 +233,10 @@ class Weeabot(commands.Bot):
 
         elif type(err) is commands.CheckFailure:
             pass
+
+        elif type(err) is commands.CommandOnCooldown:
+            timestr = lambda seconds: timedelta(seconds=seconds)
+            await self.send_message(d, f"This command is on a {timestr(err.cooldown.per)} cooldown. Try again in {timestr(err.retry_after)}")
 
         elif type(err) is commands.CommandNotFound:
             if ctx.invoked_with.isdigit():
