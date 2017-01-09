@@ -2,10 +2,10 @@ import asyncio
 import re
 import time
 
+from datetime import timedelta
+
 import discord
 from discord.ext import commands
-
-import utils
 
 
 class Reminders:
@@ -33,9 +33,10 @@ class Reminders:
         seconds += gettime('m', duration) * 60
         seconds += gettime('h', duration) * 3600
         seconds += gettime('d', duration) * 86400
+        td = timedelta(seconds=seconds)
         current_time = int(time.time())
         finished = current_time + seconds
-        if await self.bot.confirm(f'I will remind you: "{message}" in {seconds} seconds. Does this sound correct?'):
+        if await self.bot.confirm(f'I will remind you: "{message}" in {td}. Does this sound correct?'):
             await self.bot.affirmative()
         else:
             await self.bot.say("Cancelled.")
