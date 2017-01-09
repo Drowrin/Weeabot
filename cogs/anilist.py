@@ -72,7 +72,7 @@ class AniList(utils.SessionCog):
             value = [
                 f"""*{anime['title_romaji']}*
                 {datestr(anime['start_date'])} — {datestr(anime['end_date'])}
-                {f"Time until next episode: {timedelta(seconds=anime['airing']['countdown'])}"
+                {f"Time until next episode: {utils.down_to_minutes(timedelta(seconds=anime['airing']['countdown']))}"
                     if anime['airing'] is not None and 'countdown' in anime['airing'] else ''
                 }
                 """
