@@ -17,6 +17,20 @@ class Reminders:
             self.bot.status['reminders'] = {}
         self.bot.loop.create_task(self.check_reminders())
 
+    async def remind(self, mid: str):
+        """send reminder message based on message id (mid) key."""
+        try:
+            m = self.bot.status['reminders'][mid]
+        except KeyError:
+            print(f'reminder keyerror: {mid}')
+            return
+        t = int(m['finished']) - int(time.time())
+        print(f'reminder scheduled in {timedelta(seconds=t)}')
+        await asyncio.sleep(t)
+        await self.bot.send_message(discord.Object(id=m['channel']), f'{m["author"]} I was told to remind you: "{m["message"]}"')
+        del self.bot.status['reminders'][mid]
+        self.bot.dump_status()
+
     @commands.command(pass_context=True)
     async def remindme(self, ctx, message, *, duration: str):
         """The bot will send you a reminder. Make sure the message is in quotes if it is not one word.
@@ -48,27 +62,12 @@ class Reminders:
             'message': message
         }
         self.bot.dump_status()
-        await asyncio.sleep(seconds)
-        await self.bot.say('{} I was told to remind you: "{}"'.format(ctx.message.author.mention, message))
-        del self.bot.status['reminders'][ctx.message.id]
-        self.bot.dump_status()
+        await self.remind(ctx.message.id)
 
     async def check_reminders(self):
         await self.bot.wait_until_ready()
-        while not self.bot.is_closed:
-            dellist = []
-            for mid, r in self.bot.status['reminders'].items():
-                if r['finished'] < time.time():
-                    await self.bot.send_message(discord.Object(
-                        id=r['channel']),
-                        '{} I was told to remind you: "{}"\nNote: timing is innacurate. the bot crashed/restarted.'
-                        .format(r['author'], r['message'])
-                    )
-                    dellist.append(mid)
-            for m in dellist:
-                del self.bot.status['reminders'][m]
-                self.bot.dump_status()
-            await asyncio.sleep(180)
+        for mid in self.bot.status['reminders']:
+            self.bot.loop.create_task(self.remind(mid))
 
 
 def setup(bot):
