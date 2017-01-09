@@ -17,6 +17,14 @@ class AniList(utils.SessionCog):
 
         Can take both year and season because of the rollover into winter season."""
         daynames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        seasons = ["winter", "spring", "summer", "fall"]
+        season_colors = {
+            'winter': discord.Colour.lighter_grey(),
+            'spring': discord.Colour.green(),
+            'summer': discord.Colour.gold(),
+            'fall': discord.Colour.orange()
+        }
+        types = ["tv", "tv short"]
 
         def datestr(da: datetime):
             if da is None:
@@ -25,11 +33,10 @@ class AniList(utils.SessionCog):
 
         token = await self.check_token()
         now = datetime.now()
-        seasons = ["winter", "spring", "summer", "fall"]
         season = season or seasons[now.month // 3]
         year = year or now.year
         days = [[], [], [], [], [], [], []]
-        types = ["tv", "tv short"]
+
 
         m = await self.bot.say("collecting info")
 
@@ -49,7 +56,11 @@ class AniList(utils.SessionCog):
                             d = dateutil.parser.parse(anime["start_date"])
                             days[d.weekday()].append(anime)
         anilist_url = f'http://anilist.co/browse/anime?sort=start_date-desc&year={year}&season={season}'
-        e: discord.Embed = discord.Embed(title=f"{season.title()} {year} Anime", url=anilist_url)
+        e: discord.Embed = discord.Embed(
+            title=f"{season.title()} {year} Anime",
+            url=anilist_url,
+            color=season_colors[season]
+        )
         for day, shows in enumerate(days):
             shows = sorted(shows, key=lambda a: a['start_date_fuzzy'])
             value = [
