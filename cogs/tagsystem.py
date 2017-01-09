@@ -270,7 +270,7 @@ class TagMap:
             return
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text or None, image=i_path)
         self[name] = t
-        if ctx.bypassed:
+        if ctx.bypassed and not ctx.server_bypassed:
             await self.bot.delete_message(ctx.message)
         await t.run(ctx)
 
