@@ -5,6 +5,7 @@ import random
 from os import path
 from os import listdir
 from discord.ext import commands
+from datetime import timedelta
 
 
 class CheckMsg(commands.CheckFailure):
@@ -97,6 +98,14 @@ def cooldown_reset_if(predicate):
         return True
 
     return commands.check(inner)
+
+
+def down_to_seconds(td: timedelta):
+    return timedelta(seconds=td.seconds)
+
+
+def down_to_minutes(td: timedelta):
+    return timedelta(minutes=(td.seconds // 60))
 
 
 tokens = open_json('tokens.json')
