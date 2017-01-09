@@ -235,7 +235,7 @@ class Weeabot(commands.Bot):
             pass
 
         elif type(err) is commands.CommandOnCooldown:
-            timestr = lambda seconds: timedelta(seconds=seconds)
+            timestr = lambda seconds: utils.down_to_seconds(timedelta(seconds=seconds))
             await self.send_message(d, f"This command is on a {timestr(err.cooldown.per)} cooldown. Try again in {timestr(err.retry_after)}")
 
         elif type(err) is commands.CommandNotFound:
