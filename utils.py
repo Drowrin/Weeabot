@@ -86,4 +86,17 @@ class SessionCog:
         self.bot.loop.create_task(self.session.close())
 
 
+def cooldown_reset_if(predicate):
+    """A check that always passes. Resets the cooldown if the predicate is true.
+
+    Predicate takes ctx."""
+
+    def inner(ctx):
+        if predicate(ctx):
+            ctx.command.reset_cooldown(ctx)
+        return True
+
+    return commands.check(inner)
+
+
 tokens = open_json('tokens.json')

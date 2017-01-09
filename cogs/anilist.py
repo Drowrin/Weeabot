@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timedelta
 import dateutil.parser
 
@@ -7,24 +6,31 @@ from discord.ext import commands
 import utils
 
 
+def not_season_or_year(ctx):
+    now = datetime.now()
+    return AniList.seasons[now.month // 3] not in ctx.message.content or str(now.year) not in ctx.message.content
+
+
 class AniList(utils.SessionCog):
     """Commands that access AniList. Mostly just for seasonal anime."""
 
+    daynames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    seasons = ["winter", "spring", "summer", "fall"]
+    season_colors = {
+        'winter': discord.Colour.lighter_grey(),
+        'spring': discord.Colour.green(),
+        'summer': discord.Colour.gold(),
+        'fall': discord.Colour.orange()
+    }
+    types = ["tv", "tv short"]
+
     @commands.command()
+    @utils.cooldown_reset_if(not_season_or_year)
     @commands.cooldown(1, 1800, commands.BucketType.channel)
     async def anime_list(self, season=None, year=None):
         """Lists anime airing in a given season, or the current season if none is specified.
 
         Can take both year and season because of the rollover into winter season."""
-        daynames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        seasons = ["winter", "spring", "summer", "fall"]
-        season_colors = {
-            'winter': discord.Colour.lighter_grey(),
-            'spring': discord.Colour.green(),
-            'summer': discord.Colour.gold(),
-            'fall': discord.Colour.orange()
-        }
-        types = ["tv", "tv short"]
 
         def datestr(da: datetime):
             if da is None:
@@ -33,14 +39,13 @@ class AniList(utils.SessionCog):
 
         token = await self.check_token()
         now = datetime.now()
-        season = season or seasons[now.month // 3]
+        season = season or self.seasons[now.month // 3]
         year = year or now.year
         days = [[], [], [], [], [], [], []]
 
-
         m = await self.bot.say("collecting info")
 
-        for t in types:
+        for t in self.types:
             params = {"access_token": token, "year": year, "season": season, "type": t}
             url = "https://anilist.co/api/browse/anime"
             async with self.session.get(url, params=params) as r:
@@ -55,11 +60,12 @@ class AniList(utils.SessionCog):
                             anime = await r2.json()
                             d = dateutil.parser.parse(anime["start_date"])
                             days[d.weekday()].append(anime)
+
         anilist_url = f'http://anilist.co/browse/anime?sort=start_date-desc&year={year}&season={season}'
         e: discord.Embed = discord.Embed(
             title=f"{season.title()} {year} Anime",
             url=anilist_url,
-            color=season_colors[season]
+            color=self.season_colors[season]
         )
         for day, shows in enumerate(days):
             shows = sorted(shows, key=lambda a: a['start_date_fuzzy'])
@@ -80,7 +86,7 @@ class AniList(utils.SessionCog):
                 else:
                     pages.append([v])
 
-            e.add_field(name=daynames[day], value='\n'.join(pages[0]), inline=False)
+            e.add_field(name=self.daynames[day], value='\n'.join(pages[0]), inline=False)
             for p in pages[1:]:
                 e.add_field(name='\N{ZERO WIDTH SPACE}', value='\n'.join(p), inline=False)
 
