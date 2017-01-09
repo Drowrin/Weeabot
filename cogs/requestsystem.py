@@ -60,6 +60,8 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
 
     def request_predicate(ctx):
         ctx.bypassed = False
+        ctx.server_bypassed = False
+        ctx.owner_bypassed = False
         do = ctx.bot.loop.create_task
 
         # Not allowed in PMs.
@@ -76,6 +78,7 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
             return True
         # Bot owner bypass.
         if ctx.message.author.id == ctx.bot.owner.id and owner_bypass:
+            ctx.owner_bypass = True
             ctx.bypassed = True
             return True
         # bypass predicates
@@ -91,6 +94,7 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
         if ctx.message.author.id == ctx.message.server.owner.id and server_bypass:
             if level == RequestLevel.server:
                 ctx.bypassed = True
+                ctx.server_bypassed = True
                 return True
             do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
             return False
