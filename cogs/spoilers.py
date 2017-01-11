@@ -2,12 +2,7 @@ import discord
 from discord.ext import commands
 
 from cogs.requestsystem import request, RequestLevel
-
-
-def get_channel(ctx):
-    """Get the spoiler channel info for this channel. Assumes this is a valid spoiler channel."""
-    return [(n, c) for n, c in ctx.bot.server_configs[ctx.message.server.id]['spoilers'].items()
-            if c['id'] == ctx.message.channel.id][0]
+from Weeabot import Weeabot
 
 
 def get_field(ctx, f: str):
@@ -49,11 +44,89 @@ def is_author():
     return commands.check(predicate)
 
 
+class SpoilerChannel:
+    """data structure containing spoiler channel info"""
+
+    def __init__(self, bot: Weeabot, name, server, **kwargs):
+        self.bot = bot
+        self.name = name
+        self.server = server
+        self.status = kwargs.pop('status', 'No status listed.')
+        self.creator = kwargs.pop('author', kwargs.pop('creator', ''))  # to deal with old format
+        self.members = kwargs.pop('members', [])
+        self.trusted = kwargs.pop('trusted', [])
+        self.id = kwargs.pop('id', '')
+
+        self.channel = bot.get_channel(self.id)
+
+        # import from old system
+        # if 'role' in kwargs:
+        #     print(f'converting {name} in {server} to new format')
+        #     s: discord.Server = bot.get_server(self.server)
+        #     r = discord.utils.get(s.roles, id=kwargs['role'])
+        #     r_p = discord.utils.get(s.roles, id=kwargs['role_present'])
+        #     members = [m for m in s.members if r in m.roles]
+        #     self.members = [m.id for m in members]
+        #     for m in members:
+        #         bot.loop.create_task(self.can_read(m))
+        #     bot.loop.create_task(bot.delete_role(s, r))
+        #     bot.loop.create_task(bot.delete_role(s, r_p))
+
+    async def can_read(self, member: discord.Member):
+        """Allow this user to read the channel."""
+        await self.bot.edit_channel_permissions(
+            channel=self.channel,
+            target=member,
+            overwrite=discord.PermissionOverwrite(read_messages=True)
+        )
+
+    async def cant_read(self, member: discord.Member):
+        """Allow this user to read the channel."""
+        await self.bot.delete_channel_permissions(self.channel, member)
+
+    def members_except(self, member: discord.Member):
+        """Get all the discord.Member objects except the one passed."""
+        return [self.bot.get_server(self.server).get_member(m) for m in self.members if m != member.id]
+
+    def json(self):
+        """encode as a json-safe dict that can be unpacked into the constructor."""
+        return {
+            'status': self.status,
+            'creator': self.creator,
+            'trusted': self.trusted,
+            'members': self.members,
+            'id': self.id
+        }
+
+
 class Spoilers:
     """Spoiler channels."""
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Weeabot):
+        self.channels = list(sum([
+            [
+                SpoilerChannel(bot, channel, server, **value)
+                for channel, value in data['spoilers'].items()
+            ]
+            for server, data in bot.server_configs.items() if 'spoilers' in data
+        ], []))
         self.bot = bot
+
+    def get_channel(self, ctx) -> SpoilerChannel:
+        return discord.utils.find(
+            lambda spoiler: spoiler.channel == ctx.message.channel,
+            self.channels
+        )
+
+    def save(self, channel: SpoilerChannel):
+        """Save a spoiler channel's data."""
+        self.bot.server_configs[channel.server]['spoilers'][channel.name] = channel.json()
+        self.bot.dump_server_configs()
+
+    def dump(self):
+        for channel in self.channels:
+            self.bot.server_configs[channel.server]['spoilers'][channel.name] = channel.json()
+        self.bot.dump_server_configs()
 
     @commands.group()
     async def spoiler(self):
@@ -61,7 +134,11 @@ class Spoilers:
 
     These commands are intended for content updated periodically. For example weekly releases.
     It may be more of an inconvenience than a convenience to apply these commands to other content.
-    (a group of people working through a long series for example)."""
+    (a group of people working through a long series for example).
+
+    More commands are available within a spoiler channel. Try reading this info when in one.
+
+    Channel creators have access to the trust, untrust, and remove commands."""
 
     @spoiler.command(pass_context=True, name='add', no_pm=True)
     @request(level=RequestLevel.server, owner_bypass=False)
@@ -73,21 +150,22 @@ class Spoilers:
             self.bot.server_configs[ctx.message.server.id]['spoilers'] = {}
         try:
             everyone_perms = discord.PermissionOverwrite(read_messages=False)
-            role_perms = discord.PermissionOverwrite(read_messages=True)
-            role = await self.bot.create_role(ctx.message.server, name=name, mentionable=True)
-            role_present = await self.bot.create_role(ctx.message.server, name=name + "_present")
             everyone = discord.ChannelPermissions(target=ctx.message.server.default_role, overwrite=everyone_perms)
-            role_over = discord.ChannelPermissions(target=role_present, overwrite=role_perms)
-            channel = await self.bot.create_channel(ctx.message.server, name, everyone, role_over)
-            await self.bot.add_roles(ctx.message.author, role, role_present)
-            self.bot.server_configs[ctx.message.server.id]['spoilers'][name] = {
-                'id': channel.id,
-                'author': ctx.message.author.id,
-                'trusted': [ctx.message.author.id],
-                'role': role.id,
-                'role_present': role_present.id
-            }
-            self.bot.dump_server_configs()
+            can_read = discord.PermissionOverwrite(read_messages=True)
+            channel = await self.bot.create_channel(ctx.message.server, name, everyone, (ctx.message.author, can_read))
+            spoiler = SpoilerChannel(
+                self.bot,
+                name,
+                ctx.message.server,
+                status="No status listed.",
+                author=ctx.message.author.id,
+                members=[ctx.message.author.id],
+                trusted=[ctx.message.author.id],
+                id=channel.id
+            )
+            self.channels.append(spoiler)
+            self.save(spoiler)
+
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
 
@@ -96,59 +174,85 @@ class Spoilers:
     @is_author()
     async def _remove(self, ctx):
         """Remove this spoiler channel."""
-        name, spoil = get_channel(ctx)
-        role = discord.utils.get(ctx.message.server.roles, id=spoil['role'])
-        role_present = discord.utils.get(ctx.message.server.roles, id=spoil['role_present'])
-        chan = self.bot.get_channel(spoil['id'])
-        await self.bot.delete_channel(chan)
-        await self.bot.delete_role(ctx.message.server, role)
-        await self.bot.delete_role(ctx.message.server, role_present)
-        del self.bot.server_configs[ctx.message.server.id]['spoilers'][name]
+        spoiler = self.get_channel(ctx)
+        await self.bot.delete_channel(spoiler.channel)
+        del self.bot.server_configs[spoiler.server]['spoilers'][spoiler.name]
+        self.channels.remove(spoiler)
         self.bot.dump_server_configs()
 
     @spoiler.command(pass_context=True, name='list', no_pm=True)
     async def _list(self, ctx):
         """List the spoiler channels on this server."""
-        try:
-            await self.bot.say('\n'.join([f'{n}: {s.get("status", "No status listed.")}' for n, s in self.bot.server_configs[ctx.message.server.id]['spoilers'].items()]))
-        except (TypeError, KeyError):
-            await self.bot.say('None')
+        await self.bot.say('\n'.join([f'{s.name}: {s.status}' for s in filter(lambda c: c.server == ctx.message.server.id, self.channels)]))
 
     @spoiler.command(pass_context=True, name='status', no_pm=True)
     async def _status(self, ctx, name: str):
         """Check the status of a spoiler channel."""
-        if name not in self.bot.server_configs[ctx.message.server.id].get('spoilers', {}):
-            await self.bot.say(f"{name} not found")
+        spoiler = discord.utils.find(
+            lambda spoil: spoil.name == name and spoil.server == ctx.message.server.id,
+            self.channels
+        )
+        if spoiler is None:
+            await self.bot.say("Not found.")
             return
-        try:
-            stat = self.bot.server_configs[ctx.message.server.id]['spoilers'][name].get('status', 'No status listed.')
-            await self.bot.say(f'Status of {name}: {stat}')
-        except KeyError:
-            await self.bot.say("No status listed.")
+        await self.bot.say(f'Status of {name}: {spoiler.status}')
 
-    @spoiler.command(pass_context=True, name='join', no_pm=True)
-    async def _join(self, ctx, name: str):
-        """Join a spoiler channel."""
-        if name in [r.name for r in ctx.message.author.roles]:
-            await self.bot.say(f"You are already in that channel.")
+    @spoiler.command(pass_context=True, name='join', alias=('catchup',), no_pm=True)
+    async def _join(self, ctx, *names):
+        """Join a spoiler channel or multiple channels."""
+        for name in names:
+            spoiler = discord.utils.find(
+                lambda c: c.server == ctx.message.server.id and c.name == name,
+                self.channels
+            )
+            if spoiler is None:
+                await self.bot.say("Not found.")
+                return
+            await spoiler.can_read(ctx.message.author)
+            if ctx.message.author.id in spoiler.members:
+                await self.bot.send_message(spoiler.channel, f"{ctx.message.author.mention} is caught up")
+            else:
+                spoiler.members.append(ctx.message.author.id)
+                self.save(spoiler)
+                await self.bot.send_message(spoiler.channel, f"Welcome {ctx.message.author.mention} to {name}.")
+
+    @spoiler.command(pass_context=True, no_pm=True)
+    async def stealthjoin(self, ctx, *names):
+        """Just like join but adds you to the member list (you'll get messages about updates) without spoiling you."""
+        for name in names:
+            spoiler = discord.utils.find(
+                lambda c: c.server == ctx.message.server.id and c.name == name,
+                self.channels
+            )
+            if spoiler is None:
+                await self.bot.say("Not found.")
+                return
+            if ctx.message.author.id not in spoiler.members:
+                await self.bot.send_message(spoiler.channel, f"{ctx.message.author.mention} stealthjoined.")
+            await self.bot.affirmative()
+
+    @spoiler.command(pass_context=True, no_pm=True)
+    @is_spoiler_channel()
+    async def leave(self, ctx):
+        """Leave this spoiler chat."""
+        spoiler = self.get_channel(ctx)
+        if ctx.message.author.id == spoiler.creator:
+            await self.bot.say("The channel creator can not leave the spoiler channel.")
             return
-        try:
-            c = self.bot.server_configs[ctx.message.server.id]['spoilers'][name]
-            role = discord.utils.get(ctx.message.server.roles, id=c['role'])
-            role_present = discord.utils.get(ctx.message.server.roles, id=c['role_present'])
-            await self.bot.add_roles(ctx.message.author, role, role_present)
-            await self.bot.send_message(discord.Object(c['id']), f"Welcome {ctx.message.author.mention} to {name}.")
-        except KeyError:
-            await self.bot.say("not found.")
+        spoiler.members.remove(ctx.message.author.id)
+        if ctx.message.author.id in spoiler.trusted:
+            spoiler.trusted.remove(ctx.message.author.id)
+        self.save(spoiler)
+        await self.bot.affirmative()
 
     @spoiler.command(pass_context=True, name='trust', no_pm=True)
     @is_spoiler_channel()
     @is_author()
     async def _trust(self, ctx, user: discord.Member):
         """Allow a user to update this channel."""
-        _, spoil = get_channel(ctx)
-        spoil['trusted'].append(user.id)
-        self.bot.dump_server_configs()
+        spoiler = self.get_channel(ctx)
+        spoiler.trusted.append(user.id)
+        self.save(spoiler)
         await self.bot.say(f"{user.display_name} is now trusted.")
 
     @spoiler.command(pass_context=True, name='untrust', no_pm=True)
@@ -156,12 +260,12 @@ class Spoilers:
     @is_author()
     async def _untrust(self, ctx, user: discord.Member):
         """Remove a user's ability to update this channel."""
-        _, spoil = get_channel(ctx)
-        if user.id == spoil['author']:
+        spoiler = self.get_channel(ctx)
+        if user.id == spoiler.creator:
             await self.bot.say("You can't untrust the author.")
             return
-        spoil['trusted'].remove(user.id)
-        self.bot.dump_server_configs()
+        spoiler.trusted.remove(user.id)
+        self.save(spoiler)
         await self.bot.say(f"{user.display_name} is now untrusted.")
 
     @spoiler.command(pass_context=True, name='update', no_pm=True)
@@ -175,16 +279,13 @@ class Spoilers:
         The status will be sent to all users, and displayed to users when they view this channel's status.
         As such, it should not contain spoilers itself. Instead, you could list an episode/chapter number or a
         description (such as 'new arc')."""
-        name, spoil = get_channel(ctx)
-        message = f'{ctx.message.author.mention} updated {name} in {ctx.message.server.name} with status: "{status}"'
-        users = [u for u in ctx.message.server.members if
-                 (spoil['role'] in [r.id for r in u.roles]) and
-                 u.id != ctx.message.author.id]
-        for m in users:
-            await self.bot.remove_roles(m, discord.utils.get(ctx.message.server.roles, id=spoil['role_present']))
+        spoiler = self.get_channel(ctx)
+        message = f'{ctx.message.author.mention} updated {spoiler.name} in {ctx.message.server.name} with status: "{status}"'
+        for m in spoiler.members_except(ctx.message.author):
+            await spoiler.cant_read(m)
             await self.bot.send_message(m, message)
-        spoil['status'] = status
-        self.bot.dump_server_configs()
+        spoiler.status = status
+        self.save(spoiler)
         await self.bot.affirmative()
 
     @spoiler.command(pass_context=True, no_pm=True)
@@ -192,30 +293,13 @@ class Spoilers:
     @is_trusted()
     async def set_status(self, ctx, *, status=None):
         """Set the status of the channel without updating it."""
-        name, spoil = get_channel(ctx)
-        spoil['status'] = status or "No status listed."
-        message = f'{ctx.message.author.mention} changed status {name} in {ctx.message.server.name} to: "{status}"'
-        users = [u for u in ctx.message.server.members if
-                 (spoil['role'] in [r.id for r in u.roles]) and
-                 u.id != ctx.message.author.id]
-        for m in users:
+        spoiler = self.get_channel(ctx)
+        spoiler.status = status or "No status listed."
+        message = f'{ctx.message.author.mention} changed status {spoiler.name} in {ctx.message.server.name} to: "{status}"'
+        for m in spoiler.members_except(ctx.message.author):
             await self.bot.send_message(m, message)
-        self.bot.dump_server_configs()
+        self.save(spoiler)
         await self.bot.affirmative()
-
-    @spoiler.command(pass_context=True, name='catchup', no_pm=True)
-    async def _catchup(self, ctx, name: str):
-        """Call this when you are caught up to regain access to the channel."""
-        if name not in [r.name for r in ctx.message.author.roles]:
-            await self.bot.say("You are not in that channel.")
-            return
-        try:
-            c = self.bot.server_configs[ctx.message.server.id]['spoilers'][name]
-            role_present = discord.utils.get(ctx.message.server.roles, id=c['role_present'])
-            await self.bot.add_roles(ctx.message.author, role_present)
-            await self.bot.send_message(discord.Object(c['id']), f"{ctx.message.author.display_name} is now caught up on {name}.")
-        except KeyError:
-            await self.bot.say("not found.")
 
 
 def setup(bot):
