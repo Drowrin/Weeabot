@@ -197,7 +197,7 @@ class Spoilers:
             return
         await self.bot.say(f'Status of {name}: {spoiler.status}')
 
-    @spoiler.command(pass_context=True, name='join', alias=('catchup',), no_pm=True)
+    @spoiler.command(pass_context=True, name='join', aliases=('catchup',), no_pm=True)
     async def _join(self, ctx, *names):
         """Join a spoiler channel or multiple channels."""
         for name in names:
