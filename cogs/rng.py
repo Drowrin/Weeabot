@@ -88,7 +88,7 @@ class RNG:
                 n = int(sp[0])
                 s = int(sp[1])
                 await self.bot.say('```\n{}\n```'.format(
-                    '\n'.join(['{}: {}/{}'.format(i, random.randint(1, s), s) for i in range(1, n)])))
+                    '\n'.join(['{}: {}/{}'.format(i, random.randint(1, s), s) for i in range(0, n)])))
             else:
                 await self.bot.reply("You rolled a {} out of {}.".format(random.randint(1, int(sides)), sides))
         except ValueError:
