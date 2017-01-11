@@ -154,6 +154,15 @@ class Pointless(utils.SessionCog):
         for i in range(n):
             await self.bot.process_commands(msg)
 
+    @commands.command(pass_context=True)
+    @checks.is_owner()
+    async def overload(self, ctx, tag):
+        """Overload a tag's use."""
+        msg = copy.copy(ctx.message)
+        msg.content = '~' + tag
+        for i in range(25):
+            await self.bot.process_commands(msg)
+
     async def on_message(self, message):
         if message.author.bot or utils.is_command_of(self.bot, message):
             return
