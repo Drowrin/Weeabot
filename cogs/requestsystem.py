@@ -237,13 +237,10 @@ class RequestSystem:
 
     async def add_request(self, mes: discord.Message, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
-            await self.bot.send_message(mes.channel,
-                                        "{}, user request limit reached ({}).".format(mes.author.display_name,
-                                                                                      self.user_limit))
+            await self.bot.send_message(mes.channel, "{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
             return
         if len(list(filter(lambda e: e.server.id == mes.server.id, self.all_req()))) >= self.server_limit:
-            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name,
-                                                                                                     self.server_limit))
+            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
             return
         if len(self.all_req()) >= self.global_limit:
             await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
