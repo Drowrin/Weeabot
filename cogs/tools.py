@@ -169,6 +169,14 @@ class Tools(utils.SessionCog):
         await self.bot.config.save()
         await self.bot.affirmative()
 
+    @commands.command(pass_context=True)
+    @checks.is_server_owner()
+    async def moderator_role(self, ctx, role: discord.Role):
+        """Set the moderator role for this server."""
+        self.bot.server_configs[ctx.message.server.id]['moderator_role'] = role.id
+        self.bot.dump_server_configs()
+        await self.bot.affirmative()
+
 
 def setup(bot):
     bot.add_cog(Tools(bot))
