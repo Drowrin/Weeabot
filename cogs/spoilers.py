@@ -81,7 +81,7 @@ class SpoilerChannel:
         )
 
     async def cant_read(self, member: discord.Member):
-        """Allow this user to read the channel."""
+        """Disallow this user from reading the channel."""
         await self.bot.delete_channel_permissions(self.channel, member)
 
     def members_except(self, member: discord.Member):
