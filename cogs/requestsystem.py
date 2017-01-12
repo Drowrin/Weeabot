@@ -233,17 +233,14 @@ class RequestSystem:
             else:
                 source = "{}: {}".format(msg.server.name, msg.channel.name)
             e.add_field(name="Source", value=source)
-        return await self.bot.send_message(dest, embed=e)
+        return await self.bot.send_message(dest, content="New request added!", embed=e)
 
     async def add_request(self, mes: discord.Message, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
-            await self.bot.send_message(mes.channel,
-                                        "{}, user request limit reached ({}).".format(mes.author.display_name,
-                                                                                      self.user_limit))
+            await self.bot.send_message(mes.channel, "{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
             return
         if len(list(filter(lambda e: e.server.id == mes.server.id, self.all_req()))) >= self.server_limit:
-            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name,
-                                                                                                     self.server_limit))
+            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
             return
         if len(self.all_req()) >= self.global_limit:
             await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
@@ -257,7 +254,7 @@ class RequestSystem:
 
         ind = len(self.get_serv(server))
         await self.send_req_msg(server, mes, ind)
-        if server != 'owner':
+        if server != 'owner' or mes.server.owner.id == mes.author.id:
             await self.send_req_msg(server, mes, ind, dest=mes.channel)
         self.get_serv(server).append(mes)
         await self.save()

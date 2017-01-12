@@ -6,7 +6,7 @@ def owner(ctx):
 
 
 def trusted(ctx):
-    return owner(ctx) or False  # add here when trusted code is in
+    return owner(ctx) or ctx.message.author.id in ctx.bot.config.trusted
 
 
 def notprivate(ctx):
@@ -18,7 +18,7 @@ def server_owner(ctx):
 
 
 def moderator(ctx):
-    return notprivate(ctx) and (server_owner(ctx) or False)  # add here when moderator code is in.
+    return notprivate(ctx) and (server_owner(ctx) or ctx.bot.server_configs[ctx.message.server.id].get('moderator_role', None) in [r.id for r in ctx.message.author.roles])
 
 
 def is_owner():
