@@ -47,6 +47,7 @@ class Weeabot(commands.Bot):
             kwargs['description'] = "Weeabot"
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
+        self.trusted = utils.open_json('trusted.json')
         self.config = Config('config.json')
         self.content = Config('content.json')
         self.stats = defaultdict(dict)

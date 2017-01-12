@@ -6,7 +6,7 @@ def owner(ctx):
 
 
 def trusted(ctx):
-    return owner(ctx) or ctx.message.author.id in ctx.bot.config.trusted
+    return owner(ctx) or ctx.message.author.id in ctx.bot.trusted
 
 
 def notprivate(ctx):
