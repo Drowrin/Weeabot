@@ -257,7 +257,7 @@ class RequestSystem:
 
         ind = len(self.get_serv(server))
         await self.send_req_msg(server, mes, ind)
-        if server != 'owner':
+        if server != 'owner' or mes.server.owner.id == mes.author.id:
             await self.send_req_msg(server, mes, ind, dest=mes.channel)
         self.get_serv(server).append(mes)
         await self.save()
