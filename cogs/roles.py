@@ -59,28 +59,28 @@ class Roles:
 
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
-	
-	@commands.command(pass_context=True)
-	async def roles( self, ctx ):
-		roles = await self.get_roles_list()
-		 e: discord.Embed = discord.Embed(
-			title="Opt-in Roles"
-		)
-		message = ""
-		for role, channels in roles.items():
-			role_name = commands.RoleConverter( ctx, role ).convert().name
-			for channel in channels:
-				message = message + f'__{channel.name}__\n\t{channel.topic}\n'
-			e.add_field(name=role_name, value=message, inline=False)
-		await bot.say( embed = e )
-	
-	@commands.command(pass_context=True)
-	async def makeme(self, ctx, role : discord.Role):
-		roles = await self.get_roles_list( ctx )
-		if role.id not in roles:
-			await bot.say( "Sorry, that role isn't an opt-in role.")
-			return		 
-		await bot.add_roles( ctx.message.author, role )
+    
+    @commands.command(pass_context=True)
+    async def roles( self, ctx ):
+        roles = await self.get_roles_list()
+         e: discord.Embed = discord.Embed(
+            title="Opt-in Roles"
+        )
+        message = ""
+        for role, channels in roles.items():
+            role_name = commands.RoleConverter( ctx, role ).convert().name
+            for channel in channels:
+                message = message + f'__{channel.name}__\n\t{channel.topic}\n'
+            e.add_field(name=role_name, value=message, inline=False)
+        await bot.say( embed = e )
+    
+    @commands.command(pass_context=True)
+    async def makeme(self, ctx, role : discord.Role):
+        roles = await self.get_roles_list( ctx )
+        if role.id not in roles:
+            await bot.say( "Sorry, that role isn't an opt-in role.")
+            return       
+        await bot.add_roles( ctx.message.author, role )
 
 def setup(bot):
     bot.add_cog(Roles(bot))
