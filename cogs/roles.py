@@ -20,9 +20,9 @@ class Roles:
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'] = {}
 
     async def get_roles_list(self, ctx):
+        await self.check_config(ctx)
         await self.update_roles(ctx)
         roles_list = defaultdict(list)
-        await self.check_config(ctx)
         for chan, r in self.bot.server_configs[ctx.message.server.id]["hidden_channels"].items():
             chann = ctx.message.server.get_channel(chan)
             for role in r:
@@ -30,9 +30,9 @@ class Roles:
         return roles_list
 
     async def update_roles(self, ctx):
-        for chan_id, r in self.bot.server_configs[ctx.message.server]['hidden_channels'].items():
-            rs = [t[0].id for t in ctx.message.server.get_channel(id).overwrites if t[1].read_messages]
-            self.bot.server_configs[ctx.message.server]['hidden_channels'][chan_id] = rs
+        for chan_id, r in self.bot.server_configs[ctx.message.server.id]['hidden_channels'].items():
+            rs = [t[0].id for t in ctx.message.server.get_channel(chan_id).overwrites if t[1].read_messages]
+            self.bot.server_configs[ctx.message.server.id]['hidden_channels'][chan_id] = rs
 
     @commands.command(pass_context=True)
     @checks.is_server_owner()
@@ -56,7 +56,7 @@ class Roles:
             new_role = await self.bot.create_role(ctx.message.server, name=role_name)
             channel = await self.bot.create_channel(ctx.message.server, channel_name, everyone, (new_role, can_read))
             await self.bot.add_roles(ctx.message.author, new_role)
-            self.bot.server_configs[ctx.message.server]['hidden_channels'][channel.id] = [new_role.id]
+            self.bot.server_configs[ctx.message.server.id]['hidden_channels'][channel.id] = [new_role.id]
 
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
