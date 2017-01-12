@@ -18,7 +18,7 @@ def server_owner(ctx):
 
 
 def moderator(ctx):
-    return notprivate(ctx) and (server_owner(ctx) or ctx.bot.server_configs[ctx.message.server.id]['moderator_role'] in [r.id for r in ctx.message.author.roles])
+    return notprivate(ctx) and (server_owner(ctx) or ctx.bot.server_configs[ctx.message.server.id].get('moderator_role', None) in [r.id for r in ctx.message.author.roles])
 
 
 def is_owner():
