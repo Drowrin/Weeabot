@@ -60,16 +60,19 @@ class Roles:
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
 	
-	
 	@commands.command(pass_context=True)
 	async def roles( self, ctx ):
 		roles = await self.get_roles_list()
+		 e: discord.Embed = discord.Embed(
+			title="Opt-in Roles"
+		)
 		message = ""
-		for role, servs in roles.items():
-			message = message + r.name for r in ctx.message.server.roles if r.id == role.id + "\n"
-			for server in servs:
-				message = message + "\t" + server.name + "\n\t\t" + server.topic + "\n"
-		await bot.say( message )
+		for role, channels in roles.items():
+			role_name = commands.RoleConverter( ctx, role ).convert().name
+			for channel in channels:
+				message = message + f'__{channel.name}__\n\t{channel.topic}\n'
+			e.add_field(name=role_name, value=message, inline=False)
+		await bot.say( embed = e )
 	
 	@commands.command(pass_context=True)
 	async def makeme(self, ctx, role : discord.Role):
