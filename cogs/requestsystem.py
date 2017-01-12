@@ -233,7 +233,7 @@ class RequestSystem:
             else:
                 source = "{}: {}".format(msg.server.name, msg.channel.name)
             e.add_field(name="Source", value=source)
-        return await self.bot.send_message(dest, embed=e)
+        return await self.bot.send_message(dest, content="New request added!", embed=e)
 
     async def add_request(self, mes: discord.Message, server):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
