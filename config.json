@@ -1,5 +1,4 @@
 {
-  "trusted": [],
   "required_extensions": {},
   "testing_servers": [],
   "base_extensions": ["cogs.rng", "cogs.images", "cogs.mal", "cogs.pointless", "cogs.twitch", "cogs.polls", "cogs.twitter", "cogs.spoilers", "cogs.reminders", "cogs.anilist", "cogs.roles"],
