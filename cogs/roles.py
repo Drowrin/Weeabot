@@ -81,9 +81,12 @@ class Roles:
         roles = await self.get_roles_list(ctx)
         e: discord.Embed = discord.Embed()
         for role, channels in roles.items():
-            role_name = commands.RoleConverter(ctx, role).convert().name
-            message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
-            e.add_field(name=role_name, value=message, inline=False)
+            try:
+                role_name = commands.RoleConverter(ctx, role).convert().name
+                message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
+                e.add_field(name=role_name, value=message, inline=False)
+            except commands.BadArgument:
+                pass
         await self.bot.say('**Opt-in Channels**', embed=e)
     
     @commands.command(pass_context=True)
