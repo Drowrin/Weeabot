@@ -138,8 +138,9 @@ class Twitch(utils.SessionCog):
                                             title=f'{serv.get_member(uid).display_name} is now streaming {game}',
                                             url=stream['channel']['url'],
                                             description=stream['channel']['status'],
+                                            image=stream['preview']['large'],
                                             thumbnail=stream['channel']['logo'],
-                                            timestamp=dateutil.parser.parse(stream['created_at']).ctime()
+                                            timestamp=dateutil.parser.parse(stream['created_at'])
                                         )
                                         await self.bot.send_message(c, embed=e)
                             except (KeyError, TypeError, AttributeError):
