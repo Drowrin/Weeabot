@@ -374,7 +374,7 @@ class TagMap:
         await t.run(ctx)
 
     @tag.command(pass_context=True, name='alias')
-    @request()
+    @request(delete_source=False)
     async def _tag_alias(self, ctx, name: str, *, text: str):
         """Add an alias for a command."""
         if not name.isalnum():
@@ -387,8 +387,6 @@ class TagMap:
             await self.bot.say("Can not create empty tag.")
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text, method='alias')
         self[name] = t
-        if ctx.bypassed and not ctx.server_bypassed:
-            await self.bot.delete_message(ctx.message)
         await self.bot.say(f'{ctx.message.author.mention} added a new alias: `{name}` → `{text}`')
         await t.run(ctx)
 
