@@ -90,7 +90,7 @@ class Roles:
         await self.bot.say('**Opt-in Channels**', embed=e)
     
     @commands.command(pass_context=True)
-    async def makeme(self, ctx, role: discord.Role):
+    async def makeme(self, ctx, *, role: discord.Role):
         roles = await self.get_roles_list(ctx)
         if role.id not in roles:
             await self.bot.say("Sorry, that role isn't an opt-in role.")
