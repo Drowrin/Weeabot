@@ -11,6 +11,7 @@ from os import listdir
 from os import makedirs
 from io import BytesIO
 
+import discord
 from discord.ext import commands
 
 import utils
@@ -180,7 +181,8 @@ class Images(utils.SessionCog):
                 return
             else:
                 im = im['@file_url']
-                await self.bot.edit_message(tmp, "http:" + im)
+                e = discord.Embed().set_image(url="http:" + im)
+                await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
 
     @image.command(name='gelbooru')
     @checks.has_tag("lewd")
@@ -190,7 +192,8 @@ class Images(utils.SessionCog):
         if r is not None:
             im, tmp = r
             im = im['@file_url']
-            await self.bot.edit_message(tmp, im)
+            e = discord.Embed().set_image(url=im)
+            await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
               
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):
