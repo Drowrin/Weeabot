@@ -50,7 +50,7 @@ class Roles:
     @checks.is_server_owner()
     async def unhide(self, ctx):
         await self.check_config(ctx)
-        for t in ctx.message.server.get_channel(ctx.message.channel).overwrites:
+        for t in ctx.message.channel.overwrites:
             await self.bot.delete_channel_permissions(
                 channel=ctx.message.channel,
                 target=t[0]
@@ -79,9 +79,12 @@ class Roles:
         roles = await self.get_roles_list(ctx)
         e: discord.Embed = discord.Embed()
         for role, channels in roles.items():
-            role_name = commands.RoleConverter(ctx, role).convert().name
-            message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
-            e.add_field(name=role_name, value=message, inline=False)
+            try:
+                role_name = commands.RoleConverter(ctx, role).convert().name
+                message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
+                e.add_field(name=role_name, value=message, inline=False)
+            except commands.BadArgument:
+                pass
         await self.bot.say('__Opt-in Channels__', embed=e)
     
     @commands.command(pass_context=True)
