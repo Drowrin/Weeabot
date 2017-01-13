@@ -8,6 +8,8 @@ from discord.ext import commands
 import utils
 import checks
 
+import traceback
+
 
 def twitch_formatter(field):
     return {'name': 'Twitch', 'content': '<https://www.twitch.tv/{}>'.format(field['name'])}
@@ -138,11 +140,16 @@ class Twitch(utils.SessionCog):
                                             title=f'{serv.get_member(uid).display_name} is now streaming {game}',
                                             url=stream['channel']['url'],
                                             description=stream['channel']['status'],
-                                            image=stream['preview']['large'],
-                                            thumbnail=stream['channel']['logo'],
-                                            timestamp=dateutil.parser.parse(stream['created_at'])
+                                            timestamp=discord.utils.parse_time(dateutil.parser.parse(stream['created_at']).isoformat())
+                                        ).set_image(
+                                            url=stream['preview']['medium']
+                                        ).set_thumbnail(
+                                            url=stream['channel']['logo']
                                         )
-                                        await self.bot.send_message(c, embed=e)
+                                        try:
+                                            await self.bot.send_message(c, embed=e)
+                                        except discord.HTTPException as ex:
+                                            print(ex.response)
                             except (KeyError, TypeError, AttributeError):
                                 print('error processing ' + t['name'])
                                 traceback.print_exc()
