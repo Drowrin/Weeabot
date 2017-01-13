@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+import dateutil.parser
 
 import discord
 from discord.ext import commands
@@ -132,11 +133,15 @@ class Twitch(utils.SessionCog):
                                 if stream is not None:
                                     if stream['created_at'] != t['lastOnline']:
                                         t['lastOnline'] = stream['created_at']
-                                        await self.bot.send_message(c, "{} is now streaming {} at {}".format(
-                                            serv.get_member(uid).display_name,
-                                            stream['game'],
-                                            'https://www.twitch.tv/{}'.format(t['name'])
-                                        ))
+                                        game = stream['game']
+                                        e = discord.Embed( title = f'{serv.get_member(uid).display_name} is now streaming {game}',
+                                                                        url = stream['channel']['url'],
+                                                                        description = stream['channel']['status']
+                                                                        image = stream['preview']['large']
+                                                                        thumbnail = stream['channel']['logo']
+                                                                        timestamp = dateutil.parser.parse( stream['created_at'] ).ctime()
+                                                                        )
+                                        await self.bot.send_message(c, embed = e )
                             except (KeyError, TypeError, AttributeError):
                                 print('error processing ' + t['name'])
                                 traceback.print_exc()
