@@ -33,6 +33,7 @@ class Roles:
         for chan_id, r in self.bot.server_configs[ctx.message.server.id]['hidden_channels'].items():
             rs = [t[0].id for t in ctx.message.server.get_channel(chan_id).overwrites if t[1].read_messages]
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'][chan_id] = rs
+            self.bot.dump_server_configs()
 
     @commands.command(pass_context=True)
     @checks.is_server_owner()
