@@ -158,7 +158,7 @@ class Images(utils.SessionCog):
                 xml = xmltodict.parse(await r.text())
                 if int(xml['posts']['@count']) > 0:
                     if int(xml['posts']['@count']) == 1:
-                        im = xml['posts']['post']['@file_url']
+                        im = xml['posts']['post']
                     else:
                         im = random.choice(list(xml['posts']['post']))
                     return im, tmp
