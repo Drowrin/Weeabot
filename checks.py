@@ -1,4 +1,5 @@
 from discord.ext import commands
+from utils import CheckMsg
 
 
 def owner(ctx):
@@ -85,3 +86,16 @@ def profiles():
 def tools():
     """Make sure the command only runs if the tools cog is loaded."""
     return commands.check(lambda ctx: ctx.bot.tools is not None)
+
+
+def has_tag(tag: str):
+    """Check if the channel has a specific [tag] in its description.
+
+    Used for restricting certain commands or types of commands to certain channels."""
+
+    def predicate(ctx):
+        if ctx.message.channel.topic is None or f'[{tag}]' not in ctx.message.channel.topic:
+            raise CheckMsg(f"This command can only be used in a [{tag}] channel.")
+        return True
+
+    return commands.check(predicate)
