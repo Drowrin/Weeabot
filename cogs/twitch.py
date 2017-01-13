@@ -134,14 +134,14 @@ class Twitch(utils.SessionCog):
                                     if stream['created_at'] != t['lastOnline']:
                                         t['lastOnline'] = stream['created_at']
                                         game = stream['game']
-                                        e = discord.Embed( title = f'{serv.get_member(uid).display_name} is now streaming {game}',
-                                                                        url = stream['channel']['url'],
-                                                                        description = stream['channel']['status']
-                                                                        image = stream['preview']['large']
-                                                                        thumbnail = stream['channel']['logo']
-                                                                        timestamp = dateutil.parser.parse( stream['created_at'] ).ctime()
-                                                                        )
-                                        await self.bot.send_message(c, embed = e )
+                                        e = discord.Embed(
+                                            title=f'{serv.get_member(uid).display_name} is now streaming {game}',
+                                            url=stream['channel']['url'],
+                                            description=stream['channel']['status'],
+                                            thumbnail=stream['channel']['logo'],
+                                            timestamp=dateutil.parser.parse(stream['created_at']).ctime()
+                                        )
+                                        await self.bot.send_message(c, embed=e)
                             except (KeyError, TypeError, AttributeError):
                                 print('error processing ' + t['name'])
                                 traceback.print_exc()
