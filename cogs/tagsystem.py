@@ -3,6 +3,7 @@ import json
 import random
 import aiohttp
 import re
+import copy
 from collections import defaultdict
 
 import discord
@@ -79,8 +80,17 @@ class TagItem:
 
         await ctx.bot.send_message(ctx.message.channel, embed=e)
 
+    async def alias(self, ctx):
+        m = copy.copy(ctx.message)
+        if m.content.startswith(f'{ctx.bot.command_prefix}tag '):
+            args = ' ' + ' '.join(m.content.split(' ')[2:])
+        else:
+            args = ' ' + ' '.join(m.content.split(' ')[1:])
+        m.content = self.text + args
+        await ctx.bot.process_commands(m)
+
     methods = defaultdict(lambda: TagItem.none)
-    methods.update({None: none, "simple": simple, "baka": baka, "embed": embed})
+    methods.update({None: none, "simple": simple, "baka": baka, "embed": embed, "alias": alias})
 
     def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
                  text: str = None, image: str = None, location: str = None):
@@ -361,6 +371,23 @@ class TagMap:
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=datastring, image=None)
         t.method = "embed"
         self[name] = t
+        await t.run(ctx)
+
+    @tag.command(pass_context=True, name='alias')
+    @request(delete_source=False)
+    async def _tag_alias(self, ctx, name: str, *, text: str):
+        """Add an alias for a command."""
+        if not name.isalnum():
+            await self.bot.say("Tag names must be alphanumeric.")
+            return
+        if name.isdigit():
+            await self.bot.say("Tags can not be only numbers.")
+            return
+        if text == '':
+            await self.bot.say("Can not create empty tag.")
+        t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text, method='alias')
+        self[name] = t
+        await self.bot.say(f'{ctx.message.author.mention} added a new alias: `{name}` → `{text}`')
         await t.run(ctx)
 
     @tag.command(pass_context=True, name='addtags')
