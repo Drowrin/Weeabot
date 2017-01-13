@@ -43,6 +43,7 @@ class Roles:
             target=ctx.message.server.default_role,
             overwrite=discord.PermissionOverwrite(read_messages=False)
         )
+        self.bot.server_configs[ctx.message.server.id]['hidden_channels'][ctx.message.channel.id] = []
         await self.update_roles(ctx)
 
     @commands.command(pass_context=True)
