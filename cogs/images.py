@@ -175,7 +175,29 @@ class Images(utils.SessionCog):
                     await self.bot.edit_message(tmp, "No results")
             else:
                 await self.bot.edit_message(tmp, 'Something went wrong')
-
+                
+    # @image.command(name='gelbooru')
+    # async def _gelbooru(self, *tags: str):
+        # """Get an image from gelbooru based on tags."""
+        # tags = (''.join('%s+' % s for s in tags)).strip('+')
+        # url = "http://gelbooru.org/index.php"
+        # tmp = await self.bot.say("getting image from booru")
+        # params = {'page': 'dapi', 's': 'post', 'q': 'index', 'tags': tags}
+        # async with self.session.get(url, params=params) as r:
+            # if r.status == 200:
+                # xml = xmltodict.parse(await r.text())
+                # if int(xml['posts']['@count']) > 0:
+                    # if int(xml['posts']['@count']) == 1:
+                        # im = xml['posts']['post']['@file_url']
+                    # else:
+                        # im = random.choice(list(xml['posts']['post']))
+                        # im = im['@file_url']
+                    # await self.bot.edit_message(tmp, im)
+                # else:
+                    # await self.bot.edit_message(tmp, "No results")
+            # else:
+                # await self.bot.edit_message(tmp, 'Something went wrong')
+              
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):
         """Get an image from a subreddit.

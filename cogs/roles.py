@@ -33,7 +33,6 @@ class Roles:
         for chan_id, r in self.bot.server_configs[ctx.message.server.id]['hidden_channels'].items():
             rs = [t[0].id for t in ctx.message.server.get_channel(chan_id).overwrites if t[1].read_messages]
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'][chan_id] = rs
-        self.bot.dump_server_configs()
 
     @commands.command(pass_context=True)
     @checks.is_server_owner()
@@ -46,7 +45,7 @@ class Roles:
         )
         self.bot.server_configs[ctx.message.server.id]['hidden_channels'][ctx.message.channel.id] = []
         await self.update_roles(ctx)
-
+        
     @commands.command(pass_context=True)
     @checks.is_server_owner()
     async def unhide(self, ctx):
@@ -71,7 +70,6 @@ class Roles:
             channel = await self.bot.create_channel(ctx.message.server, channel_name, everyone, (new_role, can_read))
             await self.bot.add_roles(ctx.message.author, new_role)
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'][channel.id] = [new_role.id]
-            self.bot.dump_server_configs()
 
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
@@ -87,7 +85,7 @@ class Roles:
                 e.add_field(name=role_name, value=message, inline=False)
             except commands.BadArgument:
                 pass
-        await self.bot.say('**Opt-in Channels**', embed=e)
+        await self.bot.say('__Opt-in Channels__', embed=e)
     
     @commands.command(pass_context=True)
     async def makeme(self, ctx, *, role: discord.Role):
@@ -96,7 +94,6 @@ class Roles:
             await self.bot.say("Sorry, that role isn't an opt-in role.")
             return       
         await self.bot.add_roles(ctx.message.author, role)
-        await self.bot.delete_message(ctx.message)
 
 
 def setup(bot):
