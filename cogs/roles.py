@@ -43,6 +43,19 @@ class Roles:
             target=ctx.message.server.default_role,
             overwrite=discord.PermissionOverwrite(read_messages=False)
         )
+        self.bot.server_configs[ctx.message.server.id]['hidden_channels'][ctx.message.channel.id] = []
+        await self.update_roles(ctx)
+        
+    @commands.command(pass_context=True)
+    @checks.is_server_owner()
+    async def unhide(self, ctx):
+        await self.check_config(ctx)
+        for t in ctx.message.server.get_channel(ctx.message.channel).overwrites:
+            await self.bot.delete_channel_permissions(
+                channel=ctx.message.channel,
+                target=t[0]
+            )
+        del self.bot.server_configs[ctx.message.server.id]['hidden_channels'][ctx.message.channel.id]
         await self.update_roles(ctx)
 
     @commands.command(pass_context=True)
@@ -64,16 +77,12 @@ class Roles:
     @commands.command(pass_context=True)
     async def roles(self, ctx):
         roles = await self.get_roles_list(ctx)
-        e: discord.Embed = discord.Embed(
-            title="Opt-in Roles"
-        )
-        message = ""
+        e: discord.Embed = discord.Embed()
         for role, channels in roles.items():
             role_name = commands.RoleConverter(ctx, role).convert().name
-            for channel in channels:
-                message += f'__{channel.name}__\n\t{channel.topic}\n'
+            message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
             e.add_field(name=role_name, value=message, inline=False)
-        await self.bot.say(embed=e)
+        await self.bot.say('__Opt-in Channels__', embed=e)
     
     @commands.command(pass_context=True)
     async def makeme(self, ctx, role: discord.Role):
