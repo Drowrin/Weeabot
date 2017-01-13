@@ -14,7 +14,7 @@ class RequestLevel(enum.Enum):
 
 
 def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(),
-            bypasser=any):
+            bypasser=any, delete_source=True):
     """Decorator to make a command requestable.
 
     Requestable commands are commands you want to lock down permissions for.
@@ -96,7 +96,7 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
                 ctx.bypassed = True
                 ctx.server_bypassed = True
                 return True
-            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner', delete_source))
             return False
         # If it is at the server level and has been accepted, elevate it.
         if ctx.message in ctx.bot.requestsystem.get_serv(ctx.message.server.id):
@@ -104,10 +104,10 @@ def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, serve
                 do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
                 return True
             do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'elevated')))
-            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner'))
+            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner', delete_source))
             return False
         # Otherwise, this is a fresh request, add it to the server level.
-        ctx.bot.loop.create_task(ctx.bot.requestsystem.add_request(ctx.message, ctx.message.server.id))
+        ctx.bot.loop.create_task(ctx.bot.requestsystem.add_request(ctx.message, ctx.message.server.id, delete_source))
         return False
 
     return commands.check(request_predicate)
@@ -235,7 +235,7 @@ class RequestSystem:
             e.add_field(name="Source", value=source)
         return await self.bot.send_message(dest, content="New request added!", embed=e)
 
-    async def add_request(self, mes: discord.Message, server):
+    async def add_request(self, mes: discord.Message, server, delete_source):
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
             await self.bot.send_message(mes.channel, "{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
             return
@@ -258,10 +258,11 @@ class RequestSystem:
             await self.send_req_msg(server, mes, ind, dest=mes.channel)
         self.get_serv(server).append(mes)
         await self.save()
-        try:
-            await self.bot.delete_message(mes)
-        except discord.NotFound:
-            pass
+        if delete_source:
+            try:
+                await self.bot.delete_message(mes)
+            except discord.NotFound:
+                pass
 
     @commands.group(name='request', aliases=('req', 'r'))
     async def req(self):
