@@ -51,7 +51,7 @@ class Roles:
     @checks.is_server_owner()
     async def unhide(self, ctx):
         await self.check_config(ctx)
-        for t in ctx.message.server.get_channel(ctx.message.channel).overwrites:
+        for t in ctx.message.channel.overwrites:
             await self.bot.delete_channel_permissions(
                 channel=ctx.message.channel,
                 target=t[0]
