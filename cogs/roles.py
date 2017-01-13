@@ -84,7 +84,7 @@ class Roles:
             role_name = commands.RoleConverter(ctx, role).convert().name
             message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
             e.add_field(name=role_name, value=message, inline=False)
-        await self.bot.say('__Opt-in Channels__', embed=e)
+        await self.bot.say('**Opt-in Channels**', embed=e)
     
     @commands.command(pass_context=True)
     async def makeme(self, ctx, role: discord.Role):
