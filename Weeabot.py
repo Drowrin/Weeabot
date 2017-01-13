@@ -207,77 +207,89 @@ class Weeabot(commands.Bot):
             self.profiles.dump()
         self.dump_stats()
 
-    async def on_command_completion(self, command, ctx):
-        """Event listener for command_completion."""
-        fcn = utils.full_command_name(ctx, command)
-        if "tag" not in fcn and ("image" not in fcn and fcn not in ["image reddit", "image booru"]):
-            self.inc_use(ctx.message.author.id, fcn)
-
-    async def on_command_error(self, err, ctx):
-        if hasattr(ctx.command, "on_error"):
-            return
-
-        d = ctx.message.channel
-
-        if type(err) is commands.NoPrivateMessage:
-            await self.send_message(d, f'{ctx.command.name} can not be used in private messages.')
-
-        elif type(err) is commands.DisabledCommand:
-            await self.send_message(d, 'This command is disabled.')
-
-        elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
-            name = utils.full_command_name(ctx, ctx.command)
-            await self.send_message(d, f'Invalid usage. Use {self.command_prefix}help {name}')
-
-        elif type(err) is utils.CheckMsg:
-            await self.send_message(d, err)
-
-        elif type(err) is commands.CheckFailure:
-            pass
-
-        elif type(err) is commands.CommandOnCooldown:
-            timestr = lambda seconds: utils.down_to_seconds(timedelta(seconds=seconds))
-            await self.send_message(d, f"This command is on a {timestr(err.cooldown.per)} cooldown. Try again in {timestr(err.retry_after)}")
-
-        elif type(err) is commands.CommandNotFound:
-            if ctx.invoked_with.isdigit():
-                if int(ctx.invoked_with) < len(self.tag_map):
-                    try:
-                        await self.tag_map.get_by_id(int(ctx.invoked_with)).run(ctx)
-                    except IndexError:
-                        await self.send_message(ctx.message.channel, "id not found.")
-                else:
-                    await self.send_message(ctx.message.channel, "id not found.")
-            elif ctx.invoked_with.lower() in self.tag_map.taglist:
-                t = ctx.invoked_with.split()[0]
-                await self.tag_map.get(ctx.message, t).run(ctx)
-
-        else:
-            print(f'Ignoring exception in command {ctx.command}', file=sys.stderr)
-            traceback.print_exception(type(err), err, err.__traceback__, file=sys.stderr)
-
-    async def on_server_join(self, server):
-        """Called when the bot joins a server or creates one."""
-        await bot.send_message(self.owner, f"Joined Server: {server}")
-        await bot.send_message(server.default_channel, f"Hello! use {self.command_prefix}help and {self.command_prefix}services to see what I can do.")
-
-    async def on_member_join(self, member):
-        """Called whenever a new member joins a server."""
-        try:
-            ar = self.server_configs[member.server.id]['autorole']
-            role = discord.utils.get(member.server.roles, id=ar)
-            await self.add_roles(member, role)
-        except KeyError:
-            pass
-
-    async def on_ready(self):
-        await self.update_owner()
-        print(f'Bot: {bot.user.name}:{bot.user.id}')
-        print(f'Owner: {bot.owner.name}:{bot.owner.id}')
-        print('------------------')
-
 
 bot = Weeabot(command_prefix='~')
+
+
+@bot.event
+async def on_command_error(err, ctx):
+    if hasattr(ctx.command, "on_error"):
+        return
+
+    d = ctx.message.channel
+
+    if type(err) is commands.NoPrivateMessage:
+        await bot.send_message(d, f'{ctx.command.name} can not be used in private messages.')
+
+    elif type(err) is commands.DisabledCommand:
+        await bot.send_message(d, 'This command is disabled.')
+
+    elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
+        name = utils.full_command_name(ctx, ctx.command)
+        await bot.send_message(d, f'Invalid usage. Use {bot.command_prefix}help {name}')
+
+    elif type(err) is utils.CheckMsg:
+        await bot.send_message(d, err)
+
+    elif type(err) is commands.CheckFailure:
+        pass
+
+    elif type(err) is commands.CommandOnCooldown:
+        def timestr(seconds):
+            return utils.down_to_seconds(timedelta(seconds=seconds))
+
+        await bot.send_message(d, f"This command is on a {timestr(err.cooldown.per)} cooldown. Try again in {timestr(err.retry_after)}")
+
+    elif type(err) is commands.CommandNotFound:
+        if ctx.invoked_with.isdigit():
+            if int(ctx.invoked_with) < len(bot.tag_map):
+                try:
+                    await bot.tag_map.get_by_id(int(ctx.invoked_with)).run(ctx)
+                except IndexError:
+                    await bot.send_message(ctx.message.channel, "id not found.")
+            else:
+                await bot.send_message(ctx.message.channel, "id not found.")
+        elif ctx.invoked_with.lower() in bot.tag_map.taglist:
+            t = ctx.invoked_with.split()[0]
+            await bot.tag_map.get(ctx.message, t).run(ctx)
+
+    else:
+        print(f'Ignoring exception in command {ctx.command}', file=sys.stderr)
+        traceback.print_exception(type(err), err, err.__traceback__, file=sys.stderr)
+
+
+@bot.event
+async def on_command_completion(command, ctx):
+    """Event listener for command_completion."""
+    fcn = utils.full_command_name(ctx, command)
+    if "tag" not in fcn and ("image" not in fcn and fcn not in ["image reddit", "image booru"]):
+        bot.inc_use(ctx.message.author.id, fcn)
+
+
+@bot.event
+async def on_ready():
+    await bot.update_owner()
+    print(f'Bot: {bot.user.name}:{bot.user.id}')
+    print(f'Owner: {bot.owner.name}:{bot.owner.id}')
+    print('------------------')
+
+
+@bot.event
+async def on_member_join(member):
+    """Called whenever a new member joins a server."""
+    try:
+        ar = bot.server_configs[member.server.id]['autorole']
+        role = discord.utils.get(member.server.roles, id=ar)
+        await bot.add_roles(member, role)
+    except KeyError:
+        pass
+
+
+@bot.event
+async def on_server_join(server):
+    """Called when the bot joins a server or creates one."""
+    await bot.send_message(bot.owner, f"Joined Server: {server}")
+    await bot.send_message(server.default_channel, f"Hello! use {bot.command_prefix}help and {bot.command_prefix}services to see what I can do.")
 
 
 @bot.command(name='services')
