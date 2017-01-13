@@ -33,6 +33,7 @@ class Roles:
         for chan_id, r in self.bot.server_configs[ctx.message.server.id]['hidden_channels'].items():
             rs = [t[0].id for t in ctx.message.server.get_channel(chan_id).overwrites if t[1].read_messages]
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'][chan_id] = rs
+        self.bot.dump_server_configs()
 
     @commands.command(pass_context=True)
     @checks.is_server_owner()
@@ -58,6 +59,7 @@ class Roles:
             channel = await self.bot.create_channel(ctx.message.server, channel_name, everyone, (new_role, can_read))
             await self.bot.add_roles(ctx.message.author, new_role)
             self.bot.server_configs[ctx.message.server.id]['hidden_channels'][channel.id] = [new_role.id]
+            self.bot.dump_server_configs()
 
         except discord.errors.HTTPException:
             await self.bot.say("Invalid name or that name is taken. Names must be alphanumeric.")
@@ -65,16 +67,12 @@ class Roles:
     @commands.command(pass_context=True)
     async def roles(self, ctx):
         roles = await self.get_roles_list(ctx)
-        e: discord.Embed = discord.Embed(
-            title="Opt-in Roles"
-        )
-        message = ""
+        e: discord.Embed = discord.Embed()
         for role, channels in roles.items():
             role_name = commands.RoleConverter(ctx, role).convert().name
-            for channel in channels:
-                message += f'__{channel.name}__\n\t{channel.topic}\n'
+            message = '\n'.join([f'__{channel.name}__\n\t{channel.topic}' for channel in channels])
             e.add_field(name=role_name, value=message, inline=False)
-        await self.bot.say(embed=e)
+        await self.bot.say(content='**Opt-in Roles**', embed=e)
     
     @commands.command(pass_context=True)
     async def makeme(self, ctx, role: discord.Role):
@@ -83,6 +81,7 @@ class Roles:
             await self.bot.say("Sorry, that role isn't an opt-in role.")
             return       
         await self.bot.add_roles(ctx.message.author, role)
+        await self.bot.delete_message(ctx.message)
 
 
 def setup(bot):
