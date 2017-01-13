@@ -127,7 +127,7 @@ class Twitch(utils.SessionCog):
             else:
                 if response['_total'] > 0:
                     for c in self.channels:
-                        serv = c.server
+                        serv: discord.Server = c.server
                         users_here = {u: users[u] for u in users if u in [x.id for x in serv.members]}
                         for uid, t in users_here.items():
                             try:
@@ -144,7 +144,7 @@ class Twitch(utils.SessionCog):
                                         ).set_image(
                                             url=stream['preview']['medium']
                                         ).set_thumbnail(
-                                            url=stream['channel']['logo']
+                                            url=stream['channel']['logo'] or serv.get_member(uid).avatar_url or serv.get_member(uid).default_avatar_url
                                         )
                                         try:
                                             await self.bot.send_message(c, embed=e)
