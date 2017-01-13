@@ -150,9 +150,8 @@ class Images(utils.SessionCog):
         c_list = [x for x in listdir(path.join('images', 'collections')) if x not in r_list]
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
         
-    async def fetch_booru_image( self, url, *tags: str ):
-        tags = (''.join('%s+' % s for s in tags)).strip('+')
-        url = "http://safebooru.org/index.php"
+    async def fetch_booru_image(self, url: str, *tags: str):
+        tags = '+'.join(tags)
         tmp = await self.bot.say("getting image from booru")
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'tags': tags}
         async with self.session.get(url, params=params) as r:
@@ -163,7 +162,7 @@ class Images(utils.SessionCog):
                         im = xml['posts']['post']['@file_url']
                     else:
                         im = random.choice(list(xml['posts']['post']))
-                    return im
+                    return im, tmp
                 else:
                     await self.bot.edit_message(tmp, "No results")
                     return None
@@ -174,21 +173,23 @@ class Images(utils.SessionCog):
     @image.command(name='booru')
     async def _booru(self, *tags: str):
         """Get an image from safebooru based on tags."""
-        await im = fetch_booru_image( "http://safebooru.org/index.php", tags )
-        if ( im != None ):
+        r = await self.fetch_booru_image("http://safebooru.org/index.php", tags)
+        if r is not None:
+            im, tmp = r
             if im['@rating'] == 'e':
                 await self.bot.edit_message(tmp, "No ecchi.")
                 return
             else:
                 im = im['@file_url']
                 await self.bot.edit_message(tmp, "http:" + im)
-             
-    @checks.has_tag( "lewd" )
+
     @image.command(name='gelbooru')
+    @checks.has_tag("lewd")
     async def _gelbooru(self, *tags: str):
         """Get an image from gelbooru based on tags."""
-        await im = fetch_booru_image( "http://gelbooru.com/index.php", tags )
-        if ( im != None ):
+        r = await self.fetch_booru_image("http://gelbooru.com/index.php", tags )
+        if r is not None:
+            im, tmp = r
             im = im['@file_url']
             await self.bot.edit_message(tmp, im)
               
