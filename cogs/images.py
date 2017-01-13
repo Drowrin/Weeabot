@@ -149,10 +149,8 @@ class Images(utils.SessionCog):
         r_list = [x[0] for x in self.bot.content.reactions.values() if x[0] is not None]
         c_list = [x for x in listdir(path.join('images', 'collections')) if x not in r_list]
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
-
-    @image.command(name='booru')
-    async def _booru(self, *tags: str):
-        """Get an image from safebooru based on tags."""
+        
+    async def fetch_booru_image( self, url, *tags: str ):
         tags = (''.join('%s+' % s for s in tags)).strip('+')
         url = "http://safebooru.org/index.php"
         tmp = await self.bot.say("getting image from booru")
@@ -165,38 +163,34 @@ class Images(utils.SessionCog):
                         im = xml['posts']['post']['@file_url']
                     else:
                         im = random.choice(list(xml['posts']['post']))
-                        if im['@rating'] == 'e':
-                            await self.bot.edit_message(tmp, "No ecchi.")
-                            return
-                        else:
-                            im = im['@file_url']
-                    await self.bot.edit_message(tmp, "http:" + im)
+                    return im
                 else:
                     await self.bot.edit_message(tmp, "No results")
+                    return None
             else:
                 await self.bot.edit_message(tmp, 'Something went wrong')
-                
-    # @image.command(name='gelbooru')
-    # async def _gelbooru(self, *tags: str):
-        # """Get an image from gelbooru based on tags."""
-        # tags = (''.join('%s+' % s for s in tags)).strip('+')
-        # url = "http://gelbooru.org/index.php"
-        # tmp = await self.bot.say("getting image from booru")
-        # params = {'page': 'dapi', 's': 'post', 'q': 'index', 'tags': tags}
-        # async with self.session.get(url, params=params) as r:
-            # if r.status == 200:
-                # xml = xmltodict.parse(await r.text())
-                # if int(xml['posts']['@count']) > 0:
-                    # if int(xml['posts']['@count']) == 1:
-                        # im = xml['posts']['post']['@file_url']
-                    # else:
-                        # im = random.choice(list(xml['posts']['post']))
-                        # im = im['@file_url']
-                    # await self.bot.edit_message(tmp, im)
-                # else:
-                    # await self.bot.edit_message(tmp, "No results")
-            # else:
-                # await self.bot.edit_message(tmp, 'Something went wrong')
+                return None
+
+    @image.command(name='booru')
+    async def _booru(self, *tags: str):
+        """Get an image from safebooru based on tags."""
+        await im = fetch_booru_image( "http://safebooru.org/index.php", tags )
+        if ( im != None ):
+            if im['@rating'] == 'e':
+                await self.bot.edit_message(tmp, "No ecchi.")
+                return
+            else:
+                im = im['@file_url']
+                await self.bot.edit_message(tmp, "http:" + im)
+             
+    @checks.has_tag( "lewd" )
+    @image.command(name='gelbooru')
+    async def _gelbooru(self, *tags: str):
+        """Get an image from gelbooru based on tags."""
+        await im = fetch_booru_image( "http://gelbooru.com/index.php", tags )
+        if ( im != None ):
+            im = im['@file_url']
+            await self.bot.edit_message(tmp, im)
               
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):
