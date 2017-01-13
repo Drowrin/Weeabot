@@ -227,8 +227,7 @@ class TagMap:
         try:
             t = self.get(ctx.message, name)
             if t is not None:
-                if self.bot.profiles is not None:
-                    await self.bot.profiles.inc_use(ctx.message.author.id, "tag " + name)
+                self.bot.inc_use(ctx.message.author.id, "tag " + name)
                 await t.run(ctx)
         except KeyError:
             await self.bot.say('Tag "{}" not found.'.format(name))
