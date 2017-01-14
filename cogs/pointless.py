@@ -144,7 +144,7 @@ class Pointless(utils.SessionCog):
         """Repeat a command up to 5 times."""
         banned = [f'{self.bot.command_prefix}req', f'{self.bot.command_prefix}do']
         if any([x in command for x in banned]):
-            await self.bot.say(f"That command may not be used in {self.bot.commad_prefix}do.")
+            await self.bot.say(f"That command may not be used in {self.bot.command_prefix}do.")
             return
         if n > 5:
             await self.bot.say("Too many times.")
