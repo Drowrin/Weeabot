@@ -94,6 +94,8 @@ def has_tag(tag: str):
     Used for restricting certain commands or types of commands to certain channels."""
 
     def predicate(ctx):
+        if ctx.message.channel.is_private:
+            return True
         if ctx.message.channel.topic is None or f'[{tag}]' not in ctx.message.channel.topic:
             raise CheckMsg(f"This command can only be used in a [{tag}] channel.")
         return True
