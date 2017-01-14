@@ -36,7 +36,7 @@ class Twitter(utils.SessionCog):
 
     async def twitter_repost(self):
         """Early implementation of reposting twitter images to discord."""
-        await self.bot.wait_until_ready()
+        await self.bot.init.wait()
         while not self.bot.is_closed:
             try:
                 tweet = self.twitter.GetUserTimeline('4462881555')[0]

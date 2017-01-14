@@ -65,7 +65,7 @@ class Reminders:
         await self.remind(ctx.message.id)
 
     async def check_reminders(self):
-        await self.bot.wait_until_ready()
+        await self.bot.init.wait()
         for mid in self.bot.status['reminders']:
             self.bot.loop.create_task(self.remind(mid))
 

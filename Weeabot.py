@@ -60,6 +60,7 @@ class Weeabot(commands.Bot):
         self.verbose_formatters = {}
         self.defaults = {}
         self.loop.create_task(self.load_extensions())
+        self.init = asyncio.Event(loop=self.loop)
 
     def dump_server_configs(self):
         with open('servers.json', 'w') as f:
@@ -91,7 +92,7 @@ class Weeabot(commands.Bot):
 
     async def load_extensions(self):
         """Load extensions and handle errors."""
-        await self.wait_until_ready()
+        await self.init.wait()
         self.load_extension('cogs.profiles')
         self.load_extension('cogs.tools')
         self.load_extension('cogs.requestsystem')
@@ -272,6 +273,7 @@ async def on_ready():
     print(f'Bot: {bot.user.name}:{bot.user.id}')
     print(f'Owner: {bot.owner.name}:{bot.owner.id}')
     print('------------------')
+    bot.init.set()
 
 
 @bot.event
@@ -372,7 +374,7 @@ async def autorole(ctx, role: str):
 
 async def random_status():
     """Rotating statuses."""
-    await bot.wait_until_ready()
+    await bot.init.wait()
     while not bot.is_closed:
         n = random.choice(bot.content.statuses)
         await bot.change_presence(game=discord.Game(name=n, url='', type=0))
