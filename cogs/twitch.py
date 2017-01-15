@@ -136,7 +136,7 @@ class Twitch(utils.SessionCog):
                                     if stream['created_at'] != t['lastOnline']:
                                         t['lastOnline'] = stream['created_at']
                                         game = stream['game']
-                                        id = stream["id"]
+                                        id = stream['_id']
                                         e = discord.Embed(
                                             title=f'{serv.get_member(uid).display_name} is now streaming {game}',
                                             url=stream['channel']['url'],
