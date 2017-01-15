@@ -159,30 +159,36 @@ class Images(utils.SessionCog):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             count = int(re.search(r'count="(\d+)"', await r.text()).group(1))
+        if count == 0:
+            await self.bot.edit_message(tmp, "No results")
+            return
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': random.randint(0, count // 100 - 1), 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
                 await self.bot.edit_message(tmp, f'Something went wrong. Error {r.status}')
                 return
             t = await r.text()
-            if len(t):
-                ims = json.loads(t)
-                filtered = [i for i in ims if not any(f(i) for f in filters)]
+            ims = json.loads(t)
+            filtered = [i for i in ims if not any(f(i) for f in filters)]
 
-                if len(filtered):
-                    im = random.choice(filtered)
-                    await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed(
-                        title='This Image',
-                        description=utils.str_limit(im['tags'].replace('_', '\_').replace(' ', ', '), 2048),
-                        url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
-                    ).set_author(
-                        name=f"{count} Images with these tags",
-                        url=f"{url}/index.php?page=post&s=list&tags={tags}"
-                    ).set_image(
-                        url=f'{url}/images/{im["directory"]}/{im["image"]}'
-                    ))
-                    return
-            await self.bot.edit_message(tmp, "No results")
+            if len(filtered):
+                im = random.choice(filtered)
+                e = discord.Embed(
+                    title='This Image',
+                    description=utils.str_limit(im['tags'].replace('_', '\_').replace(' ', ', '), 2048),
+                    url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
+                ).set_author(
+                    name=f"{count} Images with these tags",
+                    url=f"{url}/index.php?page=post&s=list&tags={'+'.join(tags.split())}"
+                ).set_image(
+                    url=f'{url}/images/{im["directory"]}/{im["image"]}'
+                )
+                try:
+                    await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
+                except discord.HTTPException as e:
+                    print(e.response)
+            else:
+                await self.bot.edit_message(tmp, "No results")
 
     @image.command(name='booru')
     async def _booru(self, *, tags: str):
