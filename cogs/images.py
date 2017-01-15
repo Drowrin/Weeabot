@@ -3,6 +3,7 @@ import json
 import pyimgur
 import traceback
 import datetime
+import re
 
 from typing import Callable
 from typing import List
@@ -155,7 +156,10 @@ class Images(utils.SessionCog):
         
     async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
         tmp = await self.bot.say("getting image from booru")
-        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'tags': tags}
+        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
+        async with self.session.get(url + '/index.php', params=params) as r:
+            count = int(re.search(r'count="(\d+)"', await r.text()).group(1))
+        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': random.randint(0, count // 100 - 1), 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
                 await self.bot.edit_message(tmp, f'Something went wrong. Error {r.status}')
@@ -167,16 +171,15 @@ class Images(utils.SessionCog):
 
                 if len(filtered):
                     im = random.choice(filtered)
-                    link = f'{url}/images/{im["directory"]}/{im["image"]}'
                     await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed(
                         title='This Image',
                         description=utils.str_limit(im['tags'].replace('_', '\_').replace(' ', ', '), 2048),
                         url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
                     ).set_author(
-                        name=f"Images with these tags",
+                        name=f"{count} Images with these tags",
                         url=f"{url}/index.php?page=post&s=list&tags={tags}"
                     ).set_image(
-                        url=link
+                        url=f'{url}/images/{im["directory"]}/{im["image"]}'
                     ))
                     return
             await self.bot.edit_message(tmp, "No results")
