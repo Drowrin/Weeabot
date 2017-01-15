@@ -136,13 +136,14 @@ class Twitch(utils.SessionCog):
                                     if stream['created_at'] != t['lastOnline']:
                                         t['lastOnline'] = stream['created_at']
                                         game = stream['game']
+                                        id = stream["id"]
                                         e = discord.Embed(
                                             title=f'{serv.get_member(uid).display_name} is now streaming {game}',
                                             url=stream['channel']['url'],
                                             description=stream['channel']['status'],
                                             timestamp=discord.utils.parse_time(dateutil.parser.parse(stream['created_at']).isoformat())
                                         ).set_image(
-                                            url=stream['preview']['medium']
+                                            url=stream['preview']['medium'] + f'?rand={id}'
                                         ).set_thumbnail(
                                             url=stream['channel']['logo'] or serv.get_member(uid).avatar_url or serv.get_member(uid).default_avatar_url
                                         )
