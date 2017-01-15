@@ -186,7 +186,7 @@ class Images(utils.SessionCog):
                 try:
                     await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
                 except discord.HTTPException as e:
-                    print(e.response)
+                    await self.bot.edit_message(tmp, f'HTTP Error: {e.code}')
             else:
                 await self.bot.edit_message(tmp, "No results")
 
