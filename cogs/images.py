@@ -168,7 +168,16 @@ class Images(utils.SessionCog):
                 if len(filtered):
                     im = random.choice(filtered)
                     link = f'{url}/images/{im["directory"]}/{im["image"]}'
-                    await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed().set_image(url=link))
+                    await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed(
+                        title='This Image',
+                        description=utils.str_limit(im['tags'].replace('_', '\_').replace(' ', ', '), 2048),
+                        url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
+                    ).set_author(
+                        name=f"Images with these tags",
+                        url=f"{url}/index.php?page=post&s=list&tags={tags}"
+                    ).set_image(
+                        url=link
+                    ))
                     return
             await self.bot.edit_message(tmp, "No results")
 
