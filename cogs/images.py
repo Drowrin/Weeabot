@@ -161,23 +161,20 @@ class Images(utils.SessionCog):
             if r.status == 200:
                 xml = xmltodict.parse(await r.text())
                 if int(xml['posts']['@count']) > 0:
-                    # print(json.dumps(xml, indent=4))
-                    if int(xml['posts']['@count']) == 1:
-                        im = xml['posts']['post']
-                    else:
-                        im = random.choice(list(xml['posts']['post']))
+                    ims = [xml['posts']['post']] if int(xml['posts']['@count']) == 1 else list(xml['posts']['post'])
+                    filtered = [i for i in ims if not any(f(i) for f in filters)]
 
-                    if not any(f(im) for f in filters):
+                    if len(filtered):
+                        im = random.choice(filtered)
                         link = im['@file_url']
                         if not link.startswith('http'):
                             link = 'http:' + link
                         await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed().set_image(url=link))
-                else:
-                    await self.bot.edit_message(tmp, "No results")
-                    return None
+                        return
+                await self.bot.edit_message(tmp, "No results")
             else:
                 await self.bot.edit_message(tmp, 'Something went wrong')
-                return None
+                return
 
     @image.command(name='booru')
     async def _booru(self, *, tags: str):
