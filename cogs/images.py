@@ -1,7 +1,6 @@
 import random
 import json
 import pyimgur
-import xmltodict
 import traceback
 import datetime
 
@@ -156,21 +155,19 @@ class Images(utils.SessionCog):
         
     async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
         tmp = await self.bot.say("getting image from booru")
-        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'tags': tags}
-        async with self.session.get(url, params=params) as r:
+        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'tags': tags}
+        async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
                 await self.bot.edit_message(tmp, f'Something went wrong. Error {r.status}')
                 return
-            xml = xmltodict.parse(await r.text())
-            if int(xml['posts']['@count']) > 0:
-                ims = [xml['posts']['post']] if int(xml['posts']['@count']) == 1 else list(xml['posts']['post'])
+            t = await r.text()
+            if len(t):
+                ims = json.loads(t)
                 filtered = [i for i in ims if not any(f(i) for f in filters)]
 
                 if len(filtered):
                     im = random.choice(filtered)
-                    link = im['@file_url']
-                    if not link.startswith('http'):
-                        link = 'http:' + link
+                    link = f'{url}/images/{im["directory"]}/{im["image"]}'
                     await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=discord.Embed().set_image(url=link))
                     return
             await self.bot.edit_message(tmp, "No results")
@@ -178,13 +175,13 @@ class Images(utils.SessionCog):
     @image.command(name='booru')
     async def _booru(self, *, tags: str):
         """Get an image from safebooru based on tags."""
-        await self.fetch_booru_image("http://safebooru.org/index.php", tags, lambda im: im['@rating'] == 'e')
+        await self.fetch_booru_image("http://safebooru.org", tags, lambda im: im['rating'] == 'e')
 
     @image.command(name='gelbooru')
     @checks.has_tag("lewd")
     async def _gelbooru(self, *, tags: str):
         """Get an image from gelbooru based on tags."""
-        await self.fetch_booru_image("http://gelbooru.com/index.php", tags)
+        await self.fetch_booru_image("http://gelbooru.com", tags)
               
     @image.command(name='reddit', aliases=('r',))
     async def _r(self, sub: str, window: str='month'):
