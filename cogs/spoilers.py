@@ -280,7 +280,10 @@ class Spoilers:
         As such, it should not contain spoilers itself. Instead, you could list an episode/chapter number or a
         description (such as 'new arc')."""
         spoiler = self.get_channel(ctx)
-        message = f'{ctx.message.author.mention} updated {spoiler.name} in {ctx.message.server.name} with status: "{status}"'
+        message = (
+            f'{ctx.message.author.mention} updated {spoiler.name} in {ctx.message.server.name} with status: "{status}"\n'
+            f'to rejoin, call `{self.bot.command_prefix}spoiler catchup {spoiler.name}` in {ctx.message.server.name}'
+        )
         for m in spoiler.members_except(ctx.message.author):
             await spoiler.cant_read(m)
             await self.bot.send_message(m, message)
