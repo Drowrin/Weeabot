@@ -454,7 +454,6 @@ class TagMap:
             else:
                 self.delete(int(target))
         self.dump()
-        await self.bot.affirmative()
 
     @tag.command(pass_context=True, name='edit')
     @request()
