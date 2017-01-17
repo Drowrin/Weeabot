@@ -201,8 +201,8 @@ class Images(utils.SessionCog):
         """Get an image from gelbooru based on tags."""
         await self.fetch_booru_image("http://gelbooru.com", tags)
               
-    @image.command(name='reddit', aliases=('r',))
-    async def _r(self, sub: str, window: str='month'):
+    @image.command(pass_context=True, name='reddit', aliases=('r',))
+    async def _r(self, ctx, sub: str, window: str='month'):
         """Get an image from a subreddit.
 
         Optional argument is a time window following reddit's time windows."""
@@ -214,7 +214,7 @@ class Images(utils.SessionCog):
         im = random.choice(gal)
         if im is pyimgur.Album:
             im = await self.bot.loop.run_in_executor(self.bot.imgur.get_image(self.get_random_image(im.id)))
-        if im.is_nsfw:
+        if im.is_nsfw and not checks.tagged(ctx, 'lewd'):
             await self.bot.edit_message(tmp, "no ecchi.")
             return
         await self.bot.edit_message(tmp, "{0.title}\n{0.link}".format(im))
