@@ -162,7 +162,7 @@ class Images(utils.SessionCog):
         if count == 0:
             await self.bot.edit_message(tmp, "No results")
             return
-        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': random.randint(0, count // 100 - 1), 'tags': tags}
+        params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': 0 if count <= 100 else random.randint(0, count // 100 - 1), 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
                 await self.bot.edit_message(tmp, f'Something went wrong. Error {r.status}')
