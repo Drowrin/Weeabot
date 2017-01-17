@@ -385,6 +385,8 @@ class TagMap:
             return
         if text == '':
             await self.bot.say("Can not create empty tag.")
+        if not text.startswith(self.bot.command_prefix):
+            text = self.bot.command_prefix + text
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text, method='alias')
         self[name] = t
         await self.bot.say(f'{ctx.message.author.mention} added a new alias: `{name}` → `{text}`')
