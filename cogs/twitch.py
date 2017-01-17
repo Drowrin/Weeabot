@@ -172,12 +172,12 @@ class Twitch(utils.SessionCog):
                         # get stream data. retry a few times if the api is delayed
                         url = f'https://api.twitch.tv/kraken/streams/{tid}'
                         async with self.session.get(url=url, headers=headers) as r:
-                            for i in range(5):
+                            for i in range(20):
                                 stream = (await r.json())['stream']
                                 if stream:
                                     break
                                 else:
-                                    await asyncio.sleep(2)
+                                    await asyncio.sleep(3)
 
                         # get box art
                         api = 'https://api.twitch.tv/kraken/search/games'
