@@ -2,10 +2,19 @@ from discord.ext import commands
 from utils import CheckMsg
 
 
+def target(lam):
+    def decorator(func):
+        func.target = lam
+        return func
+    return decorator
+
+
+@target(lambda ctx: ctx.bot.owner)
 def owner(ctx):
     return ctx.message.author == ctx.bot.owner
 
 
+@target(owner.target)
 def trusted(ctx):
     return owner(ctx) or ctx.message.author.id in ctx.bot.trusted
 
@@ -14,12 +23,38 @@ def notprivate(ctx):
     return not ctx.message.channel.is_private
 
 
+@target(lambda ctx: ctx.message.server.get_channel(ctx.bot.server_configs.get(ctx.message.server.id, {}).get('request_channel')))
 def server_owner(ctx):
     return notprivate(ctx) and (trusted(ctx) or ctx.message.server.owner == ctx.message.author)
 
 
+@target(server_owner.target)
 def moderator(ctx):
     return notprivate(ctx) and (server_owner(ctx) or ctx.bot.server_configs[ctx.message.server.id].get('moderator_role', None) in [r.id for r in ctx.message.author.roles])
+
+
+def tagged(ctx, tag):
+    if ctx.message.channel.is_private:
+        return True
+    if ctx.message.channel.topic is None or f'[{tag}]' not in ctx.message.channel.topic:
+        return False
+    return True
+
+
+def testing(ctx):
+    if ctx.message.channel.is_private:
+        if ctx.message.author.id == ctx.bot.owner.id:
+            return True
+        return False
+    if ctx.message.server.id in ctx.bot.config.testing_servers:
+        return True
+    if ctx.message.channel.id in ctx.bot.config.testing_channels:
+        return True
+    return False
+
+
+who = [owner, trusted, server_owner, moderator]
+where = [testing, tagged, notprivate]
 
 
 def is_owner():
@@ -57,18 +92,6 @@ def is_channel(name: str):
     return commands.check(_is_channel)
 
 
-def testing(ctx):
-    if ctx.message.channel.is_private:
-        if ctx.message.author.id == ctx.bot.owner.id:
-            return True
-        return False
-    if ctx.message.server.id in ctx.bot.config.testing_servers:
-        return True
-    if ctx.message.channel.id in ctx.bot.config.testing_channels:
-        return True
-    return False
-
-
 def is_testing():
     """Only allowed in 'safe' environments.
 
@@ -86,14 +109,6 @@ def profiles():
 def tools():
     """Make sure the command only runs if the tools cog is loaded."""
     return commands.check(lambda ctx: ctx.bot.tools is not None)
-
-
-def tagged(ctx, tag):
-    if ctx.message.channel.is_private:
-        return True
-    if ctx.message.channel.topic is None or f'[{tag}]' not in ctx.message.channel.topic:
-        return False
-    return True
 
 
 def has_tag(tag: str):
