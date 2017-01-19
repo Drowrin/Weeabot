@@ -92,7 +92,7 @@ class TagItem:
     methods = defaultdict(lambda: TagItem.none)
     methods.update({None: none, "simple": simple, "baka": baka, "embed": embed, "alias": alias})
 
-    def __init__(self, author: str, timestamp: str, tags: list, item_id: int = None, method: str = None,
+    def __init__(self, author: str, timestamp: str, tags: iter, item_id: int = None, method: str = None,
                  text: str = None, image: str = None, location: str = None):
         self.id = item_id
         self.author = author

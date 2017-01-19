@@ -147,6 +147,37 @@ class Images(utils.SessionCog):
                 await self.bot.notify(
                     "Invalid link. Make sure it points directly to the file and ends with a valid file extension.")
 
+    @image.command(pass_context=True, name='add_album')
+    @request()
+    async def _add_album(self, ctx, link: str, *collections):
+        """Add all the images in an imgur album.
+
+        The link should be to a valid imgur album or gallery album.
+        After that you may list multiple collections to put each image in."""
+        # input checking
+        if len(collections) == 0:
+            await self.bot.say("No tags given.")
+            return
+        a = self.bot.imgur.get_at_url(link)
+        if not isinstance(a, pyimgur.Album):
+            await self.bot.say('Not a valid imgur album.')
+            return
+
+        # initial response
+        m = await self.bot.say(f'Getting {len(a.images)} images...')
+
+        # add all images
+        for im in a.images:
+            link = im.link
+            n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+            await utils.download(self.session, link, path.join('images', n))
+            i_path = path.join('images', n)
+
+            t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), collections, image=i_path)
+            for name in collections:
+                self.bot.tag_map[name] = t
+        await self.bot.edit_message(m, f'Added {len(a.images)} images to {",".join(collections)}')
+
     @image.command(name='list')
     async def _image_list(self):
         """Get a list of all the categories and reactions."""
