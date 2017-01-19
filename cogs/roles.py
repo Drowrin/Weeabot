@@ -86,7 +86,7 @@ class Roles:
                 e.add_field(name=role_name, value=message, inline=False)
             except commands.BadArgument:
                 pass
-        await self.bot.say('**Opt-in Channels**', embed=e)
+        await self.bot.say('**Opt-in Roles**', embed=e)
     
     @commands.command(pass_context=True)
     async def makeme(self, ctx, *, role: discord.Role):
