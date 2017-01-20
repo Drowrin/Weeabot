@@ -53,7 +53,7 @@ def testing(ctx):
     return False
 
 
-who = [owner, trusted, server_owner, moderator]
+who = [owner, trusted, server_owner, moderator]  # ordered by permission level
 where = [testing, tagged, notprivate]
 
 
