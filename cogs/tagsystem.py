@@ -12,6 +12,8 @@ from discord.ext import commands
 import utils
 from cogs.requestsystem import request
 
+import checks
+
 
 class TagItem:
     """Data class containing a response to a tag."""
@@ -257,6 +259,8 @@ class TagMap:
 
     @tag.command(pass_context=True, name='add')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
+    @checks.is_owner()
+    @checks.is_moderator()
     async def _tag_add(self, ctx, name: str, *, text: str=''):
         """Add a tag to the database.
 
@@ -286,6 +290,8 @@ class TagMap:
 
     @tag.command(pass_context=True, name='embed')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
+    @checks.is_owner()
+    @checks.is_moderator()
     async def _tag_embed(self, ctx, name: str, *, values):
         """Add an embed tag to the database.
 
@@ -459,6 +465,8 @@ class TagMap:
 
     @tag.command(pass_context=True, name='edit')
     @request()
+    @checks.is_owner()
+    @checks.is_moderator()
     async def _tagedit(self, ctx, item_id: int, *, content: str):
         """edit the contents of a tag."""
         try:
