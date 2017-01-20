@@ -2,19 +2,10 @@ from discord.ext import commands
 from utils import CheckMsg
 
 
-def target(lam):
-    def decorator(func):
-        func.target = lam
-        return func
-    return decorator
-
-
-@target(lambda ctx: ctx.bot.owner)
 def owner(ctx):
     return ctx.message.author == ctx.bot.owner
 
 
-@target(owner.target)
 def trusted(ctx):
     return owner(ctx) or ctx.message.author.id in ctx.bot.trusted
 
@@ -23,12 +14,10 @@ def notprivate(ctx):
     return not ctx.message.channel.is_private
 
 
-@target(lambda ctx: ctx.message.server.get_channel(ctx.bot.server_configs.get(ctx.message.server.id, {}).get('request_channel')))
 def server_owner(ctx):
     return notprivate(ctx) and ctx.message.server.owner == ctx.message.author
 
 
-@target(server_owner.target)
 def moderator(ctx):
     return notprivate(ctx) and (server_owner(ctx) or ctx.bot.server_configs[ctx.message.server.id].get('moderator_role', None) in [r.id for r in ctx.message.author.roles])
 
