@@ -25,7 +25,7 @@ def notprivate(ctx):
 
 @target(lambda ctx: ctx.message.server.get_channel(ctx.bot.server_configs.get(ctx.message.server.id, {}).get('request_channel')))
 def server_owner(ctx):
-    return notprivate(ctx) and (trusted(ctx) or ctx.message.server.owner == ctx.message.author)
+    return notprivate(ctx) and ctx.message.server.owner == ctx.message.author
 
 
 @target(server_owner.target)
