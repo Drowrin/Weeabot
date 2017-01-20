@@ -1,6 +1,9 @@
 import copy
 import pickle
-import enum
+
+import typing
+
+from enum import Enum
 
 import discord
 from discord.ext import commands
@@ -8,109 +11,127 @@ from discord.ext import commands
 import utils
 import checks
 
-
-class RequestLevel(enum.Enum):
-    default, server = range(2)
+from discord.ext.commands.bot import _get_variable
 
 
-def request(level: RequestLevel = RequestLevel.default, owner_bypass=True, server_bypass=True, bypasses=list(),
-            bypasser=any, delete_source=True):
-    """Decorator to make a command requestable.
+class PermissionInfo:
+    def __init__(self, ch: typing.List[str], tar: typing.Callable[[commands.Context], str]):
+        self.checks = ch
+        self.target = tar
 
-    Requestable commands are commands you want to lock down permissions for.
-    However, requestable commands can still be called by members but will need to be approved before executing.
+    def requests(self, ctx):
+        return ctx.bot.requestsystem.get_serv(self.target(ctx))
 
-    The following behaivior is followed:
-        1. If a member calls the command, a request is sent to the server owner including the command and args.
-        2. Server owners can approve these requests, which are then elevated as requests to the bot owner.
-        3. If a server owner calls the command, a request is sent directly to the bot owner.
-        4. If the bot owner approves the request, it is executed normally.
-        5. If the bot owner calls the command, it executes normally.
-        6. Similarly, if the bot owner accepts a local request on a server they own, it bypasses the global check.
+    def add_request(self, ctx):
+        ctx.bot.loop.create_task(
+            ctx.bot.requestsystem.add_request(ctx.message, self.target(ctx), ctx.delete_source)
+        )
 
-    Requests can only be called in PMs by the bot owner.
 
-    Requested commands are pickled to disk, so they persist through restarts.
+class PermissionLevel(Enum):
+    BOT = PermissionInfo(
+        ['owner', 'trusted'],
+        lambda _: 'owner'
+    )
+    SERVER = PermissionInfo(
+        ['server_owner', 'moderator'],
+        lambda ctx: ctx.message.server.id
+    )
 
-    Attributes
-    ----------
-    level : RequestLevel
-        A string identifying the top level a request should go to.
-        Possible values:
-            ``RequestLevel.default`` for a global request.
-            ``RequestLevel.server`` for a server request.
-        Defaults to ``RequestLevel.default``.
-    owner_bypass : Optional[bool]
-        If ``True``, the bot owner can bypass the requests system entirely.
-        Defaults to ``True``.
-    server_bypass : Optional[bool]
-        If ``True``, the server owner can bypass the server level of requests.
-        Defaults to ``True``.
-    bypasses : list
-        A list of bypass predicates accepting ctx to be used on the command.
-        This differs from a list of checks in that it immediately bypasses the requests system.
-        An example of a use for this is turning a message into a request if a certain command arg is too high.
-        Defaults to an empty list.
-    bypasser : callable
-        This is a predicate that takes the list of results from 'bypasses'.
-        If ``True`` is returned, the request system is bypassed.
-        Defaults to ``any``.
-    """
-    form = '{0.author.mention}, Your request was {1}.'
+    @classmethod
+    def from_check(cls, ch: typing.Callable):
+        """Get the appropriate PermissionLevel member based on the passed check."""
+        for level in cls:
+            if ch.__name__ in level.value.checks:
+                return level
 
-    def request_predicate(ctx):
-        ctx.bypassed = False
-        ctx.server_bypassed = False
-        ctx.owner_bypassed = False
-        do = ctx.bot.loop.create_task
 
-        # Not allowed in PMs.
-        if ctx.message.channel.is_private:
-            raise commands.NoPrivateMessage()
-        # requests cog must be loaded to use requests.
-        if ctx.bot.requestsystem is None:
+def request(bypasses=list(), bypasser=any, delete_source=True):
+
+    def would_pass(ch: typing.Callable[[commands.Context], bool], ctx: commands.Context, a: discord.Member) -> bool:
+        if a is None:
             return False
-        # requests must be enabled on the server.
-        if request_channel(ctx.bot, ctx.message.channel.server) is None:
-            return False
-        # Always pass on help so it shows up in the list.
-        if ctx.command.name == 'help':
-            return True
-        # Bot owner bypass.
-        if ctx.message.author.id == ctx.bot.owner.id and owner_bypass:
-            ctx.owner_bypass = True
-            ctx.bypassed = True
-            return True
-        # bypass predicates
-        if bypasser(bypass(ctx) for bypass in bypasses):
-            ctx.bypassed = True
-            return True
-        # If its already at the global level and has been accepted, it passes.
-        if ctx.message in ctx.bot.requestsystem.get_serv('owner'):
-            ctx.bot.requestsystem.get_serv('owner').remove(ctx.message)
-            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
-            return True
-        # Server owner bypass. Elevate if necessary.
-        if ctx.message.author.id == ctx.message.server.owner.id and server_bypass:
-            if level == RequestLevel.server:
+        c = copy.copy(ctx)
+        c.message = copy.copy(ctx.message)
+        c.message.author = a
+        return ch(c)
+
+    def decorator(func):
+
+        # default checks
+        req_checks = [checks.trusted, checks.moderator]
+
+        # get checks below this decorator
+        if isinstance(func, commands.Command):
+            req_checks = [f for f in func.checks if f in checks.who]
+            func.checks = [f for f in func.checks if f not in checks.who]
+        else:
+            if hasattr(func, '__commands_checks__'):
+                req_checks = [f for f in func.__commands_checks__ if f in checks.who]
+                func.__commands_checks__ = [f for f in func.__commands_checks__ if f not in checks.who]
+
+        # reorder checks to permission order
+        req_checks.sort(key=checks.who.index)
+
+        def request_predicate(ctx):
+            ctx.bypassed = ''
+            ctx.delete_source = delete_source
+            approver = _get_variable('_internal_approver')
+
+            # Not allowed in PMs.
+            if ctx.message.channel.is_private:
+                raise commands.NoPrivateMessage()
+            # requests cog must be loaded to use requests.
+            if ctx.bot.requestsystem is None:
+                return False
+            # requests must be enabled on the server.
+            if request_channel(ctx.bot, ctx.message.channel.server) is None:
+                return False
+            # Always pass on help so it shows up in the list.
+            if ctx.command.name == 'help':
+                return True
+            # bypass predicates
+            if bypasser(bypass(ctx) for bypass in bypasses):
                 ctx.bypassed = True
-                ctx.server_bypassed = True
                 return True
-            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner', delete_source))
-            return False
-        # If it is at the server level and has been accepted, elevate it.
-        if ctx.message in ctx.bot.requestsystem.get_serv(ctx.message.server.id):
-            if level == RequestLevel.server:
-                do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'accepted')))
-                return True
-            do(ctx.bot.send_message(ctx.message.channel, form.format(ctx.message, 'elevated')))
-            do(ctx.bot.requestsystem.add_request(ctx.message, 'owner', delete_source))
-            return False
-        # Otherwise, this is a fresh request, add it to the server level.
-        ctx.bot.loop.create_task(ctx.bot.requestsystem.add_request(ctx.message, ctx.message.server.id, delete_source))
-        return False
 
-    return commands.check(request_predicate)
+            # check the predicates added by decorators
+            for i, c in enumerate(req_checks):
+                level = PermissionLevel.from_check(c)
+
+                # check if was it bypassed by author having required permissions
+                if c(ctx):
+                    ctx.bypassed = level.name
+
+                wp = would_pass(c, ctx, approver)
+
+                if (ctx.bypassed or wp) and i == 0:   # top level permission needed, request goes through
+                    return True
+
+                # check for elevation at this level
+                if wp and ctx.message in level.value.requests(ctx) or ctx.bypassed:
+                    # elevate to next position.
+                    nc = req_checks[i - 1]
+                    nlevel = PermissionLevel.from_check(nc)
+                    nlevel.value.add_request(ctx)
+                    return False
+
+            # Otherwise, this is a fresh request, add it to the lowest level
+            level = PermissionLevel.from_check(req_checks[-1])
+            level.value.add_request(ctx)
+            return False
+
+        if isinstance(func, commands.Command):
+            func.checks.append(request_predicate)
+        else:
+            if not hasattr(func, '__commands_checks__'):
+                func.__commands_checks__ = []
+
+            func.__commands_checks__.insert(0, request_predicate)
+
+        return func
+
+    return decorator
 
 
 def request_channel(bot, server: discord.Server):
@@ -174,7 +195,7 @@ class RequestSystem:
         return self.requests[server]
 
     def remove_from_serv(self, server, rs):
-        self.requests[server] = [r for r in self.requests[server] if r not in rs]
+        self.requests[server] = [r for r in self.requests[server] if r.id not in [rm.id for rm in rs]]
 
     @commands.command(pass_context=True, no_pm=True)
     @checks.is_server_owner()
@@ -268,18 +289,6 @@ class RequestSystem:
     async def req(self):
         """Request based commands."""
 
-    @req.command(pass_context=True, name='feature', aliases=('f', 'make', 'm'))
-    @request(owner_bypass=False, server_bypass=False)
-    async def req_make(self, ctx, *, command):
-        """Send a request for a command, or request a feature."""
-        msg = copy.copy(ctx.message)
-        msg.content = command
-        if utils.is_command_of(ctx.bot, msg):
-            await self.bot.process_commands(msg)
-        else:
-            await self.bot.send_message(msg.channel, "Added to todo list.")
-            await self.bot.send_message(self.bot.owner, "Todo: {}".format(msg.content))
-
     @req.group(pass_context=True, aliases=('l',), invoke_without_command=True, no_pm=True)
     @checks.is_server_owner()
     async def list(self, ctx):
@@ -297,6 +306,7 @@ class RequestSystem:
     @checks.is_server_owner()
     async def accept(self, ctx, *, indexes: str="0"):
         """Accept requests made by users."""
+        _internal_approver = ctx.message.author
         try:
             indexes = parse_indexes(indexes)
         except ValueError:
@@ -310,12 +320,13 @@ class RequestSystem:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
             await self.bot.process_commands(r)
-            self.get_serv(ctx.message.server.id).remove(r)
+        self.remove_from_serv(ctx.message.server.id, rs)
         await self.save()
 
-    @accept.group(aliases=('g',))
+    @accept.group(aliases=('g',), pass_context=True)
     @checks.is_owner()
-    async def glob_accept(self, *, indexes: str="0"):
+    async def glob_accept(self, ctx, *, indexes: str="0"):
+        _internal_approver = ctx.message.author
         try:
             indexes = parse_indexes(indexes)
         except ValueError:
@@ -329,6 +340,7 @@ class RequestSystem:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
             await self.bot.process_commands(r)
+        self.remove_from_serv('owner', rs)
         await self.save()
 
     async def reject_requests(self, server, indexes: [int]):
@@ -376,11 +388,6 @@ class RequestSystem:
     @checks.is_owner()
     async def glob_clear(self):
         await self.reject_requests('owner', list(range(len(self.get_serv('owner')))))
-
-    @commands.command()
-    @request(owner_bypass=False)
-    async def reqtest(self):
-        await self.bot.say('reqtest completed')
 
 
 def setup(bot):

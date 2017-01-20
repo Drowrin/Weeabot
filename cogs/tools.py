@@ -8,7 +8,6 @@ from discord.ext import commands
 
 import checks
 import utils
-from cogs.requestsystem import request, RequestLevel
 
 
 class Tools(utils.SessionCog):
@@ -48,12 +47,6 @@ class Tools(utils.SessionCog):
     async def username(self, name: str):
         """Change the bot's username."""
         await self.bot.edit_profile(username=name)
-
-    @change.command(pass_context=True)
-    @request(level=RequestLevel.server, )
-    async def nick(self, ctx, nick: str):
-        """Change the bot's nickname."""
-        await self.bot.change_nickname(ctx.message.server.get_member(self.bot.user.id), nick)
 
     @commands.command(pass_context=True)
     @checks.is_owner()

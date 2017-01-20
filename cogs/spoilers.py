@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 
-from cogs.requestsystem import request, RequestLevel
+from cogs.requestsystem import request
+import checks
 from Weeabot import Weeabot
 
 
@@ -141,7 +142,8 @@ class Spoilers:
     Channel creators have access to the trust, untrust, and remove commands."""
 
     @spoiler.command(pass_context=True, name='add', no_pm=True)
-    @request(level=RequestLevel.server, owner_bypass=False)
+    @request()
+    @checks.is_server_owner()
     async def _add(self, ctx, name: str):
         """Add a spoiler channel."""
         if ctx.message.server.id not in self.bot.server_configs:

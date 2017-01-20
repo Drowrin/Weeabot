@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 import checks
-from cogs.requestsystem import request, RequestLevel
+from cogs.requestsystem import request
 from Weeabot import Weeabot
 
 
@@ -60,7 +60,8 @@ class Roles:
         await self.update_roles(ctx)
 
     @commands.command(pass_context=True)
-    @request(level=RequestLevel.server, owner_bypass=False)
+    @request()
+    @checks.is_server_owner()
     async def make_channel(self, ctx, channel_name, role_name):
         await self.check_config(ctx)
         try:
