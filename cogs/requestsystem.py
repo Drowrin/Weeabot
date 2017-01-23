@@ -309,37 +309,23 @@ class RequestSystem:
             await self.send_req_msg('owner', r, ind, dest=ctx.message.channel)
 
     @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
-    @commands.check(lambda ctx: checks.owner(ctx) or checks.server_owner(ctx))
+    @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def accept(self, ctx, *, indexes: str="0"):
         """Accept requests made by users.
 
         Request 0 is chosen if no index is passed.
 
         Separate indexes by spaces. To express a range of indexes, put a dash between them.
-        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6 and 8.
+        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6, and 8.
 
         Be aware that after this command, indexes on unaffected requests will be changed."""
         _internal_approver = ctx.message.author
-        try:
-            indexes = parse_indexes(indexes)
-        except ValueError:
-            await self.bot.say("invalid index format")
-            return
-        rs = []
-        for i in indexes:
-            try:
-                rs.append(self.get_serv(ctx.message.server.id)[i])
-            except IndexError:
-                await self.bot.say("{} out of range.".format(i))
-        for r in rs:
-            await self.bot.process_commands(r)
-        self.remove_from_serv(ctx.message.server.id, rs)
-        await self.save()
 
-    @accept.group(aliases=('g',), pass_context=True)
-    @checks.is_owner()
-    async def glob_accept(self, ctx, *, indexes: str="0"):
-        _internal_approver = ctx.message.author
+        if ctx.message.channel.is_private:
+            server = 'owner'
+        else:
+            server = ctx.message.server.id
+
         try:
             indexes = parse_indexes(indexes)
         except ValueError:
@@ -348,12 +334,12 @@ class RequestSystem:
         rs = []
         for i in indexes:
             try:
-                rs.append(self.get_serv('owner')[i])
+                rs.append(self.get_serv(server)[i])
             except IndexError:
                 await self.bot.say("{} out of range.".format(i))
         for r in rs:
             await self.bot.process_commands(r)
-        self.remove_from_serv('owner', rs)
+        self.remove_from_serv(server, rs)
         await self.save()
 
     async def reject_requests(self, server, indexes: [int]):
@@ -369,45 +355,30 @@ class RequestSystem:
         await self.save()
 
     @req.group(pass_context=True, aliases=('r', 'deny', 'd'), invoke_without_command=True)
-    @checks.is_server_owner()
+    @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def reject(self, ctx, *, indexes: str=None):
         """Reject requests made by users.
 
         Request 0 is chosen if no index is passed.
 
         Separate indexes by spaces. To express a range of indexes, put a dash between them.
-        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6 and 8.
+        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6, and 8.
 
         Be aware that after this command, indexes on unaffected requests will be changed."""
-        serv = ctx.message.server
+        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
         try:
             indexes = parse_indexes(indexes)
         except ValueError:
             await self.bot.say("invalid index format")
             return
-        await self.reject_requests(serv.id, indexes)
-
-    @reject.command(aliases=('g',))
-    @checks.is_owner()
-    async def glob_reject(self, *, indexes: str=None):
-        try:
-            indexes = parse_indexes(indexes)
-        except ValueError:
-            await self.bot.say("invalid index format")
-            return
-        await self.reject_requests('owner', indexes)
+        await self.reject_requests(server, indexes)
 
     @req.group(pass_context=True, aliases=('c',), invoke_without_command=True)
     @checks.is_server_owner()
     async def clear(self, ctx):
         """Clear remaining requests."""
-        serv = ctx.message.server
-        await self.reject_requests(serv.id, list(range(len(self.get_serv(serv.id)))))
-
-    @clear.command(aliases=('g',))
-    @checks.is_owner()
-    async def glob_clear(self):
-        await self.reject_requests('owner', list(range(len(self.get_serv('owner')))))
+        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
+        await self.reject_requests(server, list(range(len(self.get_serv(server)))))
 
 
 def setup(bot):
