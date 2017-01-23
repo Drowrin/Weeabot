@@ -199,7 +199,7 @@ class RequestSystem:
         return self.requests[server]
 
     def remove_from_serv(self, server, rs):
-        self.requests[server] = [r for r in self.requests[server] if r.id not in [rm.id for rm in rs]]
+        self.requests[server] = [r for r in self.requests[server] if r not in rs]
 
     @commands.command(pass_context=True, no_pm=True)
     @checks.is_server_owner()
@@ -261,7 +261,7 @@ class RequestSystem:
         return await self.bot.send_message(dest, content="New request added!", embed=e)
 
     async def add_request(self, mes: discord.Message, server, delete_source):
-        if mes.id in [m.id for m in self.get_serv(server)]:
+        if mes in self.get_serv(server):
             # if the message is already in the specified server's list, no reason to re-add it
             return
 
@@ -295,20 +295,19 @@ class RequestSystem:
     async def req(self):
         """Request based commands."""
 
-    @req.group(pass_context=True, aliases=('l',), invoke_without_command=True, no_pm=True)
-    @checks.is_server_owner()
+    @req.command(pass_context=True, aliases=('l',))
+    @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def list(self, ctx):
         """Display current requests."""
-        for ind, r in enumerate(self.get_serv(ctx.message.server.id)):
-            await self.send_req_msg(ctx.message.server.id, r, ind, dest=ctx.message.channel)
+        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
+        reqs = self.get_serv(server)
+        if len(reqs) == 0:
+            await self.bot.say("None.")
+            return
+        for ind, r in enumerate(reqs):
+            await self.send_req_msg(server, r, ind, dest=ctx.message.channel)
 
-    @list.command(aliases=('g',), pass_context=True)
-    @checks.is_owner()
-    async def glob_list(self, ctx):
-        for ind, r in self.get_serv('owner'):
-            await self.send_req_msg('owner', r, ind, dest=ctx.message.channel)
-
-    @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
+    @req.command(pass_context=True, aliases=('a', 'approve'))
     @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def accept(self, ctx, *, indexes: str="0"):
         """Accept requests made by users.
@@ -354,7 +353,7 @@ class RequestSystem:
         self.remove_from_serv(server, rs)
         await self.save()
 
-    @req.group(pass_context=True, aliases=('r', 'deny', 'd'), invoke_without_command=True)
+    @req.command(pass_context=True, aliases=('r', 'deny', 'd'))
     @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def reject(self, ctx, *, indexes: str=None):
         """Reject requests made by users.
@@ -373,7 +372,7 @@ class RequestSystem:
             return
         await self.reject_requests(server, indexes)
 
-    @req.group(pass_context=True, aliases=('c',), invoke_without_command=True)
+    @req.command(pass_context=True, aliases=('c',))
     @checks.is_server_owner()
     async def clear(self, ctx):
         """Clear remaining requests."""
