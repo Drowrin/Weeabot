@@ -16,6 +16,7 @@ from discord.ext.commands.bot import _get_variable
 
 import utils
 import checks
+from cogs.requestsystem import RequestLimit
 
 
 class Config:
@@ -219,6 +220,9 @@ async def on_command_error(err, ctx):
 
     d = ctx.message.channel
 
+    if type(err) is RequestLimit:
+        await bot.send_message(d, err)
+
     if type(err) is commands.NoPrivateMessage:
         await bot.send_message(d, f'{ctx.command.name} can not be used in private messages.')
 
@@ -227,7 +231,7 @@ async def on_command_error(err, ctx):
 
     elif type(err) in (commands.BadArgument, commands.errors.MissingRequiredArgument):
         name = utils.full_command_name(ctx, ctx.command)
-        await bot.send_message(d, f'Invalid usage. Use {bot.command_prefix}help {name}')
+        await bot.send_message(d, f'Invalid usage. Use `{bot.command_prefix}help {name}`\n{f"```{err}```" if str(err) else None}')
 
     elif type(err) is utils.CheckMsg:
         await bot.send_message(d, err)

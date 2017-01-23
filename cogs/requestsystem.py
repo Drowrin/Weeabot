@@ -14,6 +14,10 @@ import checks
 from discord.ext.commands.bot import _get_variable
 
 
+class RequestLimit(commands.CommandError):
+    pass
+
+
 class PermissionInfo:
     def __init__(self, ch: typing.List[str], tar: typing.Callable[[commands.Context], str]):
         self.checks = ch
@@ -257,15 +261,16 @@ class RequestSystem:
         return await self.bot.send_message(dest, content="New request added!", embed=e)
 
     async def add_request(self, mes: discord.Message, server, delete_source):
+        if mes.id in [m.id for m in self.get_serv(server)]:
+            # if the message is already in the specified server's list, no reason to re-add it
+            return
+
         if len(list(filter(lambda e: e.author.id == mes.author.id, self.all_req()))) >= self.user_limit:
-            await self.bot.send_message(mes.channel, "{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
-            return
+            raise RequestLimit("{}, user request limit reached ({}).".format(mes.author.display_name, self.user_limit))
         if len(list(filter(lambda e: e.server.id == mes.server.id, self.all_req()))) >= self.server_limit:
-            await self.bot.send_message(mes.channel, "{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
-            return
+            raise RequestLimit("{}, server request limit reached ({}).".format(mes.server.name, self.server_limit))
         if len(self.all_req()) >= self.global_limit:
-            await self.bot.send_message(mes.channel, "Global request limit reached ({}).".format(self.global_limit))
-            return
+            raise RequestLimit("Global request limit reached ({}).".format(self.global_limit))
 
         # rehost images on imgur, since we will be deleting the original image
         if len(mes.attachments) == 1:
@@ -273,6 +278,7 @@ class RequestSystem:
             im = self.bot.imgur.upload_image(url=url)
             mes.attachments[0]['url'] = im.link
 
+        # add the request to the specified server's list
         ind = len(self.get_serv(server))
         await self.send_req_msg(server, mes, ind)
         if server != 'owner' or mes.server.owner.id == mes.author.id:
@@ -303,7 +309,7 @@ class RequestSystem:
             await self.send_req_msg('owner', r, ind, dest=ctx.message.channel)
 
     @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
-    @checks.is_server_owner()
+    @commands.check(lambda ctx: checks.owner(ctx) or checks.server_owner(ctx))
     async def accept(self, ctx, *, indexes: str="0"):
         """Accept requests made by users."""
         _internal_approver = ctx.message.author
