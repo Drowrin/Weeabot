@@ -231,6 +231,12 @@ class Images(utils.SessionCog):
     async def _gelbooru(self, *, tags: str):
         """Get an image from gelbooru based on tags."""
         await self.fetch_booru_image("http://gelbooru.com", tags)
+
+    @image.command(name='rule34xxx')
+    @checks.has_tag('lewd')
+    async def _rule34xxx(self, *, tags: str):
+        """Get an image from rule34.xxx based on tags."""
+        await self.fetch_booru_image("http://rule34.xxx", tags)
               
     @image.command(pass_context=True, name='reddit', aliases=('r',))
     async def _r(self, ctx, sub: str, window: str='month'):
