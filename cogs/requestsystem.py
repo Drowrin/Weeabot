@@ -252,7 +252,7 @@ class RequestSystem:
             icon_url=msg.author.default_avatar_url if not msg.author.avatar else msg.author.avatar_url,
             url=url
         )
-        if server == 'owner':
+        if dest == self.bot.owner:
             if msg.channel.is_private:
                 source = "PM"
             else:
