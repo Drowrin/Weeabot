@@ -341,18 +341,6 @@ class RequestSystem:
         self.remove_from_serv(server, rs)
         await self.save()
 
-    async def reject_requests(self, server, indexes: [int]):
-        rs = []
-        for i in indexes:
-            try:
-                rs.append(self.get_serv(server)[i])
-            except IndexError:
-                await self.bot.say('{} is out of range.'.format(i))
-        for r in rs:
-            await self.bot.send_message(r.channel, '{0.author}, Your request was denied.'.format(r))
-        self.remove_from_serv(server, rs)
-        await self.save()
-
     @req.command(pass_context=True, aliases=('r', 'deny', 'd'))
     @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def reject(self, ctx, *, indexes: str=None):
@@ -370,7 +358,17 @@ class RequestSystem:
         except ValueError:
             await self.bot.say("invalid index format")
             return
-        await self.reject_requests(server, indexes)
+
+        rs = []
+        for i in indexes:
+            try:
+                rs.append(self.get_serv(server)[i])
+            except IndexError:
+                await self.bot.say('{} is out of range.'.format(i))
+        for r in rs:
+            await self.bot.send_message(r.channel, f'{r.author.mention}, Your request was denied.')
+        self.remove_from_serv(server, rs)
+        await self.save()
 
     @req.command(pass_context=True, aliases=('c',))
     @checks.is_server_owner()
