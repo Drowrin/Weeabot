@@ -283,8 +283,6 @@ class TagMap:
             return
         t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), [name], text=text or None, image=i_path)
         self[name] = t
-        if ctx.bypassed and not ctx.server_bypassed:
-            await self.bot.delete_message(ctx.message)
         await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{name}"')
         await t.run(ctx)
 
