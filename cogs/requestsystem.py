@@ -311,7 +311,14 @@ class RequestSystem:
     @req.group(pass_context=True, aliases=('a', 'approve'), invoke_without_command=True)
     @commands.check(lambda ctx: checks.owner(ctx) or checks.server_owner(ctx))
     async def accept(self, ctx, *, indexes: str="0"):
-        """Accept requests made by users."""
+        """Accept requests made by users.
+
+        Request 0 is chosen if no index is passed.
+
+        Separate indexes by spaces. To express a range of indexes, put a dash between them.
+        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6 and 8.
+
+        Be aware that after this command, indexes on unaffected requests will be changed."""
         _internal_approver = ctx.message.author
         try:
             indexes = parse_indexes(indexes)
@@ -364,7 +371,14 @@ class RequestSystem:
     @req.group(pass_context=True, aliases=('r', 'deny', 'd'), invoke_without_command=True)
     @checks.is_server_owner()
     async def reject(self, ctx, *, indexes: str=None):
-        """Reject requests made by users."""
+        """Reject requests made by users.
+
+        Request 0 is chosen if no index is passed.
+
+        Separate indexes by spaces. To express a range of indexes, put a dash between them.
+        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6 and 8.
+
+        Be aware that after this command, indexes on unaffected requests will be changed."""
         serv = ctx.message.server
         try:
             indexes = parse_indexes(indexes)
