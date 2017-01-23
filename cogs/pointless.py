@@ -16,7 +16,7 @@ class Pointless(utils.SessionCog):
 
     def __init__(self, bot: commands.Bot):
         super(Pointless, self).__init__(bot)
-        self.cleverbot = Cleverbot()
+        self.cleverbot = Cleverbot('weeabotpointless')
         self.oc = 1
         self.services = {
             "Conversation": "Tag the bot at the beginning of a message to have a conversation with it.",
