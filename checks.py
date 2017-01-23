@@ -1,3 +1,4 @@
+import asyncio
 from discord.ext import commands
 from utils import CheckMsg
 
@@ -112,3 +113,32 @@ def has_tag(tag: str):
             raise CheckMsg(f"This command can only be used in a [{tag}] channel.")
 
     return commands.check(predicate)
+
+
+def arg_check(pred, message=None):
+    """Check specific arguments using a predicate. The function's args will be unpacked into the callable.
+
+    This should be placed under any check decorators and the commands.command decorator.
+
+    A commands.BadArgument will be raised with the message passed if the predicate fails.
+    Other exceptions can be raised inside the passed predicate."""
+
+    def decorator(func):
+
+        if not hasattr(func, '__arg_checks__'):
+            func.__arg_checks__ = []
+        func.__arg_checks__.append((pred, message))
+
+        def f(*args, **kwargs):
+            if not pred(*args, **kwargs):
+                raise commands.BadArgument(message)
+            return func(*args, **kwargs)
+
+        if hasattr(func, '__arg_check_root__'):
+            f.__arg_check_root__ = func.__arg_check_root__
+        else:
+            f.__arg_check_root__ = func
+
+        return f
+
+    return decorator
