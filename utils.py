@@ -6,7 +6,7 @@ from os import path
 from os import listdir
 from discord.ext import commands
 from datetime import timedelta
-
+from collections import defaultdict
 
 class CheckMsg(commands.CheckFailure):
     """Exception raised when a check fails and a message should be sent."""
@@ -114,5 +114,11 @@ def str_limit(s: str, limit: int) -> str:
         return s
     return s[:limit-3] + '...'
 
+
+def partition(l, hashf):
+    d = defaultdict(list)
+    for i in l:
+        d[hashf(i)].append(i)
+    return list(d.values())
 
 tokens = open_json('tokens.json')
