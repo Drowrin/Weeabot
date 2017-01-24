@@ -150,12 +150,15 @@ def parse_indexes(indexes: str = None):
         return [0]
     indexes = indexes.split()
     out = []
-    for i in indexes:
-        if len(i.split('-')) == 2:
-            spl = i.split('-')
-            out = out + list(range(int(spl[0]), int(spl[1]) + 1))
-        else:
-            out.append(int(i))
+    try:
+        for i in indexes:
+            if len(i.split('-')) == 2:
+                spl = i.split('-')
+                out = out + list(range(int(spl[0]), int(spl[1]) + 1))
+            else:
+                out.append(int(i))
+    except ValueError:
+        raise commands.BadArgument("invalid index format")
     return out
 
 
@@ -235,8 +238,9 @@ class RequestSystem:
         self.bot.server_configs.get(ctx.message.server.id, {})['request_channel'] = None
         self.bot.dump_server_configs()
 
-    async def send_req_msg(self, server, msg: discord.Message, ind, *, dest=None):
-        dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner
+    async def send_req_msg(self, server, msg: discord.Message, ind, *, dest=None, new=False):
+        dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner if server == 'owner' else None
+
         e = discord.Embed(
             title="Index: {}".format(ind),
             description=msg.content,
@@ -258,7 +262,7 @@ class RequestSystem:
             else:
                 source = "{}: {}".format(msg.server.name, msg.channel.name)
             e.add_field(name="Source", value=source)
-        return await self.bot.send_message(dest, content="New request added!", embed=e)
+        return await self.bot.send_message(dest, content="New request added!" if new else None, embed=e)
 
     async def add_request(self, mes: discord.Message, server, delete_source):
         if mes in self.get_serv(server):
@@ -280,9 +284,9 @@ class RequestSystem:
 
         # add the request to the specified server's list
         ind = len(self.get_serv(server))
-        await self.send_req_msg(server, mes, ind)
+        await self.send_req_msg(server, mes, ind, new=True)
         if server != 'owner' or mes.server.owner.id == mes.author.id:
-            await self.send_req_msg(server, mes, ind, dest=mes.channel)
+            await self.send_req_msg(server, mes, ind, dest=mes.channel, new=True)
         self.get_serv(server).append(mes)
         await self.save()
         if delete_source:
@@ -307,6 +311,19 @@ class RequestSystem:
         for ind, r in enumerate(reqs):
             await self.send_req_msg(server, r, ind, dest=ctx.message.channel)
 
+    async def send_req_status(self, rs, stat):
+        # sort messages by channel and author
+        for r_list in utils.partition(rs, lambda i: i.author.id + i.channel.id):
+            s = r_list[0]
+            l = '\n'.join([r.clean_content for r in r_list])
+            await self.bot.send_message(s.channel, embed=discord.Embed(
+                title=f'These requests were {stat}',
+                description=f'```{l}```'
+            ).set_author(
+                name=s.author.display_name,
+                icon_url=s.author.avatar_url or s.author.default_avatar_url
+            ))
+
     @req.command(pass_context=True, aliases=('a', 'approve'))
     @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
     async def accept(self, ctx, *, indexes: str="0"):
@@ -320,36 +337,31 @@ class RequestSystem:
         Be aware that after this command, indexes on unaffected requests will be changed."""
         _internal_approver = ctx.message.author
 
-        if ctx.message.channel.is_private:
-            server = 'owner'
-        else:
-            server = ctx.message.server.id
+        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
 
-        try:
-            indexes = parse_indexes(indexes)
-        except ValueError:
-            await self.bot.say("invalid index format")
-            return
-        rs = []
-        for i in indexes:
-            try:
-                rs.append(self.get_serv(server)[i])
-            except IndexError:
-                await self.bot.say("{} out of range.".format(i))
+        indexes = parse_indexes(indexes)
+
+        rs = self.get_serv(server)
+
+        oor = [i for i in indexes if not 0 <= i < len(rs)]
+        if oor:
+            await self.bot.say(utils.str_limit(f'Out of range: {oor}', 2000))
+
+        await self.send_req_status(rs, f'approved by {_internal_approver.mention}')
+
         for r in rs:
             await self.bot.process_commands(r)
         self.remove_from_serv(server, rs)
         await self.save()
 
     async def reject_requests(self, server, indexes: [int]):
-        rs = []
-        for i in indexes:
-            try:
-                rs.append(self.get_serv(server)[i])
-            except IndexError:
-                await self.bot.say('{} is out of range.'.format(i))
-        for r in rs:
-            await self.bot.send_message(r.channel, f'{r.author.mention}, Your request was denied.')
+        rs = self.get_serv(server)
+        oor = [i for i in indexes if not 0 <= i < len(rs)]
+        if oor:
+            await self.bot.say(utils.str_limit(f'Out of range: {oor}', 2000))
+
+        await self.send_req_status(rs, 'denied')
+
         self.remove_from_serv(server, rs)
         await self.save()
 
@@ -365,11 +377,7 @@ class RequestSystem:
 
         Be aware that after this command, indexes on unaffected requests will be changed."""
         server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
-        try:
-            indexes = parse_indexes(indexes)
-        except ValueError:
-            await self.bot.say("invalid index format")
-            return
+        indexes = parse_indexes(indexes)
         await self.reject_requests(server, indexes)
 
     @req.command(pass_context=True, aliases=('c',))
