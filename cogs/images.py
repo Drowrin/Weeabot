@@ -115,6 +115,8 @@ class Images(utils.SessionCog):
 
     @image.command(pass_context=True, name='add')
     @request()
+    @checks.is_owner()
+    @checks.is_moderator()
     async def _image_add(self, ctx, collection: str, *link: str):
         """Request to add an image to a category.
 
