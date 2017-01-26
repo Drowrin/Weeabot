@@ -239,7 +239,7 @@ class RequestSystem:
         self.bot.dump_server_configs()
 
     async def send_req_msg(self, server, msg: discord.Message, ind, *, dest=None, new=False):
-        dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner if server == 'owner' else None
+        dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner
 
         e = discord.Embed(
             title="Index: {}".format(ind),
@@ -256,7 +256,7 @@ class RequestSystem:
             icon_url=msg.author.default_avatar_url if not msg.author.avatar else msg.author.avatar_url,
             url=url
         )
-        if dest == self.bot.owner:
+        if dest == self.bot.owner or isinstance(dest, discord.PrivateChannel):
             if msg.channel.is_private:
                 source = "PM"
             else:
