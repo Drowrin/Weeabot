@@ -62,6 +62,7 @@ class Weeabot(commands.Bot):
         self.defaults = {}
         self.loop.create_task(self.load_extensions())
         self.init = asyncio.Event(loop=self.loop)
+        self.react_listeners = {}
 
     def dump_server_configs(self):
         with open('servers.json', 'w') as f:
@@ -209,8 +210,24 @@ class Weeabot(commands.Bot):
             self.profiles.dump()
         self.dump_stats()
 
+    def add_react_listener(self, msg, callback):
+        """add a listener to perform an action when a reaction is done on a given message.
+
+        Callback should be a coroutine, with the same args as on_raction_add(reaction, user).
+        Does not persist through restarts."""
+        self.react_listeners[utils.full_id(msg)] = callback
+
 
 bot = Weeabot(command_prefix='~')
+
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    m = reaction.message
+    callback = bot.react_listeners.pop(utils.full_id(m), None)
+    if callback:
+        await callback(reaction, user)
+
 
 
 @bot.event

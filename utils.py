@@ -121,4 +121,11 @@ def partition(l, hashf):
         d[hashf(i)].append(i)
     return list(d.values())
 
+
+def full_id(message):
+    if message.channel.is_private:
+        return f'P{message.channel.id}{message.id}'
+    else:
+        return f'S{message.server.id}{message.channel.id}{message.id}'
+
 tokens = open_json('tokens.json')
