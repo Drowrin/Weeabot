@@ -229,7 +229,6 @@ async def on_reaction_add(reaction, user):
         await callback(reaction, user)
 
 
-
 @bot.event
 async def on_command_error(err, ctx):
     if hasattr(ctx.command, "on_error"):
