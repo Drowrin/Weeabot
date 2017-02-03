@@ -238,6 +238,13 @@ class RequestSystem:
         self.bot.server_configs.get(ctx.message.server.id, {})['request_channel'] = None
         self.bot.dump_server_configs()
 
+    def get_ind(self, server, mes):
+        """get the index of a message in a server."""
+        try:
+            return self.get_serv(server).index(mes)
+        except ValueError:
+            return None
+
     async def send_req_msg(self, server, msg: discord.Message, ind, *, dest=None, new=False):
         dest = dest or request_channel(self.bot, self.bot.get_server(server)) or self.bot.owner
 
@@ -262,7 +269,25 @@ class RequestSystem:
             else:
                 source = "{}: {}".format(msg.server.name, msg.channel.name)
             e.add_field(name="Source", value=source)
-        return await self.bot.send_message(dest, content="New request added!" if new else None, embed=e)
+        ret = await self.bot.send_message(dest, content="New request added!" if new else None, embed=e)
+
+        # accept/reject buttons
+        pos, neg = ['👍', '👎']
+        async def callback(reaction, user):
+            if user == self.bot.owner or self.bot.user_is_moderator(user):
+                s = 'owner' if reaction.message.channel.is_private else reaction.message.server.id
+                if reaction.emoji == pos:
+                    await self.accept_requests(user, s, self.get_ind(s, msg))
+                    return
+                elif reaction.emoji == neg:
+                    await self.reject_requests(s, [self.get_ind(s, msg)])
+                    return
+            self.bot.add_react_listener(ret, callback)
+        await self.bot.add_reaction(ret, pos)
+        await self.bot.add_reaction(ret, neg)
+        self.bot.add_react_listener(ret, callback)
+
+        return ret
 
     async def add_request(self, mes: discord.Message, server, delete_source):
         if mes in self.get_serv(server):
@@ -324,22 +349,8 @@ class RequestSystem:
                 icon_url=s.author.avatar_url or s.author.default_avatar_url
             ))
 
-    @req.command(pass_context=True, aliases=('a', 'approve'))
-    @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
-    async def accept(self, ctx, *, indexes: str="0"):
-        """Accept requests made by users.
-
-        Request 0 is chosen if no index is passed.
-
-        Separate indexes by spaces. To express a range of indexes, put a dash between them.
-        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6, and 8.
-
-        Be aware that after this command, indexes on unaffected requests will be changed."""
-        _internal_approver = ctx.message.author
-
-        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
-
-        indexes = parse_indexes(indexes)
+    async def accept_requests(self, approver, server, *indexes):
+        _internal_approver = approver
 
         rs = self.get_serv(server)
 
@@ -353,6 +364,23 @@ class RequestSystem:
             await self.bot.process_commands(r)
         self.remove_from_serv(server, rs)
         await self.save()
+
+    @req.command(pass_context=True, aliases=('a', 'approve'))
+    @commands.check(lambda ctx: checks.owner(ctx) or checks.moderator(ctx))
+    async def accept(self, ctx, *, indexes: str="0"):
+        """Accept requests made by users.
+
+        Request 0 is chosen if no index is passed.
+
+        Separate indexes by spaces. To express a range of indexes, put a dash between them.
+        \"0 3-6 8\" for example would be the indexes 0, 3, 4, 5, 6, and 8.
+
+        Be aware that after this command, indexes on unaffected requests will be changed."""
+        indexes = parse_indexes(indexes)
+
+        server = 'owner' if ctx.message.channel.is_private else ctx.message.server.id
+
+        await self.accept_requests(ctx.message.author, server, *indexes)
 
     async def reject_requests(self, server, indexes: [int]):
         rs = self.get_serv(server)

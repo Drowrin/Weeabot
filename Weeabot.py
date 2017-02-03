@@ -217,6 +217,12 @@ class Weeabot(commands.Bot):
         Does not persist through restarts."""
         self.react_listeners[utils.full_id(msg)] = callback
 
+    def user_is_moderator(self, u):
+        if not isinstance(u, discord.Member):
+            return False
+        s = u.server
+        return s.owner == u or self.server_configs[s.id].get('moderator_role', None) in [r.id for r in u.roles]
+
 
 bot = Weeabot(command_prefix='~')
 
