@@ -104,6 +104,17 @@ class MAL(utils.SessionCog):
             return
         await self.bot.edit_message(msg, f"{usr.mention} should watch", embed=await mal_embed(anime))
 
+        # refresh button
+        emoji = '🔄'
+        async def callback(reaction, user):
+            if reaction.emoji == emoji and user == ctx.message.author:
+                await self.pick_anime(ctx, stat, usr.mention, msg)
+                await self.bot.clear_reactions(msg)
+                await self.bot.add_reaction(msg, emoji)
+            self.bot.add_react_listener(msg, callback)
+        await self.bot.add_reaction(msg, emoji)
+        self.bot.add_react_listener(msg, callback)
+
     async def putmal(self, uid, mal):
         await self.bot.profiles.put_by_id(uid, 'mal', mal)
     
