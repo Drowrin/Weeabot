@@ -13,6 +13,35 @@ def mal_formatter(field):
     return {'name': 'MyAnimeList', 'content': '<https://myanimelist.net/animelist/{}>'.format(field)}
 
 
+async def mal_embed(data) -> discord.Embed:
+    stat = data['my_status']  # in order from 1: CW, Comp, Hold, Drop, <nothing>, PTW, All
+    stat_text = ['Watching', 'Completed', 'On Hold', 'Dropped', '', 'Plan To Watch', 'All'][int(stat) - 1]
+    score = f'Score: {data["my_score"].replace("0", "-")}/10'
+    progress = f'Progress: {data["my_watched_episodes"]}/{data["series_episodes"]}'
+    episodes = f'Episodes: {data["series_episodes"]}'
+
+    def form(*args):
+        return ' | '.join(args)
+
+    if stat in '134':
+        ft = form(stat_text, score, progress)
+    elif stat in '2':
+        ft = form(stat_text, score, episodes)
+    elif stat in '6':
+        ft = form(stat_text, episodes)
+    else:
+        ft = stat_text
+
+    return discord.Embed(
+        title=data['series_title'],
+        url=f'https://myanimelist.net/anime/{data["series_animedb_id"]}'
+    ).set_image(
+        url=data['series_image']
+    ).set_footer(
+        text=ft
+    )
+
+
 class MAL(utils.SessionCog):
     """Commands that access MyAnimeList."""
     
@@ -52,7 +81,7 @@ class MAL(utils.SessionCog):
             raise commands.BadArgument("No anime in the specified status.")
         return random.choice(w)
     
-    async def pick_anime(self, ctx, stat, user: str=None):
+    async def pick_anime(self, ctx, stat, user: str=None, msg: discord.Message=None):
         """Helper function. Picks an anime from a MAL based on a status and handles communicating it."""
         if user is None:
             usr = ctx.message.author
@@ -62,14 +91,18 @@ class MAL(utils.SessionCog):
             except commands.BadArgument as e:
                 await self.bot.say(e)
                 return
-        tmp = await self.bot.say("Choosing a show...")
+
+        if msg:
+            msg = await self.bot.edit_message(msg, "Choosing a show...")
+        else:
+            msg = await self.bot.say("Choosing a show...")
+
         try:
             anime = await self.random_anime(stat, usr)
         except commands.BadArgument as e:
-            await self.bot.edit_message(tmp, e)
+            await self.bot.edit_message(msg, e)
             return
-        await self.bot.edit_message(tmp, "{} should watch {}\n{}".format(
-            usr.mention, anime['series_title'], anime['series_image']))
+        await self.bot.edit_message(msg, f"{usr.mention} should watch", embed=await mal_embed(anime))
 
     async def putmal(self, uid, mal):
         await self.bot.profiles.put_by_id(uid, 'mal', mal)
