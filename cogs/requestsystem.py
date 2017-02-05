@@ -350,6 +350,9 @@ class RequestSystem:
             ))
 
     async def accept_requests(self, approver, server, *indexes):
+        if indexes is None:
+            return
+
         _internal_approver = approver
 
         rs = self.get_serv(server)
