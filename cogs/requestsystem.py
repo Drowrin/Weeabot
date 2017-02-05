@@ -275,12 +275,11 @@ class RequestSystem:
         pos, neg = ['👍', '👎']
         async def callback(reaction, user):
             if user == self.bot.owner or self.bot.user_is_moderator(user):
-                s = 'owner' if reaction.message.channel.is_private else reaction.message.server.id
                 if reaction.emoji == pos:
-                    await self.accept_requests(user, s, self.get_ind(s, msg))
+                    await self.accept_requests(user, server, self.get_ind(server, msg))
                     return
                 elif reaction.emoji == neg:
-                    await self.reject_requests(s, [self.get_ind(s, msg)])
+                    await self.reject_requests(server, [self.get_ind(server, msg)])
                     return
             self.bot.add_react_listener(ret, callback)
         await self.bot.add_reaction(ret, pos)
