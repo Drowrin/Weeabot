@@ -47,7 +47,6 @@ class Twitter(utils.SessionCog):
                     self.last = tweet.text
                     self.bot.status["last_tweet"] = tweet.text
                     self.bot.dump_status()
-                    print("Latest shitpost: ", tweet.text)
                     media_url = tweet.media[0].media_url
                     for server in self.bot.servers:
                         if get_shitpost_channel(self.bot, server) is not None:

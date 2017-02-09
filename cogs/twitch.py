@@ -64,15 +64,12 @@ class Twitch(utils.SessionCog):
         else:
             self.stoploop()
 
-    # noinspection PyUnusedLocal
     async def on_channel_delete(self, channel):
         self.updateloop()
 
-    # noinspection PyUnusedLocal
     async def on_channel_create(self, channel):
         self.updateloop()
 
-    # noinspection PyUnusedLocal
     async def on_channel_update(self, before, after):
         self.updateloop()
     
@@ -137,6 +134,7 @@ class Twitch(utils.SessionCog):
         try:
             # get stream data. retry a few times if the api is delayed
             url = f'https://api.twitch.tv/kraken/streams/{tid}'
+            stream = None
             for i in range(15):
                 async with self.session.get(url=url, headers=headers) as r:
                     stream = (await r.json())['stream']
@@ -145,6 +143,16 @@ class Twitch(utils.SessionCog):
                 else:
                     print('couldnt get stream, retying soon...')
                     await asyncio.sleep(20)
+            if stream is None:
+                for m in messages:
+                    mem = m.server.get_member(did)
+                    await self.bot.edit_message(m, embed=discord.Embed(
+                                description='Waiting for Twitch API...'
+                            ).set_author(
+                                name=f"{mem.display_name} started streaming",
+                                icon_url=mem.avatar_url or mem.default_avatar_url,
+                                url=f'https://www.twitch.tv/{self.bot.profiles.get_by_id(did)["twitch"]["name"]}'
+                            ))
 
             # get box art
             api = 'https://api.twitch.tv/kraken/search/games'
@@ -231,69 +239,6 @@ class Twitch(utils.SessionCog):
                     traceback.print_exc()
 
         self.ws.close()
-
-    async def getstreamsold(self):
-        headers = {"accept": "application:vnd.twitchtv.v5+json", "Client-ID": utils.tokens['twitch_id']}
-
-        def getstream(name: str, streamlist):
-            for s in streamlist:
-                if name.lower() == s['channel']['name'].lower():
-                    return s
-            return None
-
-        while not self.bot.is_closed:
-            users = {u: self.bot.profiles.get_field_by_id(u, 'twitch')
-                     for u, p in self.bot.profiles.all().items()
-                     if 'twitch' in p}
-            api = "https://api.twitch.tv/kraken/streams"
-            params = {'channel': ','.join([t['name'] for t in users.values()])}
-            async with self.session.get(api, headers=headers, params=params) as r:
-                response = await r.json()
-            try:
-                streams = response['streams']
-            except KeyError:
-                print('Twitch connection error.')
-            else:
-                if response['_total'] > 0:
-                    for c in self.channels:
-                        serv: discord.Server = c.server
-                        users_here = {u: users[u] for u in users if u in [x.id for x in serv.members]}
-                        for uid, t in users_here.items():
-                            try:
-                                stream = getstream(t['name'], streams)
-                                if stream is not None:
-                                    if stream['created_at'] != t['lastOnline']:
-                                        t['lastOnline'] = stream['created_at']
-                                        u = serv.get_member(uid)
-                                        api = 'https://api.twitch.tv/kraken/search/games'
-                                        params = {'query': stream["game"]}
-                                        async with self.session.get(api, params=params, headers=headers) as r:
-                                            print(await r.json())
-                                            box = (await r.json())['games'][0]['box']['large']
-                                        e = discord.Embed(
-                                            title=stream['channel']['status'],
-                                            url=stream['channel']['url'],
-                                            description=f'**Game** | {stream["game"]}',
-                                            timestamp=discord.utils.parse_time(dateutil.parser.parse(stream['created_at']).isoformat())
-                                        ).set_image(
-                                            url=stream['preview']['medium'] + f'?rand={stream["_id"]}'
-                                        ).set_thumbnail(
-                                            url=box
-                                        ).set_author(
-                                            name=f"{u.display_name} started streaming",
-                                            icon_url=stream['channel']['logo'] or u.avatar_url or u.default_avatar_url
-                                        ).set_footer(
-                                            text=f'{stream["video_height"]}p {stream["average_fps"]}fps'
-                                        )
-                                        try:
-                                            await self.bot.send_message(c, embed=e)
-                                        except discord.HTTPException as ex:
-                                            print(ex.response)
-                            except (KeyError, TypeError, AttributeError):
-                                print('error processing ' + t['name'])
-                                traceback.print_exc()
-                await self.bot.profiles.save()
-            await asyncio.sleep(120)
 
 
 def setup(bot):
