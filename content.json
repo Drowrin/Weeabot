@@ -13,34 +13,13 @@
 		"cloroxinhaler": "http://i.imgur.com/lqBWbIf.jpg",
 		"akari": "http://i.imgur.com/XvEFYLQ.png",
 		"thumbsup": "http://i.imgur.com/PiieNgE.jpg",
-		"smug_rin": "http://i.imgur.com/GbcvuR5.jpg"
+		"smug_rin": "http://i.imgur.com/GbcvuR5.jpg",
+		"youcantif": "http://i.imgur.com/7o9fdm6.jpg"
 	},
 	"attack": {
 		"self": ["me", "myself", "my"],
 		"esc": ["{} managed to escape!", "{} is a slippery bastard.", "{} was really a clone!", "It reflected off of {}!", "{} blocked!"],
 		"el": ["ELIMINATED {}", "Bopped {}", "{} was removed from existence.", "{} is sleeping with fishes.", "{} is 'life challenged'"],
-		"ult": {
-			"EXPERIENCE TRANQUILITY": 0,
-			"LETS DROP THE BEAT": 0,
-			"PERSONNE N'ECHAPPE A MON REGARD": 2,
-			"BAHA HAHA *cough*": 2,
-			"RRRAAAAAAAHHHHH": 2,
-			"NERF THIS": 2,
-			"JUSTICE RAINS FROM ABOVE": 3,
-			"I'VE GOT YOU IN MY SIGHTS": 4,
-			"ITS HIGH NOON": 5,
-			"RYU GA WAGA TEKI WO KURAU": 6,
-			"TELEPORTER ONLINE": 0,
-			"FIRE IN THE HOLE": 3,
-			"RYUJIN NO KEN WO KURAE": 3,
-			"BEEP-BOOP": 5,
-			"DIE DIE DIE": 5,
-			"HELDEN STERBEN NICHT": 0,
-			"DONG ZHU BUXU ZOU": 1,
-			"MOLTEN CORE": 1,
-			"OGON' PO GOTOVNOSTI": 1,
-			"GOTCHA": 3
-		},
 		"miss": ["Someday you'll hit something...", "Stop wasting ammo.", "Baka", "*You shoot at the sky\nYou attempt a badass pose\nTo mask your missed shot*"],
 		"kys": ["{} played themself.", "{} spread their brain on the wall.", "{} ended it all.", "{} embraced sdeath"],
 		"immune": ["{0} attempted to bop {1} but they were too powerful!", "{1} laughs at {0}'s feeble attempt.", "{1} doesn't even flinch, but glares at {0}."]

@@ -6,30 +6,8 @@ from discord.ext import commands
 import checks
 
 
-def atk_formatter(field):
-    stats = {
-        'KD': field['k'] / field['d'],
-        'ACC': field['k'] / field['a'],
-        'SUR': field['e'] / (field['e'] + field['d']),
-        'SDEATH': field['s'] / field['a']
-    }
-    rank = {'KD': 'Tryhard', 'ACC': 'Lucky', 'SUR': 'Slippery', 'SDEATH': 'Sdeath'}[max(stats, key=stats.get)]
-    return {
-        'name': 'Attack',
-        'content': '{}\n\nRANK: {}'.format('\n'.join(['{}: {}'.format(k, v) for k, v in stats.items()]), rank)
-    }
-
-
-def atk_default():
-    return {'a': 0, 'm': 0, 'k': 0, 'd': 0, 'e': 0, 's': 0, 'r': {}}
-
-
 class RNG:
     """Commands based on a randomly selected value."""
-
-    formatters = {}
-    verbose_formatters = {'atk': atk_formatter}
-    defaults = {'atk': atk_default}
 
     def __init__(self, bot):
         self.bot = bot
@@ -115,78 +93,28 @@ class RNG:
         s = sum([hash(c) % 10 for c in list(thing)])
         await self.bot.say("I give it a {}/10.".format((s if "&knuckles" in thing else s % 10) + 1))
 
-    def get_atk(self, uid: str):
-        return self.bot.profiles.get_field_by_id(uid, 'atk')
-
-    def inc(self, field: str, uid: str):
-        up = self.get_atk(uid)
-        up[field] += 1
-
-    def inc_r(self, uid: str, tar: str):
-        up = self.get_atk(uid)
-        if tar not in up['r']:
-            up['r'][tar] = 0
-        up['r'][tar] += 1
-        if tar != uid:
-            up = self.get_atk(tar)
-            if uid not in up['r']:
-                up['r'][uid] = 0
-            up['r'][uid] += 1
-
     @commands.command(pass_context=True, aliases=('a', 'shoot', 'kill',))
     @checks.profiles()
-    async def attack(self, ctx, *targets: str):
+    async def attack(self, ctx, target: str=None):
         """Attempt to attack some users."""
         
-        if len(targets) == 0:
+        if target is None:
             await self.bot.say(random.choice(self.atk['miss']))
             return
         
         author = ctx.message.author
-        uid = author.id
         selves = [author.mention, author.name, author.display_name] + self.atk['self']
         immune = [self.bot.user.mention, self.bot.user.name, self.bot.user.display_name]
-        
-        tars = []
-        for u in targets:
-            try:
-                tars.append(commands.MemberConverter(ctx, u).convert())
-            except commands.BadArgument:
-                tars.append(u)
-        
-        result = []
-        ulted = len(tars) > 1 and random.choice([False, True])
-        ult = random.choice(list(self.atk['ult'].keys()))
-        if ulted:
-            result.append("\"{1}\" -- {0}".format(author.display_name, ult))
-        for u in tars:
-            dis_name = u if isinstance(u, str) else u.display_name
-            if dis_name in immune:
-                result.append(random.choice(self.atk['immune']).format(author.display_name, dis_name))
-            elif dis_name in selves:
-                result.append(random.choice(self.atk['kys']).format(author.display_name))
-                self.inc('s', uid)
-                self.inc('a', uid)
-                self.inc('d', uid)
-                self.inc_r(uid, uid)
-                if u != tars[-1]:
-                    result.append('{} is dead. The remaining targets escaped.'.format(author.display_name))
-                    break
+
+        if target in immune:
+            await self.bot.say(random.choice(self.atk['immune']).format(author.display_name, target))
+        elif target in selves:
+            await self.bot.say(random.choice(self.atk['kys']).format(author.display_name))
+        else:
+            if random.randint(0, 1):
+                await self.bot.say(random.choice(self.atk['el']).format(target))
             else:
-                try:
-                    if random.choice([True] * (self.atk['ult'][ult] if ulted else 1) + [False]):
-                        result.append((self.atk['el'][0] if ulted else random.choice(self.atk['el'])).format(dis_name))
-                        self.inc('k', uid)
-                        self.inc('d', u.id)
-                    else:
-                        result.append(random.choice(self.atk['esc']).format(dis_name))
-                        self.inc('m', uid)
-                        self.inc('e', u.id)
-                    self.inc('a', uid)
-                    self.inc_r(uid, u.id)
-                except AttributeError:
-                    pass
-        await self.bot.say('\n'.join(result))
+                await self.bot.say(random.choice(self.atk['esc']).format(target))
 
     @commands.group(pass_context=True, aliases=('rr',), invoke_without_command=True)
     async def russian_roulette(self, ctx):
