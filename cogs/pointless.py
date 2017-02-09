@@ -19,8 +19,7 @@ class Pointless(utils.SessionCog):
         self.cleverbot = Cleverbot('weeabotpointless')
         self.oc = 1
         self.services = {
-            "Conversation": "Tag the bot at the beginning of a message to have a conversation with it.",
-            "Reactions": "The bot will react to these words: {}".format(', '.join(self.bot.content.reactions.keys()))
+            "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
         }
 
     @commands.group(name='text', aliases=('t',))
@@ -164,38 +163,17 @@ class Pointless(utils.SessionCog):
             await self.bot.process_commands(msg)
 
     async def on_message(self, message):
-        if message.author.bot or utils.is_command_of(self.bot, message):
+        if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
             return
-        for prompt in self.bot.content.reactions:
-            if prompt in message.content.lower():
-                r = self.bot.content.reactions[prompt][1]
-                i = self.bot.tag_map.get(message, self.bot.content.reactions[prompt][0]).image
-                if i is None:
-                    await self.bot.send_message(message.channel, r)
-                else:
-                    await self.bot.send_file(message.channel, i, content=r)
-        if not message.channel.is_private:
-            if any([
-                       (x in message.content.lower()) for x in [
-                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()
-                ]
-                       ]) and ('thank' in message.content.lower() or 'thx' in message.content.lower()):
-                await self.bot.send_message(message.channel,
-                                            "You're welcome {}".format(random.choice(self.bot.content.emoji)))
-                return
-            if any([
-                       (x in message.content.lower()) for x in [
-                    message.server.me.mention, message.server.me.display_name.lower(), message.server.me.name.lower()]]) \
-                    and re.search('f[^\s]*k', message.content.lower()) is not None:
-                await self.bot.delete_message(message)
-                return
-            if message.content.startswith(self.bot.user.mention) or (
-                message.server and message.content.startswith(message.server.me.mention)):
-                l = len(self.bot.user.mention) if message.channel.is_private else len(message.server.me.mention)
-                c = message.content[l:]
-                await self.bot.send_message(message.channel,
-                                            "{} {}".format(message.author.mention, self.cleverbot.ask(c)))
-                return
+
+        if message.server.me in message.mentions:
+            # conversation with the bot
+            if 'thank' in message.content.lower() or 'thx' in message.content.lower():
+                await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
+            else:
+                c = self.cleverbot.ask(message.clean_content)
+                await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
+        else:
             if "\N{OK HAND SIGN}" in message.content:
                 self.oc += 1
                 if not self.oc % 3:

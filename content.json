@@ -23,10 +23,5 @@
 		"miss": ["Someday you'll hit something...", "Stop wasting ammo.", "Baka", "*You shoot at the sky\nYou attempt a badass pose\nTo mask your missed shot*"],
 		"kys": ["{} played themself.", "{} spread their brain on the wall.", "{} ended it all.", "{} embraced sdeath"],
 		"immune": ["{0} attempted to bop {1} but they were too powerful!", "{1} laughs at {0}'s feeble attempt.", "{1} doesn't even flinch, but glares at {0}."]
-	},
-	"reactions": {
-		"sdeath": ["sdeath", null],
-		"pls no bully": ["nobully", "pls no bully"],
-		"daddy": ["disapproval", "Im not your daddy."]
 	}
 }
