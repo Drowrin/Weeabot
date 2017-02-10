@@ -1,4 +1,5 @@
 import random
+import asyncio
 
 from chatterbot import ChatBot
 from chatterbot.logic import LogicAdapter
@@ -15,19 +16,11 @@ class ThanksLogicAdapter(LogicAdapter):
         return 1, Statement(f"You're welcome {random.choice(utils.content.emoji)}")
 
 
-class Conversation:
-    """Handles natural conversation with users."""
-
-    services = {
-        "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
-    }
-
-    def __init__(self, bot):
-        self.bot = bot
-
-        self.chatname = 'Weeabot'
+class AsyncChatBot:
+    def __init__(self, name: str, loop: asyncio.BaseEventLoop):
+        self.loop = loop
         self.chatbot = ChatBot(
-            self.chatname,
+            name,
             trainer='chatterbot.trainers.ChatterBotCorpusTrainer',
 
             storage_adapter="chatterbot.storage.JsonFileStorageAdapter",
@@ -45,6 +38,26 @@ class Conversation:
                 }
             ]
         )
+
+    def train(self, *args, **kwargs):
+        return self.chatbot.train(*args, **kwargs)
+
+    async def get_response(self, statement: str):
+        return await self.loop.run_in_executor(None, lambda: self.chatbot.get_response(statement))
+
+
+class Conversation:
+    """Handles natural conversation with users."""
+
+    services = {
+        "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
+    }
+
+    def __init__(self, bot):
+        self.bot = bot
+
+        self.chatname = 'Weeabot'
+        self.chatbot = AsyncChatBot(self.chatname, bot.loop)
         self.chatbot.train("chatterbot.corpus.english")
 
     async def on_message(self, message):
@@ -55,7 +68,7 @@ class Conversation:
             s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
             if s.startswith(self.chatname):
                 s = s[len(self.chatname)+1:]
-            c = self.chatbot.get_response(s)
+            c = await self.chatbot.get_response(s)
             await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
 
 
