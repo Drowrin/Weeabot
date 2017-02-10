@@ -1,11 +1,9 @@
 import unicodedata
 import random
 import copy
-import re
 import asyncio
 
 from discord.ext import commands
-from cleverbot import Cleverbot
 
 import utils
 import checks
@@ -16,11 +14,7 @@ class Pointless(utils.SessionCog):
 
     def __init__(self, bot: commands.Bot):
         super(Pointless, self).__init__(bot)
-        self.cleverbot = Cleverbot('weeabotpointless')
         self.oc = 1
-        self.services = {
-            "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
-        }
 
     @commands.group(name='text', aliases=('t',))
     async def text_command(self):
@@ -166,19 +160,11 @@ class Pointless(utils.SessionCog):
         if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
             return
 
-        if message.server.me in message.mentions:
-            # conversation with the bot
-            if 'thank' in message.content.lower() or 'thx' in message.content.lower():
-                await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
-            else:
-                c = self.cleverbot.ask(message.clean_content)
-                await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
-        else:
-            if "\N{OK HAND SIGN}" in message.content:
-                self.oc += 1
-                if not self.oc % 3:
-                    await self.bot.send_affirmative(message)
-                    return
+        if "\N{OK HAND SIGN}" in message.content:
+            self.oc += 1
+            if not self.oc % 3:
+                await self.bot.send_affirmative(message)
+                return
 
     @commands.command(pass_context=True)
     @checks.is_owner()
