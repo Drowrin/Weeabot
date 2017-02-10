@@ -19,25 +19,6 @@ import checks
 from cogs.requestsystem import RequestLimit
 
 
-class Config:
-    def __init__(self, config_path):
-        self.path = config_path
-        self._db = utils.open_json(config_path)
-        self.__dict__.update(self._db)
-
-    def __getattr__(self, name):
-        return self.__dict__.get(name, None)
-
-    def _dump(self):
-        for k in self._db:
-            self._db[k] = self.__dict__[k]
-        with open(self.path, 'w') as f:
-            json.dump(self._db, f, ensure_ascii=True)
-
-    async def save(self):
-        await asyncio.get_event_loop().run_in_executor(None, self._dump)
-
-
 class Weeabot(commands.Bot):
     """Simple additions to commands.Bot"""
 
@@ -49,8 +30,8 @@ class Weeabot(commands.Bot):
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
         self.trusted = utils.open_json('trusted.json')
-        self.config = Config('config.json')
-        self.content = Config('content.json')
+        self.config = utils.Config('config.json')
+        self.content = utils.Config('content.json')
         self.stats = defaultdict(dict)
         self.stats.update(utils.open_json('stats.json'))
         self.server_configs = utils.open_json('servers.json')

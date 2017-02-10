@@ -1,12 +1,14 @@
 import json
 import io
 import aiohttp
+import asyncio
 import random
 from os import path
 from os import listdir
 from discord.ext import commands
 from datetime import timedelta
 from collections import defaultdict
+
 
 class CheckMsg(commands.CheckFailure):
     """Exception raised when a check fails and a message should be sent."""
@@ -128,4 +130,25 @@ def full_id(message):
     else:
         return f'S{message.server.id}{message.channel.id}{message.id}'
 
+
+class Config:
+    def __init__(self, config_path):
+        self.path = config_path
+        self._db = open_json(config_path)
+        self.__dict__.update(self._db)
+
+    def __getattr__(self, name):
+        return self.__dict__.get(name, None)
+
+    def _dump(self):
+        for k in self._db:
+            self._db[k] = self.__dict__[k]
+        with open(self.path, 'w') as f:
+            json.dump(self._db, f, ensure_ascii=True)
+
+    async def save(self):
+        await asyncio.get_event_loop().run_in_executor(None, self._dump)
+
+
 tokens = open_json('tokens.json')
+content = Config('content.json')
