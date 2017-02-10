@@ -1,8 +1,18 @@
 import random
 
 from chatterbot import ChatBot
+from chatterbot.logic import LogicAdapter
+from chatterbot.conversation import Statement
 
 import utils
+
+
+class ThanksLogicAdapter(LogicAdapter):
+    def can_process(self, statement):
+        return 'thank' in statement.text.lower() or 'thx' in statement.text.lower()
+
+    def process(self, statement):
+        return 1, Statement(f"You're welcome {random.choice(utils.content.emoji)}")
 
 
 class Conversation:
@@ -25,6 +35,7 @@ class Conversation:
             database="./chatterbot_database.json",
 
             logic_adapters=[
+                "cogs.conversation.ThanksLogicAdapter",
                 "chatterbot.logic.BestMatch",
                 "chatterbot.logic.MathematicalEvaluation",
                 {
@@ -41,16 +52,11 @@ class Conversation:
             return
 
         if message.server.me in message.mentions:
-            if 'thank' in message.content.lower() or 'thx' in message.content.lower():
-                await self.bot.send_message(message.channel, "You're welcome {}".format(random.choice(self.bot.content.emoji)))
-            else:
-                s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
-                if s.startswith(self.chatname):
-                    s = s[len(self.chatname)+1:]
-                c = self.chatbot.get_response(
-                    s
-                )
-                await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
+            s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
+            if s.startswith(self.chatname):
+                s = s[len(self.chatname)+1:]
+            c = self.chatbot.get_response(s)
+            await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
 
 
 def setup(bot):
