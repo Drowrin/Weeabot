@@ -1,5 +1,6 @@
 import random
 import asyncio
+import re
 
 from chatterbot import ChatBot
 from chatterbot.logic import LogicAdapter
@@ -80,6 +81,10 @@ class Conversation:
             s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
             if s.startswith(self.chatname):
                 s = s[len(self.chatname)+1:]
+            for r in re.findall(r"(<:(.+):\d+>)", s):
+                print(r)
+                s = s.replace(*r)
+            print(s)
             c = await self.chatbot.get_response(s)
 
             if 'command' in c.extra_data:
