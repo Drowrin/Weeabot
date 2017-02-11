@@ -1,6 +1,7 @@
 import random
 import asyncio
 import re
+import subprocess
 
 from chatterbot import ChatBot
 from chatterbot.logic import LogicAdapter
@@ -58,14 +59,15 @@ class Conversation:
 
         self.sessions = {}
 
+        mongo = utils.tokens['mongo']
+        self.mongo_process = subprocess.Popen(['mongod.exe'] + mongo['args'], executable=mongo['command'])
+
         self.chatname = 'Weeabot'
         self.chatbot = AsyncChatBot(
             bot.loop,
             self.chatname,
 
-            storage_adapter="chatterbot.storage.JsonFileStorageAdapter",
-            silence_performance_warning=True,
-            database="./chatterbot_database.json",
+            storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
 
             logic_adapters=[
                 "cogs.conversation.ThanksLogicAdapter",
@@ -74,6 +76,10 @@ class Conversation:
                 "chatterbot.logic.MathematicalEvaluation"
             ]
         )
+
+    def __unload(self):
+        print("killing mongodb...")
+        self.mongo_process.kill()
 
     async def on_message(self, message):
         if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
