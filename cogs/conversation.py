@@ -19,11 +19,11 @@ class ThanksLogicAdapter(LogicAdapter):
 
 class TagLogicAdapter(LogicAdapter):
     def can_process(self, statement):
-        return any(x in statement.text for x in sum(utils.content.tag_responses.values(), []))
+        return any(x in statement.text.lower() for x in sum(utils.content.tag_responses.values(), []))
 
     def process(self, statement):
         for k, v in utils.content.tag_responses.items():
-            if any(p in statement.text for p in v):
+            if any(p in statement.text.lower() for p in v):
                 return 1, Statement(statement.text, extra_data={'command': f'tag {k}'})
         return 0, statement
 
