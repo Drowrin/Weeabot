@@ -16,6 +16,17 @@ class ThanksLogicAdapter(LogicAdapter):
         return 1, Statement(f"You're welcome {random.choice(utils.content.emoji)}")
 
 
+class TagLogicAdapter(LogicAdapter):
+    def can_process(self, statement):
+        return any(x in statement.text for x in sum(utils.content.tag_responses.values(), []))
+
+    def process(self, statement):
+        for k, v in utils.content.tag_responses.items():
+            if any(p in statement.text for p in v):
+                return 1, Statement(statement.text, extra_data={'command': f'tag {k}'})
+        return 0, statement
+
+
 class AsyncChatBot:
     def __init__(self, name: str, loop: asyncio.BaseEventLoop):
         self.loop = loop
@@ -29,6 +40,7 @@ class AsyncChatBot:
 
             logic_adapters=[
                 "cogs.conversation.ThanksLogicAdapter",
+                "cogs.conversation.TagLogicAdapter",
                 "chatterbot.logic.BestMatch",
                 "chatterbot.logic.MathematicalEvaluation",
                 {
@@ -69,7 +81,12 @@ class Conversation:
             if s.startswith(self.chatname):
                 s = s[len(self.chatname)+1:]
             c = await self.chatbot.get_response(s)
-            await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
+
+            if 'command' in c.extra_data:
+                message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
+                await self.bot.process_commands(message)
+            else:
+                await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
 
 
 def setup(bot):
