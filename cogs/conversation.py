@@ -89,7 +89,8 @@ class Conversation:
                 message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
                 await self.bot.process_commands(message)
             else:
-                await self.bot.send_message(message.channel, f"{message.author.mention} {c}")
+                response = c.text.replace(self.chatname, message.server.me.display_name)
+                await self.bot.send_message(message.channel, f"{message.author.mention} {response}")
 
 
 def setup(bot):
