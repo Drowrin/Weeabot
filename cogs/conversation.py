@@ -82,9 +82,7 @@ class Conversation:
             if s.startswith(self.chatname):
                 s = s[len(self.chatname)+1:]
             for r in re.findall(r"(<:(.+):\d+>)", s):
-                print(r)
                 s = s.replace(*r)
-            print(s)
             c = await self.chatbot.get_response(s)
 
             if 'command' in c.extra_data:
