@@ -257,11 +257,11 @@ class TagMap:
         """List the available tags."""
         await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in self.taglist]))
 
-    @tag.command(pass_context=True, name='add')
+    @tag.command(pass_context=True, name='addcontent')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
     @checks.is_owner()
     @checks.is_moderator()
-    async def _tag_add(self, ctx, name: str, *, text: str=''):
+    async def _tag_add_content(self, ctx, name: str, *, text: str=''):
         """Add a tag to the database.
 
         Tag names must be alphanumeric, and must contain at least one letter to differentiate from tag IDs."""
@@ -285,6 +285,55 @@ class TagMap:
         self[name] = t
         await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{name}"')
         await t.run(ctx)
+
+    @tag.command(pass_context=True, name='add')
+    @request()
+    @checks.is_owner()
+    @checks.is_moderator()
+    async def _tag_add(self, ctx, *tags_or_ids):
+        """Add an already existing message to tags.
+
+        You can pass many tags or message ids.
+        Every message will be added separately. Defaults to the previous message in this channel if none are passed.
+        Each tag passed will be applied to all messages added."""
+        # parse args
+        ids = [i for i in tags_or_ids if i.isdigit()]
+        ts = [t for t in tags_or_ids if t not in ids]
+
+        # check for invalid tags
+        if any(not t.isalnum() for t in ts):
+            await self.bot.say("Tags must be alphanumeric.")
+            return
+
+        # get relevant messages
+        if not ids:
+            # get most recent message if no ids are passed
+            messages = self.bot.logs_from(ctx.message.channel, limit=1, before=ctx.message)
+        else:
+            # get message objects for all passed ids
+            try:
+                async def _():
+                    for mes in ids:
+                        yield await self.bot.get_message(ctx.message.channel, mes)
+                messages = _()
+            except discord.NotFound as e:
+                await self.bot.say(f"Not found: {e.response.url.split('/')[-1]}")
+                return
+
+        # add each message
+        async for m in messages:
+            i_path = None
+            if len(m.attachments) > 0:
+                async with aiohttp.ClientSession() as session:
+                    link = m.attachments[0]['url']
+                    n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+                    await utils.download(session, link, os.path.join('images', n))
+                    i_path = os.path.join('images', n)
+            t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), ts, text=m.content, image=i_path)
+            for name in ts:
+                self[name] = t
+            await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{", ".join(ts)}"')
+            await t.run(ctx)
 
     @tag.command(pass_context=True, name='embed')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
