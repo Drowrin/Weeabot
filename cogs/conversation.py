@@ -47,6 +47,8 @@ class Conversation:
     def __init__(self, bot):
         self.bot = bot
 
+        self.sessions = {}
+
         self.chatname = 'Weeabot'
         self.chatbot = AsyncChatBot(
             bot.loop,
@@ -83,7 +85,10 @@ class Conversation:
             for r in re.findall(r"(<:(.+):\d+>)", s):  # replace emoji with names
                 s = s.replace(*r)
 
-            c = await self.chatbot.async_get_response(s)
+            if message.author.id not in self.sessions:
+                self.sessions[message.author.id] = self.chatbot.conversation_sessions.new()
+
+            c = await self.chatbot.async_get_response(s, self.sessions[message.author.id].id_string)
 
             if 'command' in c.extra_data:
                 message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
