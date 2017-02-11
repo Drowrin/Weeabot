@@ -71,12 +71,7 @@ class Conversation:
                 "cogs.conversation.ThanksLogicAdapter",
                 "cogs.conversation.TagLogicAdapter",
                 "chatterbot.logic.BestMatch",
-                "chatterbot.logic.MathematicalEvaluation",
-                {
-                    "import_path": "chatterbot.logic.LowConfidenceAdapter",
-                    "threshhold": 0.1,
-                    "default_response": "I don't understand."
-                }
+                "chatterbot.logic.MathematicalEvaluation"
             ]
         )
 
