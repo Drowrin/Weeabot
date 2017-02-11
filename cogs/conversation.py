@@ -28,11 +28,29 @@ class TagLogicAdapter(LogicAdapter):
         return 0, statement
 
 
-class AsyncChatBot:
-    def __init__(self, name: str, loop: asyncio.BaseEventLoop):
+class AsyncChatBot(ChatBot):
+    def __init__(self, loop: asyncio.BaseEventLoop, *args, **kwargs):
+        super(AsyncChatBot, self).__init__(*args, **kwargs)
         self.loop = loop
-        self.chatbot = ChatBot(
-            name,
+
+    async def async_get_response(self, statement: str, session_id: str=None):
+        return await self.loop.run_in_executor(None, lambda: self.get_response(statement, session_id))
+
+
+class Conversation:
+    """Handles natural conversation with users."""
+
+    services = {
+        "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
+    }
+
+    def __init__(self, bot):
+        self.bot = bot
+
+        self.chatname = 'Weeabot'
+        self.chatbot = AsyncChatBot(
+            bot.loop,
+            self.chatname,
             trainer='chatterbot.trainers.ChatterBotCorpusTrainer',
 
             storage_adapter="chatterbot.storage.JsonFileStorageAdapter",
@@ -51,26 +69,6 @@ class AsyncChatBot:
                 }
             ]
         )
-
-    def train(self, *args, **kwargs):
-        return self.chatbot.train(*args, **kwargs)
-
-    async def get_response(self, statement: str):
-        return await self.loop.run_in_executor(None, lambda: self.chatbot.get_response(statement))
-
-
-class Conversation:
-    """Handles natural conversation with users."""
-
-    services = {
-        "Conversation": "Tag the bot at the beginning of a message to have a conversation with it."
-    }
-
-    def __init__(self, bot):
-        self.bot = bot
-
-        self.chatname = 'Weeabot'
-        self.chatbot = AsyncChatBot(self.chatname, bot.loop)
         self.chatbot.train("chatterbot.corpus.english")
 
     async def on_message(self, message):
@@ -78,12 +76,14 @@ class Conversation:
             return
 
         if message.server.me in message.mentions:
+            # clean the contents for best results
             s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
-            if s.startswith(self.chatname):
+            if s.startswith(self.chatname):  # remove name at start
                 s = s[len(self.chatname)+1:]
-            for r in re.findall(r"(<:(.+):\d+>)", s):
+            for r in re.findall(r"(<:(.+):\d+>)", s):  # replace emoji with names
                 s = s.replace(*r)
-            c = await self.chatbot.get_response(s)
+
+            c = await self.chatbot.async_get_response(s)
 
             if 'command' in c.extra_data:
                 message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
