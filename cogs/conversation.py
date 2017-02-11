@@ -80,6 +80,8 @@ class Conversation:
             return
 
         if message.server.me in message.mentions:
+            await self.bot.send_typing(message.channel)
+
             # clean the contents for best results
             s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
             if s.startswith(self.chatname):  # remove name at start
