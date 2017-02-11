@@ -53,7 +53,6 @@ class Conversation:
         self.chatbot = AsyncChatBot(
             bot.loop,
             self.chatname,
-            trainer='chatterbot.trainers.ChatterBotCorpusTrainer',
 
             storage_adapter="chatterbot.storage.JsonFileStorageAdapter",
             silence_performance_warning=True,
@@ -71,7 +70,6 @@ class Conversation:
                 }
             ]
         )
-        self.chatbot.train("chatterbot.corpus.english")
 
     async def on_message(self, message):
         if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
