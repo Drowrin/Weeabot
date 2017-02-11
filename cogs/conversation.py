@@ -5,7 +5,11 @@ import re
 from chatterbot import ChatBot
 from chatterbot.logic import LogicAdapter
 from chatterbot.conversation import Statement
+from chatterbot import trainers
 
+from discord.ext import commands
+
+import checks
 import utils
 
 
@@ -94,6 +98,26 @@ class Conversation:
             else:
                 response = c.text.replace(self.chatname, message.server.me.display_name)
                 await self.bot.send_message(message.channel, f"{message.author.mention} {response}")
+
+    @commands.group(pass_context=True, invoke_without_command=True)
+    @checks.is_owner()
+    async def train(self, ctx):
+        """Train the knowledge graphs with corps data."""
+        self.chatbot.set_trainer(trainers.ChatterBotCorpusTrainer)
+
+        scopes = ['ai', 'botprofile', 'conversations', 'drugs', 'emotion', 'food', 'greetings', 'humor', 'money']
+        response = True
+
+        def trainer():
+            for s in scopes:
+                try:
+                    self.chatbot.train(f'chatterbot.corpus.english.{s}')
+                except FileNotFoundError:
+                    self.bot.loop.create_task(self.bot.send_message(ctx.message.channel, f'failed to find {s}'))
+                    response = False
+
+        await self.bot.loop.run_in_executor(None, trainer)
+        await (self.bot.affirmative() if response else self.bot.negative())
 
 
 def setup(bot):
