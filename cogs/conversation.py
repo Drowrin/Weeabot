@@ -18,7 +18,9 @@ class ThanksLogicAdapter(LogicAdapter):
         return 'thank' in statement.text.lower() or 'thx' in statement.text.lower()
 
     def process(self, statement):
-        return 1, Statement(f"You're welcome {random.choice(utils.content.emoji)}")
+        s = Statement(f"You're welcome {random.choice(utils.content.emoji)}")
+        s.confidence = 1
+        return s
 
 
 class TagLogicAdapter(LogicAdapter):
@@ -28,8 +30,11 @@ class TagLogicAdapter(LogicAdapter):
     def process(self, statement):
         for k, v in utils.content.tag_responses.items():
             if any(p in statement.text.lower() for p in v):
-                return 1, Statement(statement.text, extra_data={'command': f'tag {k}'})
-        return 0, statement
+                s = Statement(statement.text, extra_data={'command': f'tag {k}'})
+                s.confidence = 1
+                return s
+        statement.confidence = 0
+        return statement
 
 
 class AsyncChatBot(ChatBot):
