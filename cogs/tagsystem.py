@@ -255,7 +255,7 @@ class TagMap:
     @tag.command(name='list')
     async def _tag_list(self):
         """List the available tags."""
-        await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in self.taglist]))
+        await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in sorted(self.taglist)]))
 
     @tag.command(pass_context=True, name='addcontent')
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
