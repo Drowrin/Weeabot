@@ -257,11 +257,11 @@ class TagMap:
         """List the available tags."""
         await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in sorted(self.taglist)]))
 
-    @tag.command(pass_context=True, name='addcontent')
+    @tag.group(pass_context=True, name='add', invoke_without_command=True)
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
     @checks.is_owner()
     @checks.is_moderator()
-    async def _tag_add_content(self, ctx, name: str, *, text: str=''):
+    async def _tag_add(self, ctx, name: str, *, text: str=''):
         """Add a tag to the database.
 
         Tag names must be alphanumeric, and must contain at least one letter to differentiate from tag IDs."""
@@ -286,11 +286,11 @@ class TagMap:
         await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{name}"')
         await t.run(ctx)
 
-    @tag.command(pass_context=True, name='add')
+    @_tag_add.command(pass_context=True, name='message')
     @request()
     @checks.is_owner()
     @checks.is_moderator()
-    async def _tag_add(self, ctx, *tags_or_ids):
+    async def _tag_add_message(self, ctx, *tags_or_ids):
         """Add an already existing message to tags.
 
         You can pass many tags or message ids.
