@@ -2,9 +2,11 @@ import random
 import asyncio
 import re
 import subprocess
+import requests
 
 from chatterbot import ChatBot
-from chatterbot.logic import LogicAdapter
+from chatterbot import adapters
+from chatterbot import logic
 from chatterbot.conversation import Statement
 from chatterbot import trainers
 
@@ -14,7 +16,7 @@ import checks
 import utils
 
 
-class ThanksLogicAdapter(LogicAdapter):
+class ThanksLogicAdapter(logic.LogicAdapter):
     def can_process(self, statement):
         return 'thank' in statement.text.lower() or 'thx' in statement.text.lower()
 
@@ -24,7 +26,7 @@ class ThanksLogicAdapter(LogicAdapter):
         return s
 
 
-class TagLogicAdapter(LogicAdapter):
+class TagLogicAdapter(logic.LogicAdapter):
     def can_process(self, statement):
         return any(x in statement.text.lower() for x in sum(utils.content.tag_responses.values(), []))
 
@@ -38,6 +40,55 @@ class TagLogicAdapter(LogicAdapter):
         return statement
 
 
+class CleverCacheLogicAdapter(logic.LowConfidenceAdapter):
+    """Similar to LowConfidenceAdapter, but gets response from Cleverbot if needed."""
+
+    def __init__(self, **kwargs):
+        super(CleverCacheLogicAdapter, self).__init__(**kwargs)
+
+        self.api_key = kwargs.get('api_key', "")
+        self.sessions = {}
+
+    def can_process(self, statement):
+        """Only able to process if an API key was passed."""
+        return bool(self.api_key)
+
+    def process(self, input_statement):
+        """Ask Cleverbot if best response is below the threshold."""
+        url = 'https://www.cleverbot.com/getreply'
+        params = {
+            'key': self.api_key,
+            'input': input_statement.text
+        }
+
+        # attempt to get session cs
+        session = input_statement.session if hasattr(input_statement, 'session') else None
+        cs = self.sessions.get(session, None)
+        if cs:
+            params['cs'] = cs
+
+        if self.get(input_statement).confidence < self.confidence_threshold:
+            try:
+                # get data from cleverbot
+                r = requests.get(url, params=params)
+                data = r.json()
+            except requests.HTTPError:
+                pass  # In the case of HTTP Errors, abandon getting data from cleverbot and return low confidence
+            else:
+                if session:
+                    # save cs info if applicable
+                    self.sessions[session] = data['cs']
+
+                # construct high confidence response
+                s = Statement(data['output'], in_response_to=[input_statement])
+                s.confidence = 1
+                print(f"Cleverbot: {input_statement.text} --> {s.text}")
+                return s
+
+        # return dummy with 0 confidence
+        return Statement("")
+
+
 class AsyncChatBot(ChatBot):
     def __init__(self, loop: asyncio.BaseEventLoop, *args, **kwargs):
         super(AsyncChatBot, self).__init__(*args, **kwargs)
@@ -45,6 +96,10 @@ class AsyncChatBot(ChatBot):
 
     async def async_get_response(self, statement: str, session_id: str=None):
         return await self.loop.run_in_executor(None, lambda: self.get_response(statement, session_id))
+
+    def generate_response(self, input_statement, session_id):
+        input_statement.session = session_id
+        return super(AsyncChatBot, self).generate_response(input_statement, session_id)
 
 
 class Conversation:
@@ -73,7 +128,12 @@ class Conversation:
                 "cogs.conversation.ThanksLogicAdapter",
                 "cogs.conversation.TagLogicAdapter",
                 "chatterbot.logic.BestMatch",
-                "chatterbot.logic.MathematicalEvaluation"
+                "chatterbot.logic.MathematicalEvaluation",
+                {
+                    "import_path": "cogs.conversation.CleverCacheLogicAdapter",
+                    "api_key": utils.tokens["cleverbot_api_key"],
+                    "threshold": .7
+                }
             ]
         )
 
