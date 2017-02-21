@@ -362,7 +362,7 @@ class RequestSystem:
 
         rs = [rs[i] for i in indexes if i not in oor]
 
-        await self.send_req_status(rs, f'approved by {_internal_approver.mention}')
+        await self.send_req_status(rs, f'approved by {_internal_approver.display_name}')
 
         for r in rs:
             await self.bot.process_commands(r)
