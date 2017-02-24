@@ -259,7 +259,10 @@ async def on_command_error(err, ctx):
                 await bot.send_message(ctx.message.channel, "id not found.")
         elif ctx.invoked_with.lower() in bot.tag_map.taglist:
             t = ctx.invoked_with.split()[0]
-            await bot.tag_map.get(ctx.message, t).run(ctx)
+            try:
+                await bot.tag_map.get(ctx.message, t).run(ctx)
+            except KeyError:
+                pass
 
     else:
         print(f'Ignoring exception in command {ctx.command}', file=sys.stderr)
