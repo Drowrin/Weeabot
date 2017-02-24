@@ -8,6 +8,7 @@ from os import listdir
 from discord.ext import commands
 from datetime import timedelta
 from collections import defaultdict
+from Weeabot import Weeabot
 
 
 class CheckMsg(commands.CheckFailure):
@@ -81,7 +82,7 @@ def get_random_file(d: str, s: str, t: str = None):
 class SessionCog:
     """Simple class to take care of using a aiohttp session in a cog."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Weeabot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
 
