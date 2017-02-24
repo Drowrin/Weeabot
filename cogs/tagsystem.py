@@ -329,7 +329,7 @@ class TagMap:
                     n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
                     await utils.download(session, link, os.path.join('images', n))
                     i_path = os.path.join('images', n)
-            t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), ts, text=m.content, image=i_path)
+            t = TagItem(m.author.id, str(ctx.message.timestamp), ts, text=m.content, image=i_path)
             for name in ts:
                 self[name] = t
             await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{", ".join(ts)}"')
