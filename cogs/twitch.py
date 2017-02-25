@@ -16,7 +16,10 @@ from Weeabot import Weeabot
 
 
 def twitch_formatter(field):
-    return {'name': 'Twitch', 'content': '<https://www.twitch.tv/{}>'.format(field['name'])}
+    return {
+        'name': 'Twitch',
+        'content': f'[{field["name"]}](https://www.twitch.tv/{field["name"]})'
+    }
 
 
 class Twitch(utils.SessionCog):

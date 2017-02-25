@@ -10,7 +10,10 @@ import utils
 
 
 def mal_formatter(field):
-    return {'name': 'MyAnimeList', 'content': '<https://myanimelist.net/animelist/{}>'.format(field)}
+    return {
+        'name': 'MyAnimeList',
+        'content': f'[{field}](https://myanimelist.net/animelist/{field})'
+    }
 
 
 async def mal_embed(data) -> discord.Embed:
