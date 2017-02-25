@@ -141,6 +141,8 @@ class CharacterProfile:
 
         ).set_thumbnail(
             url=data.image_face
+        ).set_image(
+            url=data.image_full
         )
 
         if data.free_company:
@@ -156,11 +158,8 @@ class CharacterProfile:
 
         e.add_field(
             name="Classes",
-            value=f'```{classes}```'
-        )
-
-        e.set_image(
-            url=data.image_full
+            value=f'```{classes}```',
+            inline=False
         )
 
         return e
