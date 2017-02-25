@@ -149,14 +149,21 @@ class Profile(utils.SessionCog):
             e.set_footer(text="Joined at")
             order = sorted(self.bot.formatters)
             for name in order:
+                prof = name
+                inline = False
+                if name.endswith('_inline'):
+                    inline = True
+                    prof = name[:-len('_inline')]
+
                 try:
-                    value = self.bot.formatters.get(name, default_formatter)(up[name])
+                    value = self.bot.formatters.get(name, default_formatter)(up[prof])
                     if inspect.isawaitable(value):
                         value = await value
                 except KeyError:
                     value = None
+
                 if value is not None:
-                    e.add_field(name=value['name'], value=value['content'], inline=False)
+                    e.add_field(name=value['name'], value=value['content'], inline=inline)
             await self.bot.say(embed=e)
 
     @commands.command(pass_context=True)

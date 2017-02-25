@@ -48,7 +48,7 @@ async def mal_embed(data) -> discord.Embed:
 class MAL(utils.SessionCog):
     """Commands that access MyAnimeList."""
     
-    formatters = {'mal': mal_formatter}
+    formatters = {'mal_inline': mal_formatter}
     
     async def getmal_retry(self, user: discord.User, retries: int=5, tmp=None):
         for i in range(0, retries):

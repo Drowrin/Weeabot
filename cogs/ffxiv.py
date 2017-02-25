@@ -179,7 +179,7 @@ class FFXIV(utils.SessionCog):
 
     def __init__(self, bot):
         super(FFXIV, self).__init__(bot)
-        self.formatters = {'ffxiv': self.ffxiv_formatter}
+        self.formatters = {'ffxiv_inline': self.ffxiv_formatter}
 
     async def ffxiv_formatter(self, field):
         c = CharacterProfile(**field)

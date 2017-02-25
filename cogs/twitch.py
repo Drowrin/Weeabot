@@ -27,7 +27,7 @@ class Twitch(utils.SessionCog):
     
     If a channel exists with the name 'twitch-streams', automatic updates will be posted there when a user goes live."""
 
-    formatters = {'twitch': twitch_formatter}
+    formatters = {'twitch_inline': twitch_formatter}
 
     def __init__(self, bot: Weeabot):
         super(Twitch, self).__init__(bot)
