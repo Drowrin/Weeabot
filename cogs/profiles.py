@@ -148,6 +148,7 @@ class Profile(utils.SessionCog):
             e.set_thumbnail(url=usr.avatar_url)
             e.set_footer(text="Joined at")
             order = sorted(self.bot.formatters)
+            order.reverse()
             for name in order:
                 prof = name
                 inline = False
