@@ -150,5 +150,12 @@ class Config:
         await asyncio.get_event_loop().run_in_executor(None, self._dump)
 
 
+def safe(call, *exceptions):
+    try:
+        return call()
+    except exceptions:
+        return None
+
+
 tokens = open_json('tokens.json')
 content = Config('content.json')
