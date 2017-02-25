@@ -146,7 +146,7 @@ class Profile(utils.SessionCog):
             e.set_author(name=usr.display_name)
             e.set_thumbnail(url=usr.avatar_url)
             e.set_footer(text="Joined at")
-            order = ['command_count', 'mal', 'twitch', 'custom']
+            order = sorted(self.bot.formatters)
             for name in order:
                 try:
                     value = self.bot.formatters.get(name, default_formatter)(up[name])
