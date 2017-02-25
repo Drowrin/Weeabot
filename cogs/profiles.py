@@ -1,5 +1,6 @@
 import operator
 import json
+import inspect
 
 import discord
 from discord.ext import commands
@@ -150,6 +151,8 @@ class Profile(utils.SessionCog):
             for name in order:
                 try:
                     value = self.bot.formatters.get(name, default_formatter)(up[name])
+                    if inspect.isawaitable(value):
+                        value = await value
                 except KeyError:
                     value = None
                 if value is not None:
