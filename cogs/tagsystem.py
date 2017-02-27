@@ -151,6 +151,12 @@ class TagMap:
         self._items = [None if v is None else TagItem(**v) for v in json_data["items"]]
         self.dump()
 
+        self.services = {
+            "Tags": f"""Custom content can be added to the bot through the tag system.
+            You can add a user's message as a tag by reacting to it with 🏷, or you can use several commands.
+            Use {self.bot.command_prefix}help tag for more info."""
+        }
+
     def dump(self):
         """Save the TagMap to the path given originally as a json file."""
         with open(self.path, 'w') as f:
@@ -232,6 +238,36 @@ class TagMap:
         """Set an item by its unique id."""
         self._items[item_id] = item
         self.dump()
+
+    async def on_reaction_add(self, reaction, user):
+        """Allow users to react to messages with 🏷 ️to add them to the database. Will prompt user for tags."""
+        if reaction.emoji == '🏷':
+            m = reaction.message
+
+            await self.bot.send_message(m.channel, f"{user.mention} what tags do you want to add it to?")
+            ret = await self.bot.wait_for_message(timeout=60, author=user, channel=m.channel)
+            if ret is None:
+                await self.bot.send_message(m.channel, f"{user.mention} you did not respond in time.")
+                return
+
+            ts = ret.content.split()
+            if any(t.isdigit() or not t.isalnum() for t in ts):
+                await self.bot.send_message(m.channel, f"{user.mention} Tags must be alphanumeric and must contain at least one letter.")
+
+            i_path = None
+            if len(m.attachments) > 0:
+                async with aiohttp.ClientSession() as session:
+                    link = m.attachments[0]['url']
+                    n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
+                    await utils.download(session, link, os.path.join('images', n))
+                    i_path = os.path.join('images', n)
+            t = TagItem(m.author.id, str(m.timestamp), ts, text=m.content, image=i_path)
+            self[ts[0]] = t
+            for name in ts[1:]:
+                self.add_tag(t.id, name)
+            await self.bot.send_message(m.channel, f'{m.author.mention} added a new tag to "{", ".join(ts)}"')
+            m.content = f"{self.bot.command_prefix}{t.id}"
+            await self.bot.process_commands(m)
 
     @commands.group(pass_context=True, invoke_without_command=True)
     async def tag(self, ctx, name):
@@ -330,8 +366,9 @@ class TagMap:
                     await utils.download(session, link, os.path.join('images', n))
                     i_path = os.path.join('images', n)
             t = TagItem(m.author.id, str(ctx.message.timestamp), ts, text=m.content, image=i_path)
-            for name in ts:
-                self[name] = t
+            self[ts[0]] = t
+            for name in ts[1:]:
+                self.add_tag(t.id, name)
             await self.bot.say(f'{ctx.message.author.mention} added a new tag to "{", ".join(ts)}"')
             await t.run(ctx)
 
