@@ -4,20 +4,20 @@ Discord bot used in personal servers.
 Currently, the bot has no public hosted version. You will need to download and host your own instance.
 
 # Requires:    
+* Python 3.6 or higher
 * https://github.com/Rapptz/discord.py
     * This is the heart of the bot. Absolutely required.
 * https://github.com/Damgaard/PyImgur
     * Used in several commands in the 'images' cog to get images and albums from imgur. You can skip this requirement if you disable the 'images' cog.
 * https://github.com/python-pillow/Pillow
     * Used to edit images in the 'images' cog. You can skip this requirement if you disable the 'images' cog.
-* https://github.com/folz/cleverbot.py  
-    * Used to mimick 'natural conversation' with the bot. If you want to skip this requirement, you can disable the 'pointless' cog.
+* https://github.com/folz/cleverbot.py and https://github.com/gunthercox/ChatterBot  
+    * Used to mimick 'natural conversation' with the bot. If you want to skip this requirement, you can disable the 'conversation' cog.
 
 # Setup
 First get the dependencies above.
 
-Clone/Fork the repository, so you can make changes youself, and download it.
-
+Download this whole repository.
 
 Edit in the relevant tokens in 'tokens.json'.
 
