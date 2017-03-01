@@ -273,9 +273,28 @@ class TagMap:
             await self.bot.say("id not found.")
 
     @tag.command(name='list')
-    async def _tag_list(self):
-        """List the available tags."""
-        await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in sorted(self.taglist)]))
+    async def _tag_list(self, name: str=None):
+        """List the available tags. Or all the ids with a particular tag."""
+        if name:
+            ts = self.get_all_tag(name)
+            if ts:
+                # paginate
+                page = []
+                l = 0
+                for t in ts:
+                    t = str(t)
+                    if l + len(t) + 2 > 2000:
+                        await self.bot.say(', '.join(page))
+                        page = []
+                        l = 0
+                    page.append(t)
+                    l += len(t) + 2
+                if page:
+                    await self.bot.say(', '.join(page))
+            else:
+                await self.bot.say("None found.")
+        else:
+            await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in sorted(self.taglist)]))
 
     @tag.group(pass_context=True, name='add', invoke_without_command=True)
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
