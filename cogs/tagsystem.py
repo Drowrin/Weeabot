@@ -250,24 +250,8 @@ class TagMap:
                 await self.bot.send_message(m.channel, f"{user.mention} you did not respond in time.")
                 return
 
-            ts = ret.content.split()
-            if any(t.isdigit() or not t.isalnum() for t in ts):
-                await self.bot.send_message(m.channel, f"{user.mention} Tags must be alphanumeric and must contain at least one letter.")
-
-            i_path = None
-            if len(m.attachments) > 0:
-                async with aiohttp.ClientSession() as session:
-                    link = m.attachments[0]['url']
-                    n = "{}.{}".format(str(hash(link[-10:])), link.split('.')[-1])
-                    await utils.download(session, link, os.path.join('images', n))
-                    i_path = os.path.join('images', n)
-            t = TagItem(m.author.id, str(m.timestamp), ts, text=m.content, image=i_path)
-            self[ts[0]] = t
-            for name in ts[1:]:
-                self.add_tag(t.id, name)
-            await self.bot.send_message(m.channel, f'{m.author.mention} added a new tag to "{", ".join(ts)}"')
-            m.content = f"{self.bot.command_prefix}{t.id}"
-            await self.bot.process_commands(m)
+            ret.content = f'{self.bot.command_prefix}tag add message {m.id} {ret.content}'
+            await self.bot.process_commands(ret)
 
     @commands.group(pass_context=True, invoke_without_command=True)
     async def tag(self, ctx, name):
