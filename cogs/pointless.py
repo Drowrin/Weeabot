@@ -3,6 +3,7 @@ import random
 import copy
 import asyncio
 
+import discord
 from discord.ext import commands
 
 import utils
@@ -16,6 +17,30 @@ class Pointless(utils.SessionCog):
         super(Pointless, self).__init__(bot)
         self.oc = 1
 
+    async def text_embed(self, message: discord.Message, text: str):
+        try:
+            await self.bot.say(embed=discord.Embed(
+                description=text
+            ).set_author(
+                name=message.author.display_name,
+                icon_url=message.author.avatar_url or message.author.default_avatar_url
+            ))
+            await self.bot.delete_message(message)
+        except discord.HTTPException:
+            await self.bot.say("The formatting went too far for discord.")
+
+    async def get_text(self, ctx: commands.Context) -> str:
+        t = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
+        if t:
+            return t
+        async for m in self.bot.logs_from(ctx.message.channel, limit=1, before=ctx.message):
+            await self.bot.delete_message(m)
+            if m.clean_content:
+                return m.clean_content
+            if m.embeds:
+                return m.embeds[0]['description']
+            raise commands.BadArgument("No suitable text found.")
+
     @commands.group(name='text', aliases=('t',))
     async def text_command(self):
         """Text transformations."""
@@ -23,37 +48,32 @@ class Pointless(utils.SessionCog):
     @text_command.command(pass_context=True, aliases=('a',))
     async def aesthetic(self, ctx):
         """AESTHETIC"""
-        text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:])
-        if len(text) == 0:
-            return
+        text = await self.get_text(ctx)
         translated = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ?!\"#$%&\'()*+,-./\\~'
         fullwidth = str.maketrans(translated, ''.join(chr(ord(c) + 0xFEE0) for c in translated))
-        await self.bot.say(text.translate(fullwidth))
+        await self.text_embed(ctx.message, text.translate(fullwidth))
 
-    @text_command.command(aliases=('r',))
-    async def reverse(self, *, text: str):
+    @text_command.command(pass_context=True, aliases=('r',))
+    async def reverse(self, ctx):
         """esreveR"""
-        # noinspection PyUnresolvedReferences
-        await self.bot.say("\N{RIGHT-TO-LEFT OVERRIDE}{}\N{LEFT-TO-RIGHT OVERRIDE}".format(text))
+        text = await self.get_text(ctx)
+        fmt = "\N{RIGHT-TO-LEFT OVERRIDE}{}\N{LEFT-TO-RIGHT OVERRIDE}"
+        await self.text_embed(ctx.message, fmt.format(text))
 
     @text_command.command(pass_context=True, aliases=('z',))
     async def zalgo(self, ctx):
         """ZALGO"""
-        source = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
-        if len(source) == 0:
-            return
+        source = (await self.get_text(ctx)).upper()
         zalgo_chars = [chr(i) for i in range(0x0300, 0x036F + 1)]
         zalgo_chars.extend(['\u0488', '\u0489'])
         zalgoized = [letter + ''.join(random.choice(zalgo_chars) for _ in range(random.randint(1, 25)))
                      for letter in source]
-        await self.bot.say(''.join(zalgoized))
+        await self.text_embed(ctx.message, ''.join(zalgoized))
 
     @text_command.command(pass_context=True, aliases=('e',))
     async def emoji(self, ctx):
         """EMOJI"""
-        text = ctx.invoked_with.join(ctx.message.clean_content.split(ctx.invoked_with)[1:]).upper()
-        if len(text) == 0:
-            return
+        text = (await self.get_text(ctx)).upper()
         translated = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'
         translated_to = ''.join([
             '\N{NEGATIVE SQUARED LATIN CAPITAL LETTER A}',
@@ -85,7 +105,7 @@ class Pointless(utils.SessionCog):
             '\N{WARNING SIGN}',
         ])
         emoji = str.maketrans(translated, translated_to)
-        await self.bot.say('      '.join(text.translate(emoji).split()))
+        await self.text_embed(ctx.message, '      '.join(text.translate(emoji).split()))
 
     @commands.command()
     async def charname(self, *, char: str):
