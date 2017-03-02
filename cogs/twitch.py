@@ -2,6 +2,8 @@ import asyncio
 import json
 import websockets
 import dateutil.parser
+from datetime import datetime
+from datetime import timedelta
 import random
 
 import discord
@@ -188,6 +190,31 @@ class Twitch(utils.SessionCog):
         except:
             traceback.print_exc()
 
+    async def wait_for_event(self):
+        last_ping = datetime.now() - timedelta(seconds=28)
+        while not self.bot.is_closed:
+            # heartbeat
+            if last_ping - datetime.now() > timedelta(seconds=270):
+                # initiate heartbeat
+                await self.ws.send(json.dumps({"type": "PING"}))
+
+                # check heartbeat
+                try:
+                    ret = json.loads(await asyncio.wait_for(self.ws.recv(), 10))
+                    if not ret['type'] == 'PONG':
+                        yield ret
+                except asyncio.TimeoutError:
+                    print("twitch heartbeat failed. Reconnecting.")
+                    self.ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
+
+                last_ping = datetime.now()
+
+            # wait for other events between heartbeats
+            try:
+                yield json.loads(await asyncio.wait_for(self.ws.recv(), 280))
+            except asyncio.TimeoutError:
+                pass  # go back to heartbeat
+
     async def getstreams(self):
         self.ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
 
@@ -195,51 +222,35 @@ class Twitch(utils.SessionCog):
             print('Failed to subscribe.')
             return
 
-        while not self.bot.is_closed:
-            # initiate heartbeat
-            await self.ws.send(json.dumps({"type": "PING"}))
-
-            # check heartbeat
+        async for r in self.wait_for_event():
             try:
-                await asyncio.wait_for(self.ws.recv(), 10)
-            except asyncio.TimeoutError:
-                print("twitch heartbeat failed. Reconnecting.")
-                self.ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
+                print(f'Twitch event received: {r}')
+                name = r['data']['topic'].split('.')[1]
+                message = json.loads(r['data']['message'])
 
-            # wait for event
-            try:
-                r = json.loads(await asyncio.wait_for(self.ws.recv(), 270))
-            except asyncio.TimeoutError:
-                pass
-            else:
-                try:
-                    print(f'Twitch event received: {r}')
-                    name = r['data']['topic'].split('.')[1]
-                    message = json.loads(r['data']['message'])
+                # check message type
+                if message['type'] == 'stream-up':
 
-                    # check message type
-                    if message['type'] == 'stream-up':
+                    # get user ids
+                    us = self.t_users()
+                    did = us[name]['did']
+                    tid = us[name]['tid']
 
-                        # get user ids
-                        us = self.t_users()
-                        did = us[name]['did']
-                        tid = us[name]['tid']
+                    # send initial messages
+                    messages = []
+                    for c in self.channels:
+                        mem = c.server.get_member(did)
+                        messages.append(await self.bot.send_message(c, embed=discord.Embed(
+                            description='Waiting for Twitch API...'
+                        ).set_author(
+                            name=f"{mem.display_name} started streaming",
+                            icon_url=mem.avatar_url or mem.default_avatar_url,
+                            url=f'https://www.twitch.tv/{name}'
+                        )))
 
-                        # send initial messages
-                        messages = []
-                        for c in self.channels:
-                            mem = c.server.get_member(did)
-                            messages.append(await self.bot.send_message(c, embed=discord.Embed(
-                                description='Waiting for Twitch API...'
-                            ).set_author(
-                                name=f"{mem.display_name} started streaming",
-                                icon_url=mem.avatar_url or mem.default_avatar_url,
-                                url=f'https://www.twitch.tv/{name}'
-                            )))
-
-                        self.bot.loop.create_task(self.update_stream(messages, did, tid))
-                except:
-                    traceback.print_exc()
+                    self.bot.loop.create_task(self.update_stream(messages, did, tid))
+            except:
+                traceback.print_exc()
 
         self.ws.close()
 
