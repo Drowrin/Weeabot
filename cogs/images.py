@@ -295,6 +295,8 @@ class Images(utils.SessionCog):
 
                 # load and perform initial resize on image.
                 i = Image.open(fn)
+                scale = row_height / i.size[1]
+                i = i.resize([int(d * scale) for d in i.size], Image.ANTIALIAS)
                 i.thumbnail((width, row_height))
 
                 # add to image array
@@ -309,11 +311,7 @@ class Images(utils.SessionCog):
             for i, (row_width, ims) in enumerate(image_array):
                 if row_width != width:
                     scale = width / row_width
-                    if scale > 1:
-                        image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
-                    else:
-                        for im in ims:
-                            im.thumbnail([int(d * scale) for d in im.size], Image.ANTIALIAS)
+                    image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
 
             # get the actual output height
             out_height = sum(ims[1][0].size[1] for ims in image_array)
