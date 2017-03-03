@@ -208,7 +208,7 @@ class Images(utils.SessionCog):
                 im = random.choice(filtered)
                 e = discord.Embed(
                     title='This Image',
-                    description=utils.str_limit(im['tags'].replace('_', '\_').replace(' ', ', '), 2048),
+                    description=utils.str_limit(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048),
                     url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
                 ).set_author(
                     name=f"{count} Images with these tags",
