@@ -279,16 +279,32 @@ class TagMap:
             await self.bot.say("id not found.")
 
     @tag.command(name='list')
-    async def _tag_list(self, name: str=None):
+    async def _tag_list(self, name: str=None, typ: str=None):
         """List the available tags. Or all the ids with a particular tag."""
+        types = ('.png', '.jpg', '.jpeg')
+
+        if name not in self._tags and not typ:
+            typ = name
+            name = None
+
+        if typ == 'images':
+            pred = lambda ta: ta.image and ta.image.endswith(types)
+        elif typ is None:
+            pred = lambda _: True
+        else:
+            raise commands.BadArgument("unrecognized type or tag")
+
         if name:
-            ts = self.get_all_tag(name)
+            try:
+                ts = self.get_items(name, pred=pred)
+            except KeyError:
+                commands.BadArgument("Not found.")
             if ts:
                 # paginate
                 page = []
                 l = 0
                 for t in ts:
-                    t = str(t)
+                    t = str(t.id)
                     if l + len(t) + 2 > 2000:
                         await self.bot.say(', '.join(page))
                         page = []
@@ -300,7 +316,11 @@ class TagMap:
             else:
                 await self.bot.say("None found.")
         else:
-            await self.bot.say("Tags: " + ", ".join([f'{t}({len(self._tags[t])})' for t in sorted(self.taglist)]))
+            await self.bot.say("Tags: " + ", ".join(
+                [f'{t}({len(self.get_items(t, pred=pred))})'
+                 for t in sorted(self.taglist)
+                 if len(self.get_items(t, pred=pred))]
+            ))
 
     @tag.group(pass_context=True, name='add', invoke_without_command=True)
     @request(bypasses=(lambda ctx: len(ctx.message.attachments) == 0,))
