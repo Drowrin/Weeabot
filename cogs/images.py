@@ -279,6 +279,7 @@ class Images(utils.SessionCog):
             width = 1000
             height = 1000
             rows = 3
+            line_width = 2
 
             # calculate other values
             row_height = height / rows
@@ -300,7 +301,7 @@ class Images(utils.SessionCog):
                 i.thumbnail((width, row_height))
 
                 # add to image array
-                image_array[-1][0] += i.size[0]
+                image_array[-1][0] += i.size[0] + (line_width if len(image_array[-1][1]) else 0)
                 image_array[-1][1].append(i)
 
             # remove last row if below minimum.
@@ -314,7 +315,7 @@ class Images(utils.SessionCog):
                     image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
 
             # get the actual output height
-            out_height = sum(ims[1][0].size[1] for ims in image_array)
+            out_height = sum(ims[1][0].size[1] for ims in image_array) + ((len(image_array) - 1) * line_width)
 
             # create new Image object
             image = Image.new('RGB', (width, int(out_height)))
@@ -325,8 +326,8 @@ class Images(utils.SessionCog):
                 x = 0
                 for im in ims:
                     image.paste(im, (x, y))
-                    x += im.size[0]
-                y += ims[0].size[1]
+                    x += im.size[0] + line_width
+                y += ims[0].size[1] + line_width
 
             image.save(fp, 'PNG')
             fp.seek(0)
