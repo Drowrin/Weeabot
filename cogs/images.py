@@ -258,6 +258,87 @@ class Images(utils.SessionCog):
             return
         await self.bot.edit_message(tmp, "{0.title}\n{0.link}".format(im))
 
+    @image.command(pass_context=True, name='collage', aliases=('c',))
+    async def _image_collage(self, ctx, name):
+        """Generate a collage from images in a tag."""
+        types = ('.png', '.jpg', '.jpeg')
+
+        def process(fp):
+            # get list of image
+            try:
+                tags = self.bot.tag_map.get_items(name, pred=lambda i: i.image and i.image.endswith(types))[:]
+                random.shuffle(tags)
+                images = [i.image for i in tags]
+            except KeyError:
+                raise commands.BadArgument("Key not found.")
+
+            if len(images) < 5:
+                raise commands.BadArgument("Not enough images in that tag.")
+
+            # approximate desired values
+            width = 1000
+            height = 1000
+            rows = 3
+
+            # calculate other values
+            row_height = height / rows
+            min_row_width = width * 2 / 3
+
+            # create image jagged array. (row width, images)
+            image_array = [[0, []]]
+            for fn in images:
+                # make new row if current is too large and we can make more rows
+                if image_array[-1][0] >= width:
+                    if len(image_array) == rows:
+                        break
+                    image_array.append([0, []])
+
+                # load and perform initial resize on image.
+                i = Image.open(fn)
+                i.thumbnail((width, row_height))
+
+                # add to image array
+                image_array[-1][0] += i.size[0]
+                image_array[-1][1].append(i)
+
+            # remove last row if below minimum.
+            if image_array[-1][0] < min_row_width:
+                del image_array[-1]
+
+            # fit each row to width
+            for i, (row_width, ims) in enumerate(image_array):
+                if row_width != width:
+                    scale = width / row_width
+                    if scale > 1:
+                        image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
+                    else:
+                        for im in ims:
+                            im.thumbnail([int(d * scale) for d in im.size], Image.ANTIALIAS)
+
+            # get the actual output height
+            out_height = sum(ims[1][0].size[1] for ims in image_array)
+
+            # create new Image object
+            image = Image.new('RGB', (width, int(out_height)))
+
+            # draw images on output image
+            y = 0
+            for _, ims in image_array:
+                x = 0
+                for im in ims:
+                    image.paste(im, (x, y))
+                    x += im.size[0]
+                y += ims[0].size[1]
+
+            image.save(fp, 'PNG')
+            fp.seek(0)
+
+        # processing can take a while, so we type to acknowledge the command and run it in and executor.
+        await self.bot.type()
+        with BytesIO() as f:
+            await self.bot.loop.run_in_executor(None, lambda: process(f))
+            await self.bot.upload(f, filename=f'{name}_collage.png')
+
     @commands.group(pass_context=True, invoke_without_command=True)
     async def meme(self, ctx, name: str, *, c: str=""):
         """Choose an image and text to add to the image."""
