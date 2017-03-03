@@ -176,8 +176,9 @@ class Images(utils.SessionCog):
             i_path = path.join('images', n)
 
             t = TagItem(ctx.message.author.id, str(ctx.message.timestamp), collections, image=i_path)
-            for name in collections:
-                self.bot.tag_map[name] = t
+            self.bot.tag_map[collections[0]] = t
+            for name in collections[1:]:
+                self.bot.tag_map.add_tag(t.id, name)
         await self.bot.edit_message(m, f'Added {len(a.images)} images to {",".join(collections)}')
 
     @image.command(name='list')
