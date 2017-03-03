@@ -310,8 +310,9 @@ class Images(utils.SessionCog):
 
             # fit each row to width
             for i, (row_width, ims) in enumerate(image_array):
+                lines_amount = line_width * (len(ims) - 1)
                 if row_width != width:
-                    scale = width / row_width
+                    scale = width / (row_width - lines_amount)
                     image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
 
             # get the actual output height
