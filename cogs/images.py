@@ -273,7 +273,7 @@ class Images(utils.SessionCog):
                 raise commands.BadArgument("Key not found.")
 
             if len(images) < 5:
-                raise commands.BadArgument("Not enough images in that tag.")
+                raise commands.BadArgument("Not enough images in that tag. Need at least 5 static images.")
 
             # approximate desired values
             width = 1000

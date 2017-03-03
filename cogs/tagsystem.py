@@ -227,6 +227,12 @@ class TagMap:
         """Get all items with a specific tag."""
         return self._tags[name]
 
+    def get_items(self, name: str, pred=lambda _: True):
+        """Get all items with a specific tag matching a predicate."""
+        if name not in self._tags:
+            raise KeyError
+        return [self._items[i] for i in self._tags[name] if pred(self._items[i])]
+
     def get_by_id(self, item_id: int):
         """Get an item by its unique id."""
         t = self._items[item_id]
