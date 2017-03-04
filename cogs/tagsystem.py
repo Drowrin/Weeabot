@@ -202,6 +202,8 @@ class TagMap:
         if name in self.get_by_id(item_id).tags:
             return
         self._items[item_id].tags.append(name)
+        if name not in self._tags:
+            self._tags[name] = []
         self._tags[name].append(item_id)
         self.dump()
 
