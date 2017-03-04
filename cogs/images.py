@@ -189,57 +189,63 @@ class Images(utils.SessionCog):
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
         
     async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
-        tmp = await self.bot.say("getting image from booru")
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             count = int(re.search(r'count="(\d+)"', await r.text()).group(1))
         if count == 0:
-            await self.bot.edit_message(tmp, "No results")
-            return
+            return "No results"
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': 0 if count <= 100 else random.randint(0, count // 100 - 1), 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
-                await self.bot.edit_message(tmp, f'Something went wrong. Error {r.status}')
-                return
+                return f'Something went wrong. Error {r.status}'
             t = await r.text()
             ims = json.loads(t)
             filtered = [i for i in ims if not any(f(i) for f in filters)]
 
             if len(filtered):
-                im = random.choice(filtered)
-                e = discord.Embed(
-                    title='This Image',
-                    description=utils.str_limit(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048),
-                    url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
-                ).set_author(
-                    name=f"{count} Images with these tags",
-                    url=f"{url}/index.php?page=post&s=list&tags={'+'.join(tags.split())}"
-                ).set_image(
-                    url=f'{url}/images/{im["directory"]}/{im["image"]}'
-                )
-                try:
-                    await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
-                except discord.HTTPException as e:
-                    await self.bot.edit_message(tmp, f'HTTP Error: {e.code}')
+                return count, random.choice(filtered)
             else:
-                await self.bot.edit_message(tmp, "No results")
+                return "No results"
+
+    async def post_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
+        """post the returned image from a booru, or it's error message."""
+        tmp = await self.bot.say("getting image from booru")
+        ret = await self.fetch_booru_image(url, tags, *filters)
+        if isinstance(ret, tuple):
+            count, im = ret
+            e = discord.Embed(
+                title='This Image',
+                description=utils.str_limit(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048),
+                url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
+            ).set_author(
+                name=f"{count} Images with these tags",
+                url=f"{url}/index.php?page=post&s=list&tags={'+'.join(tags.split())}"
+            ).set_image(
+                url=f'{url}/images/{im["directory"]}/{im["image"]}'
+            )
+            try:
+                await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
+            except discord.HTTPException as e:
+                await self.bot.edit_message(tmp, f'HTTP Error: {e.code}')
+        else:
+            await self.bot.edit_message(tmp, ret)
 
     @image.command(name='booru')
     async def _booru(self, *, tags: str):
         """Get an image from safebooru based on tags."""
-        await self.fetch_booru_image("http://safebooru.org", tags, lambda im: im['rating'] == 'e')
+        await self.post_booru_image("http://safebooru.org", tags, lambda im: im['rating'] == 'e')
 
     @image.command(name='gelbooru')
     @checks.has_tag("lewd")
     async def _gelbooru(self, *, tags: str):
         """Get an image from gelbooru based on tags."""
-        await self.fetch_booru_image("http://gelbooru.com", tags)
+        await self.post_booru_image("http://gelbooru.com", tags)
 
     @image.command(name='rule34xxx')
     @checks.has_tag('lewd')
     async def _rule34xxx(self, *, tags: str):
         """Get an image from rule34.xxx based on tags."""
-        await self.fetch_booru_image("http://rule34.xxx", tags)
+        await self.post_booru_image("http://rule34.xxx", tags)
               
     @image.command(pass_context=True, name='reddit', aliases=('r',))
     async def _r(self, ctx, sub: str, window: str='month'):
