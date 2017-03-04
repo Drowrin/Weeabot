@@ -187,13 +187,14 @@ class Images(utils.SessionCog):
         r_list = [x[0] for x in self.bot.content.reactions.values() if x[0] is not None]
         c_list = [x for x in listdir(path.join('images', 'collections')) if x not in r_list]
         await self.bot.say("List of categories: {}\nList of reactions: {}".format(", ".join(c_list), ", ".join(r_list)))
-        
-    async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
+
+    async def count_booru(self, url, tags):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
-            count = int(re.search(r'count="(\d+)"', await r.text()).group(1))
-        if count == 0:
-            return "No results"
+            return int(re.search(r'count="(\d+)"', await r.text()).group(1))
+        
+    async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]], count=None):
+        count = count or await self.count_booru(url, tags)
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'json': 1, 'pid': 0 if count <= 100 else random.randint(0, count // 100 - 1), 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             if r.status != 200:
@@ -203,16 +204,20 @@ class Images(utils.SessionCog):
             filtered = [i for i in ims if not any(f(i) for f in filters)]
 
             if len(filtered):
-                return count, random.choice(filtered)
+                return random.choice(filtered)
             else:
                 return "No results"
 
     async def post_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
         """post the returned image from a booru, or it's error message."""
         tmp = await self.bot.say("getting image from booru")
-        ret = await self.fetch_booru_image(url, tags, *filters)
-        if isinstance(ret, tuple):
-            count, im = ret
+        im = await self.fetch_booru_image(url, tags, *filters)
+        if isinstance(im, dict):
+            count = await self.count_booru(url, tags)
+            if 'file_url' in im:
+                img_url = f'{url.split(":")[0]}:{im["file_url"]}'
+            else:
+                img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
             e = discord.Embed(
                 title='This Image',
                 description=utils.str_limit(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048),
@@ -221,14 +226,14 @@ class Images(utils.SessionCog):
                 name=f"{count} Images with these tags",
                 url=f"{url}/index.php?page=post&s=list&tags={'+'.join(tags.split())}"
             ).set_image(
-                url=f'{url}/images/{im["directory"]}/{im["image"]}'
+                url=img_url
             )
             try:
                 await self.bot.edit_message(tmp, '\N{ZERO WIDTH SPACE}', embed=e)
             except discord.HTTPException as e:
                 await self.bot.edit_message(tmp, f'HTTP Error: {e.code}')
         else:
-            await self.bot.edit_message(tmp, ret)
+            await self.bot.edit_message(tmp, im)
 
     @image.command(name='booru')
     async def _booru(self, *, tags: str):
@@ -246,6 +251,62 @@ class Images(utils.SessionCog):
     async def _rule34xxx(self, *, tags: str):
         """Get an image from rule34.xxx based on tags."""
         await self.post_booru_image("http://rule34.xxx", tags)
+
+    async def post_booru_collage(self, url: str, tags: str, *filters: List[Callable[[dict], bool]]):
+        """Make a collage from a booru."""
+        if await self.count_booru(url, tags) < 5:
+            raise commands.BadArgument("Not enough images with those tags. Need at least 5 static images.")
+
+        tmp = await self.bot.say(f"Collecting images")
+
+        async def gen():
+            total_images = 0
+            errors = 0
+
+            while True:
+                im = await self.fetch_booru_image(url, tags, *filters)
+                if isinstance(im, str):
+                    return
+
+                if 'file_url' in im:
+                    img_url = f'{url.split(":")[0]}:{im["file_url"]}'
+                else:
+                    img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
+                with await utils.download_fp(self.session, img_url) as fp:
+                    try:
+                        v = fp
+                        iv = Image.open(v)
+                        yield iv
+                    except (OSError, ValueError) as e:
+                        if errors < 5:
+                            await self.bot.say("```py\n{}\n{}\n{}```".format(e, img_url, f'{url}/index.php?page=post&s=view&id={im["id"]}'))
+                            errors += 1
+                        else:
+                            raise utils.CheckMsg("Too many erros. aborting.")
+
+                total_images += 1
+                await self.bot.edit_message(tmp, f"Collecting images {total_images}")
+
+        with await self.make_collage(gen) as f:
+            await self.bot.delete_message(tmp)
+            await self.bot.upload(f, filename=f'{tags.replace(" ", "_")}_collage.png')
+
+    @image.command()
+    async def booru_collage(self, *, tags: str):
+        """Get an image from safebooru based on tags."""
+        await self.post_booru_collage("http://safebooru.org", tags, lambda im: im['rating'] == 'e')
+
+    @image.command()
+    @checks.has_tag("lewd")
+    async def gelbooru_collage(self, *, tags: str):
+        """Get an image from gelbooru based on tags."""
+        await self.post_booru_collage("http://gelbooru.com", tags)
+
+    @image.command()
+    @checks.has_tag('lewd')
+    async def rule34xxx_collage(self, *, tags: str):
+        """Get an image from rule34.xxx based on tags."""
+        await self.post_booru_collage("http://rule34.xxx", tags)
               
     @image.command(pass_context=True, name='reddit', aliases=('r',))
     async def _r(self, ctx, sub: str, window: str='month'):
@@ -308,7 +369,7 @@ class Images(utils.SessionCog):
                 lines_amount = line_width * (len(ims) - 1)
                 if row_width != width:
                     scale = width / (row_width - lines_amount)
-                    image_array[i][1] = [im.resize([int(d * scale) for d in im.size], Image.ANTIALIAS) for im in ims]
+                    image_array[i][1] = [fi.resize([int(d * scale) for d in fi.size], Image.ANTIALIAS) for fi in ims]
 
             # get the actual output height
             out_height = sum(ims[1][0].size[1] for ims in image_array) + ((len(image_array) - 1) * line_width)
