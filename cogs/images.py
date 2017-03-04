@@ -259,52 +259,40 @@ class Images(utils.SessionCog):
             return
         await self.bot.edit_message(tmp, "{0.title}\n{0.link}".format(im))
 
-    @image.command(pass_context=True, name='collage', aliases=('c',))
-    async def _image_collage(self, ctx, name):
-        """Generate a collage from images in a tag."""
-        types = ('.png', '.jpg', '.jpeg')
+    async def make_collage(self, gen) -> BytesIO:
+        """Make a collage out of the images returned by the async generator."""
+        # approximate desired values
+        width = 1000
+        height = 1000
+        rows = 3
+        line_width = 2
 
-        def process(fp):
-            # get list of image
-            try:
-                tags = self.bot.tag_map.get_items(name, pred=lambda i: i.image and i.image.endswith(types))[:]
-                random.shuffle(tags)
-                images = [i.image for i in tags]
-            except KeyError:
-                raise commands.BadArgument("Key not found.")
+        # calculate other values
+        row_height = height / rows
+        min_row_width = width * 2 / 3
 
-            if len(images) < 5:
-                raise commands.BadArgument("Not enough images in that tag. Need at least 5 static images.")
-
-            # approximate desired values
-            width = 1000
-            height = 1000
-            rows = 3
-            line_width = 2
-
-            # calculate other values
-            row_height = height / rows
-            min_row_width = width * 2 / 3
-
-            # create image jagged array. (row width, images)
-            image_array = [[0, []]]
-            for fn in images:
+        # create image jagged array. (row width, images)
+        image_array = [[0, []]]
+        async for im in gen():
+            def process(pi):
                 # make new row if current is too large and we can make more rows
                 if image_array[-1][0] >= width:
                     if len(image_array) == rows:
-                        break
+                        return True
                     image_array.append([0, []])
 
                 # load and perform initial resize on image.
-                i = Image.open(fn)
-                scale = row_height / i.size[1]
-                i = i.resize([int(d * scale) for d in i.size], Image.ANTIALIAS)
-                i.thumbnail((width, row_height))
+                pscale = row_height / pi.size[1]
+                pi = pi.resize([int(d * pscale) for d in pi.size], Image.ANTIALIAS)
+                pi.thumbnail((width, row_height))
 
                 # add to image array
-                image_array[-1][0] += i.size[0] + (line_width if len(image_array[-1][1]) else 0)
-                image_array[-1][1].append(i)
+                image_array[-1][0] += pi.size[0] + (line_width if len(image_array[-1][1]) else 0)
+                image_array[-1][1].append(pi)
+            if await self.bot.loop.run_in_executor(None, process, im):
+                break
 
+        def fit_to_image():
             # remove last row if below minimum.
             if image_array[-1][0] < min_row_width:
                 del image_array[-1]
@@ -326,18 +314,40 @@ class Images(utils.SessionCog):
             y = 0
             for _, ims in image_array:
                 x = 0
-                for im in ims:
-                    image.paste(im, (x, y))
-                    x += im.size[0] + line_width
+                for i in ims:
+                    image.paste(i, (x, y))
+                    x += i.size[0] + line_width
                 y += ims[0].size[1] + line_width
 
+            fp = BytesIO()
             image.save(fp, 'PNG')
             fp.seek(0)
+            return fp
+        return await self.bot.loop.run_in_executor(None, fit_to_image)
+
+    @image.command(pass_context=True, name='collage', aliases=('c',))
+    async def _image_collage(self, ctx, name):
+        """Generate a collage from images in a tag."""
+        types = ('.png', '.jpg', '.jpeg')
+
+        async def gen():
+            # get list of image
+            try:
+                tags = self.bot.tag_map.get_items(name, pred=lambda i: i.image and i.image.endswith(types))[:]
+                random.shuffle(tags)
+                images = [i.image for i in tags]
+            except KeyError:
+                raise commands.BadArgument("Key not found.")
+
+            if len(images) < 5:
+                raise commands.BadArgument("Not enough images in that tag. Need at least 5 static images.")
+
+            for i in images:
+                yield Image.open(i)
 
         # processing can take a while, so we type to acknowledge the command and run it in and executor.
         await self.bot.type()
-        with BytesIO() as f:
-            await self.bot.loop.run_in_executor(None, lambda: process(f))
+        with await self.make_collage(gen) as f:
             await self.bot.upload(f, filename=f'{name}_collage.png')
 
     @commands.group(pass_context=True, invoke_without_command=True)
