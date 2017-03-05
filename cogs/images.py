@@ -200,7 +200,10 @@ class Images(utils.SessionCog):
             if r.status != 200:
                 return f'Something went wrong. Error {r.status}'
             t = await r.text()
-            ims = json.loads(t)
+            try:
+                ims = json.loads(t)
+            except json.JSONDecodeError:
+                return "API error"
             filtered = [i for i in ims if not any(f(i) for f in filters)]
 
             if len(filtered):
