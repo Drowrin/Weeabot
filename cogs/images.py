@@ -191,7 +191,10 @@ class Images(utils.SessionCog):
     async def count_booru(self, url, tags):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
-            return int(re.search(r'count="(\d+)"', await r.text()).group(1))
+            try:
+                return int(re.search(r'count="(\d+)"', await r.text()).group(1))
+            except AttributeError:
+                raise commands.BadArgument("API ERROR")
         
     async def fetch_booru_image(self, url: str, tags: str, *filters: List[Callable[[dict], bool]], count=None):
         count = count or await self.count_booru(url, tags)
