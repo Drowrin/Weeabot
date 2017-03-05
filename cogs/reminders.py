@@ -1,11 +1,12 @@
 import asyncio
-import re
 import time
 
 from datetime import timedelta
 
 import discord
 from discord.ext import commands
+
+import utils
 
 
 class Reminders:
@@ -37,19 +38,9 @@ class Reminders:
         The format for the duration uses units. For example, something like 3 hours and 20 minutes or 4m 15s.
 
         If the bot is restarted, the timing will potentially be less accurate by a few minutes."""
-        def gettime(s: str, d: str):
-            try:
-                r = re.search(r"\d[\d.]*\s*{}".format(s), d)
-                return int(re.match(r"\d+", r.group()).group())
-            except (TypeError, ValueError, AttributeError):
-                return 0
-        seconds = gettime('s', duration)
-        seconds += gettime('m', duration) * 60
-        seconds += gettime('h', duration) * 3600
-        seconds += gettime('d', duration) * 86400
-        td = timedelta(seconds=seconds)
+        td = utils.duration(duration)
         current_time = int(time.time())
-        finished = current_time + seconds
+        finished = current_time + td.seconds
         if await self.bot.confirm(f'I will remind you: "{message}" in {td}. Does this sound correct?'):
             await self.bot.affirmative()
         else:

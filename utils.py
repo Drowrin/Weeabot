@@ -3,6 +3,8 @@ import io
 import aiohttp
 import asyncio
 import random
+import re
+import datetime
 from os import path
 from os import listdir
 from discord.ext import commands
@@ -155,6 +157,21 @@ def safe(call, *exceptions):
         return call()
     except exceptions:
         return None
+
+
+def duration(dur: str) -> datetime.timedelta:
+    def gettime(s: str, d: str):
+        try:
+            r = re.search(r"\d[\d.]*\s*{}".format(s), d)
+            return int(re.match(r"\d+", r.group()).group())
+        except (TypeError, ValueError, AttributeError):
+            return 0
+
+    seconds = gettime('s', dur)
+    seconds += gettime('m', dur) * 60
+    seconds += gettime('h', dur) * 3600
+    seconds += gettime('d', dur) * 86400
+    return timedelta(seconds=seconds)
 
 
 tokens = open_json('tokens.json')
