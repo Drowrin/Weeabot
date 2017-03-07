@@ -392,6 +392,8 @@ class RequestSystem:
         if oor:
             await self.bot.say(utils.str_limit(f'Out of range: {oor}', 2000))
 
+        rs = [rs[i] for i in indexes if i not in oor]
+
         await self.send_req_status(rs, 'denied')
 
         self.remove_from_serv(server, rs)
