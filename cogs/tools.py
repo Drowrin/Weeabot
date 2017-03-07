@@ -1,5 +1,6 @@
 import traceback
 import inspect
+import copy
 import json
 import dateutil.parser
 
@@ -171,6 +172,15 @@ class Tools(utils.SessionCog):
         self.bot.server_configs[ctx.message.server.id]['moderator_role'] = role.id
         self.bot.dump_server_configs()
         await self.bot.affirmative()
+
+    @commands.command(pass_context=True, name='as')
+    @checks.is_trusted()
+    async def _as_user(self, ctx, user: discord.Member, *, command):
+        """Run a command as another member."""
+        m = copy.copy(ctx.message)
+        m.author = user
+        m.content = command
+        await self.bot.process_commands(m)
 
 
 def setup(bot):
