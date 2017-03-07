@@ -399,14 +399,14 @@ class Images(utils.SessionCog):
         return await self.bot.loop.run_in_executor(None, fit_to_image)
 
     @image.command(pass_context=True, name='collage', aliases=('c',))
-    async def _image_collage(self, ctx, name):
+    async def _image_collage(self, ctx, *names):
         """Generate a collage from images in a tag."""
         types = ('.png', '.jpg', '.jpeg')
 
         async def gen():
             # get list of image
             try:
-                tags = self.bot.tag_map.get_items(name, pred=lambda i: i.image and i.image.endswith(types))[:]
+                tags = self.bot.tag_map.get_items(*names, pred=lambda i: i.image and i.image.endswith(types))[:]
                 random.shuffle(tags)
                 images = [i.image for i in tags]
             except KeyError:
@@ -421,7 +421,7 @@ class Images(utils.SessionCog):
         # processing can take a while, so we type to acknowledge the command and run it in and executor.
         await self.bot.type()
         with await self.make_collage(gen) as f:
-            await self.bot.upload(f, filename=f'{name}_collage.png')
+            await self.bot.upload(f, filename=f'{"_".join(names)}_collage.png')
 
     @commands.group(pass_context=True, invoke_without_command=True)
     async def meme(self, ctx, name: str, *, c: str=""):
