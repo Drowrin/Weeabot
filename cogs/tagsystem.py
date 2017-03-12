@@ -101,9 +101,16 @@ class TagItem:
         self.timestamp = timestamp
         self.tags = tags
         self.text = text
-        self.image = image
+        if isinstance(image, str):
+            self.image_path = re.split(r'\\|/', image)
+        else:
+            self.image_path = image
         self.location = location
         self.method = method
+
+    @property
+    def image(self):
+        return os.path.join(*self.image_path)
 
     def as_json(self):
         """json safe value."""
@@ -113,7 +120,7 @@ class TagItem:
             "timestamp": self.timestamp,
             "tags": self.tags,
             "text": self.text,
-            "image": self.image,
+            "image": self.image_path,
             "location": self.location,
             "method": self.method
         }
