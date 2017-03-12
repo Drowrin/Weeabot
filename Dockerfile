@@ -8,10 +8,14 @@ RUN apt-get update \
     && apt-get install libopus-dev -y \
     && apt-get install libffi-dev -y
 
+
+ADD . /weeabot
+WORKDIR /weeabot
+
 RUN python3.6 -m pip install -r requirements.txt
 
-VOLUME /status
-VOLUME /config
-VOLUME /images
+VOLUME /weeabot/status
+VOLUME /weeabot/config
+VOLUME /weeabot/images
 
 CMD python3.6 Weeabot.py
