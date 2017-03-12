@@ -113,11 +113,11 @@ class Conversation:
 
         self.sessions = {}
 
-        self.can_chat = False
+        self.chatname = 'Weeabot'
+        self.chatbot = None
 
         def make_chatterbot():
             try:
-                self.chatname = 'Weeabot'
                 self.chatbot = AsyncChatBot(
                     bot.loop,
                     self.chatname,
@@ -139,12 +139,11 @@ class Conversation:
             except ServerSelectionTimeoutError:
                 print('Could not connect to mongodb. Conversation is disabled.')
             else:
-                self.can_chat = True
                 print('Mongodb connected. Conversation is enabled.')
         self.bot.loop.run_in_executor(None, make_chatterbot)
 
     async def on_message(self, message):
-        if self.can_chat:
+        if self.chatbot:
             if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
                 return
 
