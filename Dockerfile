@@ -2,18 +2,18 @@ FROM ubuntu:16.10
 
 LABEL maintainer "https://github.com/Drowrin/Weeabot"
 
-RUN sudo apt-get update \
-    && sudo apt-get install python3.6 python3.6-dev python3-pip -y \
-    && sudo apt-get install ffmpeg -y \
-    && sudo apt-get install libopus-dev -y \
-    && sudo apt-get install libffi-dev -y
+RUN apt-get update \
+    && apt-get install python3.6 python3.6-dev python3-pip -y \
+    && apt-get install ffmpeg -y \
+    && apt-get install libopus-dev -y \
+    && apt-get install libffi-dev -y \
+    && apt-get install mongodb-org -y
 
-ADD . /weeabot
-WORKDIR /weeabot
+RUN python3.6 -m pip install -r requirements.
 
-RUN sudo python3.6 -m pip install -r requirements.
-
-VOLUME /weeabot/status
-VOLUME /weeabot/config
+VOLUME /status
+VOLUME /config
+VOLUME /images
+VOLUME /mongodb
 
 CMD python3.6 Weeabot.py
