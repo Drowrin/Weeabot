@@ -110,7 +110,7 @@ class TagItem:
 
     @property
     def image(self):
-        return os.path.join(*self.image_path)
+        return self.image_path and os.path.join(*self.image_path)
 
     def as_json(self):
         """json safe value."""
