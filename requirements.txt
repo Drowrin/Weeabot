@@ -4,3 +4,4 @@ Pillow
 cleverbot
 chatterbot
 python-dateutil
+xmltodict
