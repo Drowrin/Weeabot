@@ -1,14 +1,13 @@
 import random
 import asyncio
 import re
-import subprocess
 import requests
 
 from chatterbot import ChatBot
-from chatterbot import adapters
 from chatterbot import logic
 from chatterbot.conversation import Statement
 from chatterbot import trainers
+from pymongo.errors import ServerSelectionTimeoutError
 
 from discord.ext import commands
 
@@ -114,55 +113,57 @@ class Conversation:
 
         self.sessions = {}
 
-        self.chatname = 'Weeabot'
-        self.chatbot = AsyncChatBot(
-            bot.loop,
-            self.chatname,
+        try:
+            self.chatname = 'Weeabot'
+            self.chatbot = AsyncChatBot(
+                bot.loop,
+                self.chatname,
 
-            storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
+                storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
 
-            logic_adapters=[
-                "cogs.conversation.ThanksLogicAdapter",
-                "cogs.conversation.TagLogicAdapter",
-                "chatterbot.logic.BestMatch",
-                "chatterbot.logic.MathematicalEvaluation",
-                {
-                    "import_path": "cogs.conversation.CleverCacheLogicAdapter",
-                    "api_key": utils.tokens["cleverbot_api_key"],
-                    "threshold": .7
-                }
-            ]
-        )
-
-    def __unload(self):
-        print("killing mongodb...")
-        self.mongo_process.kill()
+                logic_adapters=[
+                    "cogs.conversation.ThanksLogicAdapter",
+                    "cogs.conversation.TagLogicAdapter",
+                    "chatterbot.logic.BestMatch",
+                    "chatterbot.logic.MathematicalEvaluation",
+                    {
+                        "import_path": "cogs.conversation.CleverCacheLogicAdapter",
+                        "api_key": utils.tokens["cleverbot_api_key"],
+                        "threshold": .7
+                    }
+                ]
+            )
+        except ServerSelectionTimeoutError:
+            self.can_chat = False
+        else:
+            self.can_chat = True
 
     async def on_message(self, message):
-        if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
-            return
+        if self.can_chat:
+            if message.author.bot or utils.is_command_of(self.bot, message) or message.channel.is_private:
+                return
 
-        if message.server.me in message.mentions:
-            await self.bot.send_typing(message.channel)
+            if message.server.me in message.mentions:
+                await self.bot.send_typing(message.channel)
 
-            # clean the contents for best results
-            s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
-            if s.startswith(self.chatname):  # remove name at start
-                s = s[len(self.chatname)+1:]
-            for r in re.findall(r"(<:(.+):\d+>)", s):  # replace emoji with names
-                s = s.replace(*r)
+                # clean the contents for best results
+                s = message.clean_content.replace('@', '').replace(message.server.me.display_name, self.chatname)
+                if s.startswith(self.chatname):  # remove name at start
+                    s = s[len(self.chatname)+1:]
+                for r in re.findall(r"(<:(.+):\d+>)", s):  # replace emoji with names
+                    s = s.replace(*r)
 
-            if message.author.id not in self.sessions:
-                self.sessions[message.author.id] = self.chatbot.conversation_sessions.new()
+                if message.author.id not in self.sessions:
+                    self.sessions[message.author.id] = self.chatbot.conversation_sessions.new()
 
-            c = await self.chatbot.async_get_response(s, self.sessions[message.author.id].id_string)
+                c = await self.chatbot.async_get_response(s, self.sessions[message.author.id].id_string)
 
-            if 'command' in c.extra_data:
-                message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
-                await self.bot.process_commands(message)
-            else:
-                response = c.text.replace(self.chatname, message.server.me.display_name)
-                await self.bot.send_message(message.channel, f"{message.author.mention} {response}")
+                if 'command' in c.extra_data:
+                    message.content = f'{self.bot.command_prefix}{c.extra_data["command"]}'
+                    await self.bot.process_commands(message)
+                else:
+                    response = c.text.replace(self.chatname, message.server.me.display_name)
+                    await self.bot.send_message(message.channel, f"{message.author.mention} {response}")
 
     @commands.group(pass_context=True, invoke_without_command=True)
     @checks.is_owner()
