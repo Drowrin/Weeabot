@@ -113,30 +113,35 @@ class Conversation:
 
         self.sessions = {}
 
-        try:
-            self.chatname = 'Weeabot'
-            self.chatbot = AsyncChatBot(
-                bot.loop,
-                self.chatname,
+        self.can_chat = False
 
-                storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
+        def make_chatterbot():
+            try:
+                self.chatname = 'Weeabot'
+                self.chatbot = AsyncChatBot(
+                    bot.loop,
+                    self.chatname,
 
-                logic_adapters=[
-                    "cogs.conversation.ThanksLogicAdapter",
-                    "cogs.conversation.TagLogicAdapter",
-                    "chatterbot.logic.BestMatch",
-                    "chatterbot.logic.MathematicalEvaluation",
-                    {
-                        "import_path": "cogs.conversation.CleverCacheLogicAdapter",
-                        "api_key": utils.tokens["cleverbot_api_key"],
-                        "threshold": .7
-                    }
-                ]
-            )
-        except ServerSelectionTimeoutError:
-            self.can_chat = False
-        else:
-            self.can_chat = True
+                    storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
+
+                    logic_adapters=[
+                        "cogs.conversation.ThanksLogicAdapter",
+                        "cogs.conversation.TagLogicAdapter",
+                        "chatterbot.logic.BestMatch",
+                        "chatterbot.logic.MathematicalEvaluation",
+                        {
+                            "import_path": "cogs.conversation.CleverCacheLogicAdapter",
+                            "api_key": utils.tokens["cleverbot_api_key"],
+                            "threshold": .7
+                        }
+                    ]
+                )
+            except ServerSelectionTimeoutError:
+                print('Could not connect to mongodb. Conversation is disabled.')
+            else:
+                self.can_chat = True
+                print('Mongodb connected. Conversation is enabled.')
+        self.bot.loop.run_in_executor(None, make_chatterbot)
 
     async def on_message(self, message):
         if self.can_chat:
