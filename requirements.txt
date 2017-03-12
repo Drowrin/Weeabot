@@ -3,3 +3,4 @@ pyimgur
 Pillow
 cleverbot
 chatterbot
+dateutil
