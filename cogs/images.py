@@ -40,7 +40,7 @@ class Images(utils.SessionCog):
     async def baka_image(self, ctx, t: str):
         t = t[:7] + '...' if len(t) > 10 else t
         i = 'you idiot...'
-        f = ImageFont.truetype("ZinPenKeba-R.otf", 12)
+        f = ImageFont.truetype(path.join("config", "ZinPenKeba-R.otf"), 12)
         im = Image.open(path.join('images', 'collections', 'pout', 'baka.png'))
         d = ImageDraw.Draw(im)
         tw, th = d.textsize(t, f)
