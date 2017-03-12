@@ -114,9 +114,6 @@ class Conversation:
 
         self.sessions = {}
 
-        mongo = utils.tokens['mongo']
-        self.mongo_process = subprocess.Popen(['mongod.exe'] + mongo['args'], executable=mongo['command'], stdout=subprocess.DEVNULL)
-
         self.chatname = 'Weeabot'
         self.chatbot = AsyncChatBot(
             bot.loop,

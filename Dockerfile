@@ -6,8 +6,7 @@ RUN apt-get update \
     && apt-get install python3.6 python3.6-dev python3-pip -y \
     && apt-get install ffmpeg -y \
     && apt-get install libopus-dev -y \
-    && apt-get install libffi-dev -y \
-    && apt-get install mongodb-org -y
+    && apt-get install libffi-dev -y
 
 RUN python3.6 -m pip install -r requirements.txt
 
