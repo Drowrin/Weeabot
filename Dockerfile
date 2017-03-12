@@ -13,6 +13,5 @@ RUN python3.6 -m pip install -r requirements.txt
 VOLUME /status
 VOLUME /config
 VOLUME /images
-VOLUME /mongodb
 
 CMD python3.6 Weeabot.py
