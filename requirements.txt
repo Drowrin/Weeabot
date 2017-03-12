@@ -5,3 +5,5 @@ cleverbot
 chatterbot
 python-dateutil
 xmltodict
+beautifulsoup4
+python-twitter
