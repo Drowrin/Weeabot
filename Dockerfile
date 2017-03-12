@@ -9,7 +9,7 @@ RUN apt-get update \
     && apt-get install libffi-dev -y \
     && apt-get install mongodb-org -y
 
-RUN python3.6 -m pip install -r requirements.
+RUN python3.6 -m pip install -r requirements.txt
 
 VOLUME /status
 VOLUME /config
