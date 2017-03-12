@@ -1,4 +1,5 @@
 import json
+import os
 
 import discord
 from discord.ext import commands
@@ -92,11 +93,11 @@ class Polls:
 
     def __init__(self, bot):
         self.bot = bot
-        raw_polls = utils.open_json('polls.json')
+        raw_polls = utils.open_json(os.path.join('status', 'polls.json'))
         self.polls = {k: Poll(**raw_polls[k], bot=self.bot, poll_id=k) for k in raw_polls}
 
     def dump(self):
-        with open('polls.json', 'w') as f:
+        with open(os.path.join('status', 'polls.json'), 'w') as f:
             json.dump({k: self.polls[k].dump() for k in self.polls}, f, ensure_ascii=True)
 
     async def update_polls(self, poll_server: str):

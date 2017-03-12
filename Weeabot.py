@@ -29,13 +29,13 @@ class Weeabot(commands.Bot):
             kwargs['description'] = "Weeabot"
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
-        self.trusted = utils.open_json('trusted.json')
-        self.config = utils.Config('config.json')
-        self.content = utils.Config('content.json')
+        self.trusted = utils.open_json(os.path.join('config', 'trusted.json'))
+        self.config = utils.Config(os.path.join('config', 'config.json'))
+        self.content = utils.content
         self.stats = defaultdict(dict)
-        self.stats.update(utils.open_json('stats.json'))
-        self.server_configs = utils.open_json('servers.json')
-        self.status = utils.open_json('status.json')
+        self.stats.update(utils.open_json(os.path.join('status', 'stats.json')))
+        self.server_configs = utils.open_json(os.path.join('status', 'servers.json'))
+        self.status = utils.open_json(os.path.join('status', 'status.json'))
         self.imgur = pyimgur.Imgur(utils.tokens['imgur_token'], utils.tokens["imgur_secret"])
         self.services = {}
         self.formatters = {}
@@ -46,15 +46,15 @@ class Weeabot(commands.Bot):
         self.react_listeners = {}
 
     def dump_server_configs(self):
-        with open('servers.json', 'w') as f:
+        with open(os.path.join('status', 'servers.json'), 'w') as f:
             json.dump(self.server_configs, f, ensure_ascii=True)
 
     def dump_status(self):
-        with open('status.json', 'w') as f:
+        with open(os.path.join('status', 'status.json'), 'w') as f:
             json.dump(self.status, f, ensure_ascii=True)
 
     def dump_stats(self):
-        with open('stats.json', 'w') as f:
+        with open(os.path.join('status', 'stats.json'), 'w') as f:
             json.dump(self.stats, f, ensure_ascii=True)
     
     @property

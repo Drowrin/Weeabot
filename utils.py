@@ -174,5 +174,5 @@ def duration(dur: str) -> datetime.timedelta:
     return timedelta(seconds=seconds)
 
 
-tokens = open_json('tokens.json')
-content = Config('content.json')
+tokens = open_json(path.join('config', 'tokens.json'))
+content = Config(path.join('config', 'content.json'))

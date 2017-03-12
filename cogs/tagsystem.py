@@ -141,10 +141,10 @@ class TagMap:
     Unlike a map, the structure is intended for getting 'an item, any item' matching a description.
     Since it is sometimes necessary to remove or edit items, they can still be accessed by unique indexes."""
 
-    def __init__(self, bot: commands.Bot, json_path: str='tag_database.json'):
+    def __init__(self, bot: commands.Bot, json_path: str=None):
         """Construct a TagMap from a json file specified by path."""
         self.bot = bot
-        self.path = json_path
+        self.path = json_path or os.path.join('status', 'tag_database.json')
         json_data = utils.open_json(self.path) or {"tags": {}, "items": []}
         self._tags = defaultdict(list)
         self._tags.update(json_data["tags"])

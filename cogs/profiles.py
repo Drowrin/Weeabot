@@ -1,4 +1,5 @@
 import operator
+import os
 import json
 import inspect
 
@@ -61,7 +62,7 @@ class Profile(utils.SessionCog):
 
     def __init__(self, bot):
         super(Profile, self).__init__(bot)
-        self.path = 'profiles.json'
+        self.path = os.path.join('status', 'profiles.json')
         try:
             with open(self.path, 'r') as f:
                 self._db = json.load(f)

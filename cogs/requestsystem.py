@@ -1,5 +1,6 @@
 import copy
 import pickle
+import os
 
 import typing
 
@@ -171,7 +172,7 @@ class RequestSystem:
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.path = 'requests.pkl'
+        self.path = os.path.join('status', 'requests.pkl')
         try:
             with open(self.path, 'rb') as f:
                 self.requests = pickle.load(f)
