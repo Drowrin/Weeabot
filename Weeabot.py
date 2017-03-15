@@ -27,10 +27,12 @@ class Weeabot(commands.Bot):
     def __init__(self, *args, **kwargs):
         if 'description' not in kwargs:
             kwargs['description'] = "Weeabot"
+        self.config = utils.Config(os.path.join('config', 'config.json'))
+        if 'command_prefix' not in kwargs:
+            kwargs['command_prefix'] = self.config.prefix
         super(Weeabot, self).__init__(*args, **kwargs)
         self.owner = None  # set in on_ready
         self.trusted = utils.open_json(os.path.join('config', 'trusted.json'))
-        self.config = utils.Config(os.path.join('config', 'config.json'))
         self.content = utils.content
         self.stats = defaultdict(dict)
         self.stats.update(utils.open_json(os.path.join('status', 'stats.json')))
@@ -205,7 +207,7 @@ class Weeabot(commands.Bot):
         return s.owner == u or self.server_configs[s.id].get('moderator_role', None) in [r.id for r in u.roles]
 
 
-bot = Weeabot(command_prefix='~')
+bot = Weeabot()
 
 
 @bot.event
