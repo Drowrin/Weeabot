@@ -33,8 +33,12 @@ class Twitch(utils.SessionCog):
 
     def __init__(self, bot: Weeabot):
         super(Twitch, self).__init__(bot)
-        self.loop = None
-        self.ws = None
+        self._ws = None
+        self.reconnect = False
+        self.next_connect = datetime.now()
+        self.connecting = asyncio.Lock()
+        self.listeners = []
+        self.tasks = []
         self.updateloop()
         self.services = {
             "Twitch": f"""Create a channel named 'twitch-streams' to get notifications when server members go live.
@@ -43,25 +47,31 @@ class Twitch(utils.SessionCog):
 
     @property
     def channels(self):
-        return [c for c in [self.get_channel(s) for s in self.bot.servers] if c is not None]
-
-    def get_channel(self, server: discord.Server):
-        try:
-            return server.get_channel(self.bot.server_configs[server.id]['twitch_channel'])
-        except KeyError:
-            return None
+        return [
+            c for c in
+            [
+                s.get_channel(
+                    self.bot.server_configs[s.id].get('twitch_channel')
+                )
+                for s in self.bot.servers
+            ]
+            if c is not None
+        ]
 
     def __unload(self):
         self.stoploop()
     
     def startloop(self):
-        if self.loop is None:
-            self.loop = self.bot.loop.create_task(self.getstreams())
+        if len(self.tasks) == 0:
+            self.tasks.append(self.bot.loop.create_task(self.dispatcher()))
+            self.tasks.append(self.bot.loop.create_task(self.heartbeat()))
+            self.tasks.append(self.bot.loop.create_task(self.getstreams()))
     
     def stoploop(self):
-        if self.loop is not None:
-            self.loop.cancel()
-        self.loop = None
+        for t in self.tasks:
+            t.cancel()
+        self.tasks = []
+        self.reconnect = True
     
     def updateloop(self):
         if len(self.channels):
@@ -118,20 +128,6 @@ class Twitch(utils.SessionCog):
             for u, p in self.bot.profiles.all().items()
             if 'twitch' in p
         }
-
-    async def twitch_listen(self):
-        # subscribe to channels
-        await self.ws.send(json.dumps({
-            'type': 'LISTEN',
-            'nonce': f'Weeabot{random.randrange(200,300)}',
-            'data': {
-                'topics': [f'video-playback.{tname.lower()}' for tname in self.t_users().keys()]
-            }
-        }))
-
-        # wait for response and handle errors
-        r = json.loads(await self.ws.recv())
-        return r['error']
 
     async def update_stream(self, messages, did, tid):
         headers = {"accept": "application:vnd.twitchtv.v5+json", "Client-ID": utils.tokens['twitch_id']}
@@ -190,41 +186,97 @@ class Twitch(utils.SessionCog):
         except:
             traceback.print_exc()
 
-    async def wait_for_event(self):
-        last_ping = datetime.now() - timedelta(seconds=28)
+    async def connect(self):
+        if datetime.now() < self.next_connect:
+            sleep = (self.next_connect - datetime.now()).seconds
+            print(sleep)
+            await asyncio.sleep(sleep)
+        self.next_connect = datetime.now() + timedelta(seconds=120)
+        print('connecting to twitch...')
+        ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
+
+        await ws.send(json.dumps({
+            'type': 'LISTEN',
+            'nonce': f'Weeabot{random.randrange(200,300)}',
+            'data': {
+                'topics': [f'video-playback.{tname.lower()}' for tname in self.t_users().keys()]
+            }
+        }))
+
+        # wait for response and handle errors
+        r = json.loads(await ws.recv())
+        print(r)
+        if r['error']:
+            print(f'error subscribing: {r["error"]}')
+            self.stoploop()
+        return ws
+
+    async def get_ws(self):
+        if self.reconnect:
+            print('attempting reconnect')
+            await self._ws.close()
+            self._ws = None
+            self.reconnect = False
+        await self.connecting.acquire()
+        if self._ws is None:
+            self._ws = await self.connect()
+        self.connecting.release()
+        return self._ws
+
+    async def recv(self, *args, **kwargs):
+        ws = await self.get_ws()
+        return await ws.recv(*args, **kwargs)
+
+    async def send(self, *args, **kwargs):
+        ws = await self.get_ws()
+        return await ws.send(*args, **kwargs)
+
+    async def dispatcher(self):
         while not self.bot.is_closed:
-            # heartbeat
-            if last_ping - datetime.now() > timedelta(seconds=270):
-                # initiate heartbeat
-                await self.ws.send(json.dumps({"type": "PING"}))
+            r = json.loads(await self.recv())
+            self.dispatch(r)
 
-                # check heartbeat
-                try:
-                    ret = json.loads(await asyncio.wait_for(self.ws.recv(), 10))
-                    if not ret['type'] == 'PONG':
-                        yield ret
-                except asyncio.TimeoutError:
-                    print("twitch heartbeat failed. Reconnecting.")
-                    self.ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
+    def dispatch(self, r):
+        t = r['type']
+        print(f'Twitch event received: {r}')
 
-                last_ping = datetime.now()
-
-            # wait for other events between heartbeats
-            try:
-                yield json.loads(await asyncio.wait_for(self.ws.recv(), 280))
-            except asyncio.TimeoutError:
-                pass  # go back to heartbeat
-
-    async def getstreams(self):
-        self.ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
-
-        if await self.twitch_listen():
-            print('Failed to subscribe.')
+        # special reconnect case
+        if t == 'RECONNECT':
+            self.reconnect = True
             return
 
-        async for r in self.wait_for_event():
+        removed = []
+        li = [l for l in self.listeners if t in l[1]]
+        for l in li:
+            removed.append(l)
+            l[0].set_result(r)
+
+        self.listeners = [l for l in self.listeners if l not in removed]
+
+    async def heartbeat(self):
+        while not self.bot.is_closed:
+            # initiate heartbeat
+            await self.send(json.dumps({"type": "PING"}))
+
+            # wait for response or time out
             try:
-                print(f'Twitch event received: {r}')
+                await self.wait_for_event("PONG", timeout=10)
+            except asyncio.TimeoutError:
+                print('PONG timeout')
+                self.reconnect = True
+            else:
+                await asyncio.sleep(240)
+
+    def wait_for_event(self, *events, timeout=None):
+        f = self.bot.loop.create_future()
+        self.listeners.append((f, events))
+
+        return asyncio.wait_for(f, timeout, loop=self.bot.loop)
+
+    async def getstreams(self):
+        while not self.bot.is_closed:
+            try:
+                r = await self.wait_for_event("MESSAGE")
                 name = r['data']['topic'].split('.')[1]
                 message = json.loads(r['data']['message'])
 
@@ -251,8 +303,6 @@ class Twitch(utils.SessionCog):
                     self.bot.loop.create_task(self.update_stream(messages, did, tid))
             except:
                 traceback.print_exc()
-
-        self.ws.close()
 
 
 def setup(bot):
