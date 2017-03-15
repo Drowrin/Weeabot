@@ -608,7 +608,7 @@ class TagMap:
             return
         await self.get_by_id(item_id).run(ctx)
 
-    @tag.command(pass_context=True, name='tagmethod')
+    @tag.command(pass_context=True, name='method')
     @request()
     async def _tagmethod(self, ctx, item_id: int, method: str):
         """Set the method a tag uses."""
