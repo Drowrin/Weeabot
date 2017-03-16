@@ -105,7 +105,7 @@ class Twitch(utils.SessionCog):
                     'name': twitch_username.lower(),
                     'id': chan['_id']
                 })
-                await self.twitch_listen()
+                await self.send_listen()
                 await self.bot.affirmative()
 
     @commands.command(pass_context=True)
@@ -186,15 +186,9 @@ class Twitch(utils.SessionCog):
         except:
             traceback.print_exc()
 
-    async def connect(self):
-        if datetime.now() < self.next_connect:
-            sleep = (self.next_connect - datetime.now()).seconds
-            print(sleep)
-            await asyncio.sleep(sleep)
-        self.next_connect = datetime.now() + timedelta(seconds=120)
-        print('connecting to twitch...')
-        ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
-
+    async def send_listen(self, ws=None):
+        if ws is None:
+            ws = await self.get_ws()
         await ws.send(json.dumps({
             'type': 'LISTEN',
             'nonce': f'Weeabot{random.randrange(200,300)}',
@@ -205,9 +199,20 @@ class Twitch(utils.SessionCog):
 
         # wait for response and handle errors
         r = json.loads(await ws.recv())
-        print(r)
         if r['error']:
             print(f'error subscribing: {r["error"]}')
+            return r['error']
+
+    async def connect(self):
+        if datetime.now() < self.next_connect:
+            sleep = (self.next_connect - datetime.now()).seconds
+            print(sleep)
+            await asyncio.sleep(sleep)
+        self.next_connect = datetime.now() + timedelta(seconds=120)
+        print('connecting to twitch...')
+        ws = await websockets.connect('wss://pubsub-edge.twitch.tv')
+
+        if await self.send_listen(ws):
             self.stoploop()
         return ws
 
