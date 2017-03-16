@@ -122,7 +122,7 @@ class Conversation:
                     bot.loop,
                     self.chatname,
 
-                    storage_adapter="chatterbot.storage.MongoDatabaseAdapter",
+                    storage_adapter=self.bot.config.chatterbot,
 
                     logic_adapters=[
                         "cogs.conversation.ThanksLogicAdapter",
