@@ -15,6 +15,8 @@ WORKDIR /weeabot
 
 RUN python3.6 -m pip install -r requirements.txt
 
+RUN python3.6 -m pip install -U https://github.com/gunthercox/ChatterBot/archive/master.zip#egg=ChatterBot
+
 VOLUME /weeabot/status
 VOLUME /weeabot/config
 VOLUME /weeabot/images
