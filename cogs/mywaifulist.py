@@ -119,8 +119,45 @@ class WaifuData(object):
         await ctx.bot.send_message(ctx.message.channel, self.message, embed=self.embed)
 
 
+class WaifuList(object):
+    """data structure representing a user list from mywaifulist.moe"""
+
+    __slots__ = ('likes', 'trash')
+
+    @staticmethod
+    async def from_id(i, session, **data):
+        return await WaifuList.from_link(f"{base_url}/user/{i}", session, **data)
+
+    @staticmethod
+    async def from_link(url, session, **data):
+        async with session.get(url) as r:
+            return WaifuList.from_html(await r.text(), **data)
+
+    @staticmethod
+    def from_html(html, **data):
+        soup = bs4.BeautifulSoup(html, "html.parser")
+
+        data['likes'] = [w['href'].split('/')[-1] for w in soup.select('#liked .row-fluid .waifu-card-title a')]
+        data['trash'] = [w['href'].split('/')[-1] for w in soup.select('#trash .row-fluid .waifu-card-title a')]
+
+        return WaifuList(**data)
+
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            try:
+                setattr(self, k, v)
+            except AttributeError:
+                print(f"Warning: {k} was passed but not expected.")
+
+    def __repr__(self):
+        return f"<WaifuList with {len(self.likes)} likes and {len(self.trash)} trash>"
+
+
 class MyWaifuList(utils.SessionCog):
     """Commands for mywaifulist.moe"""
+
+    async def get_user(self, i):
+        return await WaifuList.from_id(i, self.session)
 
     async def loose_search(self, term) -> list:
         return await self.search(re.split(r'[ -]', term)[0])
