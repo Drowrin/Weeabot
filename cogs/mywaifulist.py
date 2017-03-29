@@ -61,6 +61,9 @@ class WaifuData(object):
             except AttributeError:
                 print(f"Warning: {k} was passed but not expected.")
 
+    def __repr__(self):
+        return f"<WaifuData {self.name}>"
+
     @property
     def details(self) -> dict:
         return {
