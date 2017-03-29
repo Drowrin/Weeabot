@@ -211,11 +211,7 @@ class MyWaifuList(utils.SessionCog):
         await self.bot.profiles.put_by_id(user.id, 'mwl', user_id)
         await self.bot.affirmative()
 
-    @waifu.command(pass_context=True, aliases=('fite',))
-    @checks.profiles()
-    async def fight(self, ctx, user2: discord.Member):
-        """Waifu wars"""
-        user1 = ctx.message.author
+    async def compare_lists(self, user1, user2, selector):
         tmp = await self.bot.say(f"Getting MWL information for {user1.display_name} and {user2.display_name}...")
         p1 = self.bot.profiles.get_by_id(user1.id)
         if 'mwl' not in p1:
@@ -225,11 +221,11 @@ class MyWaifuList(utils.SessionCog):
         if 'mwl' not in p2:
             raise commands.BadArgument(f"No MWL info saved for {user2.display_name}")
         list2 = await self.get_user(p2['mwl'])
-        disagree = [s for s in list1.likes if s in list2.trash] + [s for s in list2.likes if s in list1.trash]
-        if len(disagree) == 0:
+        selected = selector(list1, list2)
+        if len(selected) == 0:
             await self.bot.edit_message(tmp, "No disagreements.")
             return
-        chosen = random.choice(disagree)
+        chosen = random.choice(selected)
         rating1 = '💜' if chosen in list1.likes else '🗑'
         rating2 = '💜' if chosen in list2.likes else '🗑'
         await self.bot.edit_message(
@@ -237,6 +233,38 @@ class MyWaifuList(utils.SessionCog):
             f"{rating1} {user1.display_name} | {user2.display_name} {rating2}",
             embed=(await self.get_waifu(chosen)).embed
         )
+
+    @waifu.command(pass_context=True, aliases=('fite',))
+    @checks.profiles()
+    async def fight(self, ctx, user2: discord.Member):
+        """Waifu wars"""
+        user1 = ctx.message.author
+
+        def selector(list1, list2):
+            return [s for s in list1.likes if s in list2.trash] + [s for s in list2.likes if s in list1.trash]
+        await self.compare_lists(user1, user2, selector)
+
+    @waifu.command(pass_context=True, aliases=('concur',))
+    @checks.profiles()
+    async def agree(self, ctx, user2: discord.Member):
+        """Waifu hugs"""
+        user1 = ctx.message.author
+
+        def selector(list1, list2):
+            return [s for s in list1.likes if s in list2.likes]
+
+        await self.compare_lists(user1, user2, selector)
+
+    @waifu.command(pass_context=True, aliases=('discussion', 'conversation', 'analysis'))
+    @checks.profiles()
+    async def discuss(self, ctx, user2: discord.Member):
+        """Waifu analysis 🤔"""
+        user1 = ctx.message.author
+
+        def selector(list1, list2):
+            return [s for s in (list1.likes + list1.trash) if s in (list2.likes + list2.trash)]
+
+        await self.compare_lists(user1, user2, selector)
 
     @waifu.command(pass_context=True)
     async def details(self, ctx, *, slug_or_name):
