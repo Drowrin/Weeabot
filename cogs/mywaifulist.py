@@ -108,7 +108,7 @@ class WaifuData(object):
                     "".join([
                         f"{k:>{len(max(self.details.keys(), key=len))}}|{v:<{len(max(self.details.values(), key=len))+2}}"
                         for k, v in i
-                    ])
+                    ]).rstrip(' ')
                     for i in utils.even_split(self.details.items(), 2)
                 ])))
             )
