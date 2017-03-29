@@ -1,8 +1,6 @@
 import re
-import aiohttp
 import json
 from difflib import SequenceMatcher
-import traceback
 
 import bs4
 
@@ -159,8 +157,17 @@ class WaifuList(object):
         return f"<WaifuList with {len(self.likes)} likes and {len(self.trash)} trash>"
 
 
+def waifu_formatter(field):
+    return {
+        'name': 'MyWaifuList',
+        'content': f"[profile]({base_url}/user/{field})"
+    }
+
+
 class MyWaifuList(utils.SessionCog):
     """Commands for mywaifulist.moe"""
+
+    formatters = {'mwl_inline': waifu_formatter}
 
     async def get_user(self, i):
         return await WaifuList.from_id(i, self.session)
@@ -195,10 +202,13 @@ class MyWaifuList(utils.SessionCog):
     async def waifu(self):
         """waifu commands"""
 
-    @waifu.command(pass_context=True, name="add")
+    @waifu.command(pass_context=True, name="add_list", aliases=('addlist',))
     @checks.profiles()
-    async def _add(self, ctx, id):
-        pass
+    async def _add_list(self, ctx, user_id, user: discord.Member=None):
+        await self.get_user(user_id)  # ensure valid list
+        user = user or ctx.message.author
+        await self.bot.profiles.put_by_id(user.id, 'mwl', user_id)
+        await self.bot.affirmative()
 
     @waifu.command(pass_context=True)
     async def details(self, ctx, *, slug_or_name):
