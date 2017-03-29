@@ -59,7 +59,7 @@ class WaifuData(object):
             try:
                 setattr(self, k, v)
             except AttributeError:
-                print(f"Warning: {k} was passed but not expected.")
+                print(f"Warning: {k}({v}) was passed but not expected.")
 
     def __repr__(self):
         return f"<WaifuData {self.name}>"
@@ -150,7 +150,7 @@ class WaifuList(object):
             try:
                 setattr(self, k, v)
             except AttributeError:
-                print(f"Warning: {k} was passed but not expected.")
+                print(f"Warning: {k}({v}) was passed but not expected.")
 
     def __repr__(self):
         return f"<WaifuList with {len(self.likes)} likes and {len(self.trash)} trash>"
