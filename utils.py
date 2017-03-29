@@ -126,6 +126,11 @@ def partition(l, hashf):
     return list(d.values())
 
 
+def even_split(l, max_size):
+    for i in range(0, len(l), max_size):
+        yield list(l)[i:i+max_size]
+
+
 def full_id(message):
     if message.channel.is_private:
         return f'P{message.channel.id}{message.id}'
