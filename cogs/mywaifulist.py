@@ -103,13 +103,13 @@ class WaifuData(object):
         if self.details:
             e.add_field(
                 name="Details",
-                value="```{}```".format(""'\n'.join([
+                value="```{}```".format(utils.remove_leading_space('\n'.join([
                     "".join([
-                        f"{k:>{len(max(self.details.keys(), key=len))}}|{v:<{len(max(self.details.values(), key=len))+4}}"
+                        f"{k:>{len(max(self.details.keys(), key=len))}}|{v:<{len(max(self.details.values(), key=len))+2}}"
                         for k, v in i
                     ])
                     for i in utils.even_split(self.details.items(), 2)
-                ]))
+                ])))
             )
 
         return e

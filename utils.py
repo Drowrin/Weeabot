@@ -1,6 +1,7 @@
 import json
 import io
 import aiohttp
+import itertools
 import asyncio
 import random
 import re
@@ -129,6 +130,12 @@ def partition(l, hashf):
 def even_split(l, max_size):
     for i in range(0, len(l), max_size):
         yield list(l)[i:i+max_size]
+
+
+def remove_leading_space(s):
+    s = s.split('\n')
+    n = min([sum(1 for _ in itertools.takewhile(str.isspace, l)) for l in s])
+    return "\n".join(l[n:] for l in s)
 
 
 def full_id(message):
