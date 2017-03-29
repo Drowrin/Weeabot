@@ -143,6 +143,9 @@ class WaifuList(object):
         data['likes'] = [w['href'].split('/')[-1] for w in soup.select('#liked .row-fluid .waifu-card-title a')]
         data['trash'] = [w['href'].split('/')[-1] for w in soup.select('#trash .row-fluid .waifu-card-title a')]
 
+        if len(data['likes']) + len(data['trash']) == 0:
+            raise commands.BadArgument("Not Found or empty list.")
+
         return WaifuList(**data)
 
     def __init__(self, **kwargs):
@@ -191,6 +194,11 @@ class MyWaifuList(utils.SessionCog):
     @commands.group()
     async def waifu(self):
         """waifu commands"""
+
+    @waifu.command(pass_context=True, name="add")
+    @checks.profiles()
+    async def _add(self, ctx, id):
+        pass
 
     @waifu.command(pass_context=True)
     async def details(self, ctx, *, slug_or_name):
