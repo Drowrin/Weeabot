@@ -1,7 +1,7 @@
 import re
 import json
 from difflib import SequenceMatcher
-
+import random
 import bs4
 
 import discord
@@ -169,7 +169,7 @@ class MyWaifuList(utils.SessionCog):
 
     formatters = {'mwl_inline': waifu_formatter}
 
-    async def get_user(self, i):
+    async def get_user(self, i) -> WaifuList:
         return await WaifuList.from_id(i, self.session)
 
     async def loose_search(self, term) -> list:
@@ -205,10 +205,38 @@ class MyWaifuList(utils.SessionCog):
     @waifu.command(pass_context=True, name="add_list", aliases=('addlist',))
     @checks.profiles()
     async def _add_list(self, ctx, user_id, user: discord.Member=None):
+        """Add your MyWaifuList.moe list to your profile."""
         await self.get_user(user_id)  # ensure valid list
         user = user or ctx.message.author
         await self.bot.profiles.put_by_id(user.id, 'mwl', user_id)
         await self.bot.affirmative()
+
+    @waifu.command(pass_context=True, aliases=('fite',))
+    @checks.profiles()
+    async def fight(self, ctx, user2: discord.Member):
+        """Waifu wars"""
+        user1 = ctx.message.author
+        tmp = await self.bot.say(f"Getting MWL information for {user1.display_name} and {user2.display_name}...")
+        p1 = self.bot.profiles.get_by_id(user1.id)
+        if 'mwl' not in p1:
+            raise commands.BadArgument(f"No MWL info saved for {user1.display_name}")
+        list1 = await self.get_user(p1['mwl'])
+        p2 = self.bot.profiles.get_by_id(user2.id)
+        if 'mwl' not in p2:
+            raise commands.BadArgument(f"No MWL info saved for {user2.display_name}")
+        list2 = await self.get_user(p2['mwl'])
+        disagree = [s for s in list1.likes if s in list2.trash] + [s for s in list2.likes if s in list1.trash]
+        if len(disagree) == 0:
+            await self.bot.edit_message(tmp, "No disagreements.")
+            return
+        chosen = random.choice(disagree)
+        rating1 = '💜' if chosen in list1.likes else '🗑'
+        rating2 = '💜' if chosen in list2.likes else '🗑'
+        await self.bot.edit_message(
+            tmp,
+            f"{rating1} {user1.display_name} | {user2.display_name} {rating2}",
+            embed=(await self.get_waifu(chosen)).embed
+        )
 
     @waifu.command(pass_context=True)
     async def details(self, ctx, *, slug_or_name):
