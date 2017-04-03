@@ -123,7 +123,7 @@ class WaifuData(object):
 class WaifuList(object):
     """data structure representing a user list from mywaifulist.moe"""
 
-    __slots__ = ('likes', 'trash')
+    __slots__ = ('liked', 'trash')
 
     @staticmethod
     async def from_id(i, session, **data):
@@ -138,10 +138,10 @@ class WaifuList(object):
     def from_html(html, **data):
         soup = bs4.BeautifulSoup(html, "html.parser")
 
-        data['likes'] = [w['href'].split('/')[-1] for w in soup.select('#liked .row-fluid .waifu-card-title a')]
-        data['trash'] = [w['href'].split('/')[-1] for w in soup.select('#trash .row-fluid .waifu-card-title a')]
+        for t in ('liked', 'trash'):
+            data[t] = [w.select('a')[0]['href'].split('/')[-1] for w in soup.select(f'#{t} tbody tr')]
 
-        if len(data['likes']) + len(data['trash']) == 0:
+        if len(data['liked']) + len(data['trash']) == 0:
             raise commands.BadArgument("Not Found or empty list.")
 
         return WaifuList(**data)
@@ -154,7 +154,7 @@ class WaifuList(object):
                 print(f"Warning: {k}({v}) was passed but not expected.")
 
     def __repr__(self):
-        return f"<WaifuList with {len(self.likes)} likes and {len(self.trash)} trash>"
+        return f"<WaifuList with {len(self.liked)} likes and {len(self.trash)} trash>"
 
 
 def waifu_formatter(field):
@@ -226,8 +226,8 @@ class MyWaifuList(utils.SessionCog):
             await self.bot.edit_message(tmp, "No disagreements.")
             return
         chosen = random.choice(selected)
-        rating1 = '💜' if chosen in list1.likes else '🗑'
-        rating2 = '💜' if chosen in list2.likes else '🗑'
+        rating1 = '💜' if chosen in list1.liked else '🗑'
+        rating2 = '💜' if chosen in list2.liked else '🗑'
         await self.bot.edit_message(
             tmp,
             f"{rating1} {user1.display_name} | {user2.display_name} {rating2}",
@@ -241,7 +241,7 @@ class MyWaifuList(utils.SessionCog):
         user1 = ctx.message.author
 
         def selector(list1, list2):
-            return [s for s in list1.likes if s in list2.trash] + [s for s in list2.likes if s in list1.trash]
+            return [s for s in list1.liked if s in list2.trash] + [s for s in list2.liked if s in list1.trash]
         await self.compare_lists(user1, user2, selector)
 
     @waifu.command(pass_context=True, aliases=('concur',))
@@ -251,7 +251,7 @@ class MyWaifuList(utils.SessionCog):
         user1 = ctx.message.author
 
         def selector(list1, list2):
-            return [s for s in list1.likes if s in list2.likes]
+            return [s for s in list1.liked if s in list2.liked]
 
         await self.compare_lists(user1, user2, selector)
 
@@ -262,7 +262,7 @@ class MyWaifuList(utils.SessionCog):
         user1 = ctx.message.author
 
         def selector(list1, list2):
-            return [s for s in (list1.likes + list1.trash) if s in (list2.likes + list2.trash)]
+            return [s for s in (list1.liked + list1.trash) if s in (list2.liked + list2.trash)]
 
         await self.compare_lists(user1, user2, selector)
 
