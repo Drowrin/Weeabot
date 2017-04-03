@@ -17,11 +17,11 @@ base_url = "https://mywaifulist.moe"
 class WaifuData(object):
     """Data structure for waifu data from mywaifulist.moe"""
 
-    detail_fields = ['height', 'weight', 'bust', 'birthday', 'origin', 'hip', 'blood_type']
+    detail_fields = ['height', 'weight', 'bust', 'birthday', 'origin', 'hip', 'waist', 'blood_type']
 
     __slots__ = (
         'id', 'creator_id', 'name', 'description', 'slug', 'created_at', 'updated_at', 'weight', 'height', 'bust',
-        'hip', 'blood_type', 'origin', 'birthday', 'series_id', 'display_picture', 'likes', 'trash',
+        'hip', 'waist', 'blood_type', 'origin', 'birthday', 'series_id', 'display_picture', 'likes', 'trash', 'reported',
         'series_name', 'series_url', 'image', 'message'
     )
 
