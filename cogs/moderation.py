@@ -1,5 +1,5 @@
 import asyncio
-import time
+import datetime
 
 import discord
 from discord.ext import commands
@@ -63,7 +63,7 @@ class Moderation:
             except KeyError:
                 print(f'Jail keyerror {mid}')
                 return
-            finished = j['finished']
+            finished = discord.utils.parse_time(j['finished']) - datetime.datetime.now()
             server = self.bot.get_server(j['server'])
             if server is None:
                 print(f"Could not arrest, couldn't get server. {j}")
@@ -80,7 +80,7 @@ class Moderation:
             # handle freeing after duration, or freed by command.
             self.jail_events[mid] = asyncio.Event()
             async def auto_free():
-                await asyncio.sleep(finished - int(time.time()))
+                await asyncio.sleep(finished.seconds)
                 self.jail_events[mid].set()
             self.bot.loop.create_task(auto_free())
             await self.jail_events[mid].wait()
@@ -114,11 +114,11 @@ class Moderation:
             raise utils.CheckMsg("You do not have permission to do that.")
 
         td = utils.duration(duration)
-        current_time = int(time.time())
+        current_time = datetime.datetime.now()
 
         # create jail
         self.bot.status['jails'][ctx.message.id] = {
-            'finished': current_time + td.seconds,
+            'finished': str(current_time + td),
             'server': ctx.message.server.id,
             'user': user.id
         }
