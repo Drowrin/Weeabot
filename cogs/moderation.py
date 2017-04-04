@@ -75,7 +75,7 @@ class Moderation:
             if role not in user.roles:
                 # arrest them
                 await self.bot.add_roles(user, role)
-                await self.bot.send_message(channel, f"{user.mention} has been arrested!")
+                await self.bot.send_message(channel, f"{user.mention} has been arrested! Time remaining: {utils.down_to_seconds(finished)}")
 
             # handle freeing after duration, or freed by command.
             self.jail_events[mid] = asyncio.Event()
