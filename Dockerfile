@@ -13,6 +13,8 @@ RUN apt-get update \
 ADD . /weeabot
 WORKDIR /weeabot
 
+RUN easy_install Pillow
+
 RUN python3.6 -m pip install -r requirements.txt
 
 RUN python3.6 -m pip install -U https://github.com/gunthercox/ChatterBot/archive/master.zip#egg=ChatterBot
