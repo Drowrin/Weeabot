@@ -13,7 +13,7 @@ RUN apt-get update \
 ADD . /weeabot
 WORKDIR /weeabot
 
-RUN apt-get install easy_install -y && easy_install Pillow
+RUN python3.6 -m pip install -U pip setuptools && python3.6 -m easy_install Pillow
 
 RUN python3.6 -m pip install -r requirements.txt
 
