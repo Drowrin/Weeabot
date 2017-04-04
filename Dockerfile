@@ -8,12 +8,11 @@ RUN apt-get update \
     && apt-get install libopus-dev -y \
     && apt-get install libffi-dev -y \
     && apt-get install git -y
+    && apt-get install libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk -y
 
 
 ADD . /weeabot
 WORKDIR /weeabot
-
-RUN python3.6 -m pip install -U pip setuptools && python3.6 -m easy_install Pillow
 
 RUN python3.6 -m pip install -r requirements.txt
 
