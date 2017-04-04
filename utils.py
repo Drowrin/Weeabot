@@ -176,9 +176,11 @@ def duration(dur: str) -> datetime.timedelta:
     def gettime(s: str, d: str):
         try:
             r = re.search(r"\d[\d.]*\s*{}".format(s), d)
+            if r is None:
+                return 0
             return int(re.match(r"\d+", r.group()).group())
         except (TypeError, ValueError, AttributeError):
-            print(f'Error in utils.duration(). passed string: {dur}')
+            print(f'Error in utils.duration(). passed strings: {s}:{d}')
             traceback.print_exc()
             return 0
 
