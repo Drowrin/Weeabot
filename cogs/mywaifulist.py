@@ -3,6 +3,7 @@ import json
 from difflib import SequenceMatcher
 import random
 import bs4
+import aiohttp
 
 import discord
 from discord.ext import commands
@@ -22,7 +23,7 @@ class WaifuData(object):
     __slots__ = (
         'id', 'creator_id', 'name', 'description', 'slug', 'created_at', 'updated_at', 'weight', 'height', 'bust',
         'hip', 'waist', 'blood_type', 'origin', 'birthday', 'series_id', 'display_picture', 'likes', 'trash', 'reported',
-        'series_name', 'series_url', 'image', 'message'
+        'series', 'message', 'alternative_name', 'creator', 'tags'
     )
 
     @staticmethod
@@ -39,14 +40,11 @@ class WaifuData(object):
         soup = bs4.BeautifulSoup(html, "html.parser")
 
         try:
-            data.update(json.loads(soup.select("#waifu")[0]["waifu"]))
+            data.update(json.loads(soup.select("waifucore")[0]["waifu"]))
         except IndexError:
             # not passed a valid page
             raise commands.BadArgument("Not found.")
 
-        data['series_name'] = soup.select(".waifu-series a")[0].text
-        data['series_url'] = soup.select(".waifu-series a")[0]['href']
-        data['image'] = data['display_picture'] or soup.select("img.waifu-display-picture")[0]['src']
         data['birthday'] = data['birthday'].split(" ")[0]
 
         return WaifuData(**data)
@@ -76,6 +74,10 @@ class WaifuData(object):
         return 2 * (self.likes / (self.likes + self.trash)) - 1
 
     @property
+    def display_name(self):
+        return f"{self.name} ({self.alternative_name})" if self.alternative_name else self.name
+
+    @property
     def embed(self) -> discord.Embed:
         """The discord.Embed representation of this waifu."""
         if self.likes >= 2*self.trash:
@@ -86,17 +88,19 @@ class WaifuData(object):
             c = discord.Colour.blue()
 
         e = discord.Embed(
-            title=self.name,
+            title=self.display_name,
             description=utils.str_limit('\n'.join([
                 f"`+{self.likes} | {self.percent:0.2%} | {self.trash}-`",
-                f"[{self.series_name}]({base_url}{self.series_url})",
-                self.description
+                f"[{self.series['name']}]({base_url}/series/{self.series['slug']})",
+                utils.str_limit(self.description, 500, tail=f"[...read more]({base_url}/waifu/{self.slug})"),
+                f"tags: {', '.join(['[{0[name]}]({1}/browse?tag={0[slug]})'.format(t, base_url) for t in self.tags])}"
+                if self.tags else ''
             ]), 2048),
             url=f"{base_url}/waifu/{self.slug}",
             timestamp=discord.utils.parse_time(self.created_at),
             colour=c
         ).set_image(
-            url=self.image
+            url=self.display_picture
         ).set_footer(
             text=f"slug: {self.slug}"
         )
