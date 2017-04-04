@@ -1,6 +1,7 @@
 import json
 import io
 import aiohttp
+import traceback
 import itertools
 import asyncio
 import random
@@ -177,6 +178,8 @@ def duration(dur: str) -> datetime.timedelta:
             r = re.search(r"\d[\d.]*\s*{}".format(s), d)
             return int(re.match(r"\d+", r.group()).group())
         except (TypeError, ValueError, AttributeError):
+            print(f'Error in utils.duration(). passed string: {dur}')
+            traceback.print_exc()
             return 0
 
     seconds = gettime('s', dur)
