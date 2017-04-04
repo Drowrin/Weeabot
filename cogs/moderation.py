@@ -99,7 +99,7 @@ class Moderation:
             await self.arrest(mid)
 
     @commands.command(pass_context=True, aliases=('arrest',), no_pm=True)
-    async def jail(self, ctx, user: str, *, duration: str):
+    async def jail(self, ctx, user: str, *, duration: str="1h"):
         """Jail a user for a specified amount of time. Accepts a user or "me".
 
         The format for the duration uses units. For example, something like 3 hours and 20 minutes or 4m 15s.
