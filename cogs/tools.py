@@ -1,6 +1,7 @@
 import traceback
-import inspect
 import copy
+import re
+import sys
 
 import discord
 from discord.ext import commands
@@ -47,49 +48,15 @@ class Tools(utils.SessionCog):
         """Change the bot's username."""
         await self.bot.edit_profile(username=name)
 
-    @commands.command(pass_context=True)
-    @checks.is_owner()
-    async def pickmessage(self, ctx, message_id):
-        """puts a message object in bot.temp_message"""
-        self.bot.temp_message = await self.bot.get_message(ctx.message.channel, message_id)
-    
-    @commands.command(pass_context=True)
-    @checks.is_owner()
-    async def debug(self, ctx, *, code: str):
-        """Evaluates an expression to see what is happening internally."""
-        code = code.strip('` ')
-        python = '```py\n{}\n```'
-
-        env = {
-            'bot': self.bot,
-            'ctx': ctx,
-            'message': ctx.message,
-            'server': ctx.message.server,
-            'channel': ctx.message.channel,
-            'author': ctx.message.author
-        }
-
-        env.update(globals())
-
-        try:
-            result = eval(code, env)
-            if inspect.isawaitable(result):
-                result = await result
-        except Exception:
-            await self.bot.say(python.format(traceback.format_exc()))
-            return
-
-        try:
-            await self.bot.say(python.format(result))
-        except discord.HTTPException:
-            await self.bot.say("Output too large")
-
-    @commands.command(pass_context=True, aliases=('exec',))
+    @commands.command(pass_context=True, name='exec')
     @checks.is_owner()
     async def execute(self, ctx, *, code: str):
-        """Evaluates an expression to see what is happening internally."""
+        """Code is executed as a coroutine and the return is output to this channel."""
+        lang = re.match(r'```(\w+\s*\n)', code)
         code = code.strip('` ')
-        python = '```py\n{}\n```'
+        if lang:
+            code = code[len(lang.group(1)):]
+        block = f'```{lang[1] if lang else "py"}\n{{}}\n```'
 
         env = {
             'bot': self.bot,
@@ -99,22 +66,32 @@ class Tools(utils.SessionCog):
             'channel': ctx.message.channel,
             'author': ctx.message.author
         }
-
         env.update(globals())
 
+        embed = discord.Embed().add_field(
+            name='Input',
+            value=block.format(code),
+            inline=False
+        ).set_footer(
+            text=f'Python {sys.version.split()[0]}',
+            icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/200px-Python-logo-notext.svg.png'
+        )
         try:
-            exec(code, env)
-        except Exception:
-            await self.bot.say(python.format(traceback.format_exc()))
-            return
-
-        await self.bot.say('\N{OK HAND SIGN}')
-
-    @commands.command(pass_context=True)
-    @checks.is_owner()
-    async def inspect(self, ctx, m_id: str):
-        """Inspect the contents of a message."""
-        await self.bot.say(str([c for c in (await self.bot.get_message(ctx.message.channel, m_id)).content]))
+            lines = code.split('\n')
+            if not any('return' in l for l in lines):
+                lines[-1] = 'return ' + lines[-1]
+            exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
+            result = await ctx.exec()
+            embed.add_field(
+                name='Result',
+                value=block.format(result)
+            ).colour = discord.Colour.green()
+        except Exception as e:
+            embed.add_field(
+                name='Exception',
+                value=block.format(''.join(traceback.format_exception(type(e), e, None)))
+            ).colour = discord.Colour.red()
+        await self.bot.say(embed=embed)
 
     @commands.command()
     @checks.is_owner()
