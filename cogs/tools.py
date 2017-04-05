@@ -123,46 +123,6 @@ class Tools(utils.SessionCog):
         await self.bot.say(":sob: bye")
         await self.bot.logout()
 
-    @commands.group(name='testing')
-    @checks.is_owner()
-    async def test(self):
-        pass
-
-    @test.command(pass_context=True, name='list')
-    @checks.is_owner()
-    async def list_test(self):
-        servs = [self.bot.get_server(x).name for x in self.bot.config.testing_servers]
-        chans = [discord.utils.get(self.bot.get_all_channels(), id=x).name for x in self.bot.config.testing_channels]
-        await self.bot.say('servers:\n{}\n\nchannels:\n{}'.format(servs, chans))
-
-    @test.command(pass_context=True, name='add', no_pm=True)
-    @checks.is_owner()
-    async def add_test(self, ctx, typ: str='channel'):
-        """args are 'channel' or 'server'"""
-        if typ == 'channel':
-            self.bot.config.testing_channels.append(ctx.message.channel.id)
-        if typ == 'server':
-            self.bot.config.testing_servers.append(ctx.message.server.id)
-        else:
-            await self.bot.say("Possible args are 'channel' and 'server'")
-            return
-        await self.bot.config.save()
-        await self.bot.affirmative()
-
-    @test.command(pass_context=True, name='remove', no_pm=True)
-    @checks.is_owner()
-    async def remove_test(self, ctx, typ: str='channel'):
-        """args are 'channel' or 'server'"""
-        if typ == 'channel':
-            self.bot.config.testing_channels.remove(ctx.message.channel.id)
-        if typ == 'server':
-            self.bot.config.testing_servers.remove(ctx.message.server.id)
-        else:
-            await self.bot.say("Possible args are 'channel' and 'server'")
-            return
-        await self.bot.config.save()
-        await self.bot.affirmative()
-
     @commands.command(pass_context=True)
     @checks.is_server_owner()
     async def moderator_role(self, ctx, role: discord.Role):
