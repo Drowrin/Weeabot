@@ -1,9 +1,6 @@
 import traceback
 import inspect
 import copy
-import json
-import dateutil.parser
-import asyncio
 
 import discord
 from discord.ext import commands
