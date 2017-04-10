@@ -121,7 +121,7 @@ class Spoilers:
 
     def save(self, channel: SpoilerChannel):
         """Save a spoiler channel's data."""
-        self.bot.server_configs[channel.server]['spoilers'][channel.name] = channel.json()
+        self.bot.server_configs[channel.server.id]['spoilers'][channel.name] = channel.json()
         self.bot.dump_server_configs()
 
     def dump(self):
