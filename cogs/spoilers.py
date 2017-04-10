@@ -126,7 +126,7 @@ class Spoilers:
 
     def dump(self):
         for channel in self.channels:
-            self.bot.server_configs[channel.server]['spoilers'][channel.name] = channel.json()
+            self.bot.server_configs[channel.server.id]['spoilers'][channel.name] = channel.json()
         self.bot.dump_server_configs()
 
     @commands.group()
@@ -158,7 +158,7 @@ class Spoilers:
             spoiler = SpoilerChannel(
                 self.bot,
                 name,
-                ctx.message.server,
+                ctx.message.server.id,
                 status="No status listed.",
                 author=ctx.message.author.id,
                 members=[ctx.message.author.id],
