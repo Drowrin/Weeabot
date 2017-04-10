@@ -48,7 +48,7 @@ def is_author():
 class SpoilerChannel:
     """data structure containing spoiler channel info"""
 
-    def __init__(self, bot: Weeabot, name, server, **kwargs):
+    def __init__(self, bot: Weeabot, name, server, id, **kwargs):
         self.bot = bot
         self.name = name
         self.server = server
@@ -56,7 +56,7 @@ class SpoilerChannel:
         self.creator = kwargs.pop('author', kwargs.pop('creator', ''))  # to deal with old format
         self.members = kwargs.pop('members', [])
         self.trusted = kwargs.pop('trusted', [])
-        self.id = kwargs.pop('id', '')
+        self.id = id
 
         self.channel = bot.get_channel(self.id)
 
@@ -159,11 +159,11 @@ class Spoilers:
                 self.bot,
                 name,
                 ctx.message.server.id,
+                channel.id,
                 status="No status listed.",
                 author=ctx.message.author.id,
                 members=[ctx.message.author.id],
-                trusted=[ctx.message.author.id],
-                id=channel.id
+                trusted=[ctx.message.author.id]
             )
             self.channels.append(spoiler)
             self.save(spoiler)
