@@ -182,12 +182,18 @@ class FFXIV(utils.SessionCog):
 
     async def ffxiv_formatter(self, field):
         c = CharacterProfile(**field)
-        data = await c.get_data(self.session)
-
-        return {
-            'name': 'FFXIV',
-            'content': f"[{data.name}]({c.profile_url})" if data is not None else c.profile_url
-        }
+        try:
+            data = await c.get_data(self.session)
+        except:
+            return {
+                'name': 'FFXIV',
+                'content': f'[{c.profile_url}]({c.profile_url})'
+            }
+        else:
+            return {
+                'name': 'FFXIV',
+                'content': f"[{data.name}]({c.profile_url})" if data is not None else c.profile_url
+            }
 
     @commands.group()
     @checks.profiles()

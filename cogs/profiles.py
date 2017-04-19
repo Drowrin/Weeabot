@@ -2,6 +2,7 @@ import operator
 import os
 import json
 import inspect
+import traceback
 
 import discord
 from discord.ext import commands
@@ -9,6 +10,7 @@ from discord.ext import commands
 import utils
 
 from Weeabot import bot
+
 
 def count_formatter(field):
     maxcoms = 5
@@ -158,7 +160,13 @@ class Profile(utils.SessionCog):
                     prof = name[:-len('_inline')]
 
                 try:
-                    value = self.bot.formatters.get(name, default_formatter)(up[prof])
+                    formatter = self.bot.formatters.get(name, default_formatter)
+                    p = up[prof]
+                    try:
+                        value = formatter(p)
+                    except Exception as ex:
+                        print(f'Exception in {name}:\n' + ''.join(traceback.format_exception(type(ex), ex, None)))
+                        value = {'name': prof, 'content': 'ERROR'}
                     if inspect.isawaitable(value):
                         value = await value
                 except KeyError:
