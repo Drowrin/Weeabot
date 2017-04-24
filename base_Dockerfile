@@ -1,0 +1,21 @@
+FROM ubuntu:16.10
+
+LABEL maintainer "https://github.com/Drowrin/Weeabot"
+
+RUN apt-get update \
+    && apt-get install python3.6 python3.6-dev python3-pip -y \
+    && apt-get install ffmpeg -y \
+    && apt-get install libopus-dev -y \
+    && apt-get install libffi-dev -y \
+    && apt-get install git -y \
+    && apt-get install libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk -y
+
+RUN python3.6 -m pip install -U https://github.com/Rapptz/discord.py/archive/master.zip#egg=discord.py[voice] \
+    && python3.6 -m pip install -U https://github.com/gunthercox/ChatterBot/archive/master.zip#egg=ChatterBot \
+    && python3.6 -m pip install pyimgur \
+    && python3.6 -m pip install Pillow \
+    && python3.6 -m pip install cleverbot \
+    && python3.6 -m pip install python-dateutil \
+    && python3.6 -m pip install xmltodict \
+    && python3.6 -m pip install beautifulsoup4 \
+    && python3.6 -m pip install python-twitter
