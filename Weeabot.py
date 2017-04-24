@@ -27,7 +27,15 @@ class Weeabot(commands.Bot):
     def __init__(self, *args, **kwargs):
         if 'description' not in kwargs:
             kwargs['description'] = "Weeabot"
-        self.config = utils.Config(os.path.join('config', 'config.json'))
+        self.config = utils.Config(os.path.join('config', 'config.json'), default={
+            "prefix": "~",
+            "ignored_cogs": [],
+            "chatterbot": {
+                "import_path": "chatterbot.storage.MongoDatabaseAdapter",
+                "database_uri": "mongodb://localhost:27017/",
+                "database": "chatterbot-database"
+            }
+        })
         if 'command_prefix' not in kwargs:
             kwargs['command_prefix'] = self.config.prefix
         super(Weeabot, self).__init__(*args, **kwargs)

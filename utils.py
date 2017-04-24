@@ -118,7 +118,7 @@ def str_limit(s: str, limit: int, tail='...') -> str:
     """Limit a string to a certain length. If the string is over it will have ... placed at the end up to the limit"""
     if len(s) <= limit:
         return s
-    return s[:limit-len(tail)] + tail
+    return s[:limit - len(tail)] + tail
 
 
 def partition(l, hashf):
@@ -130,7 +130,7 @@ def partition(l, hashf):
 
 def even_split(l, max_size):
     for i in range(0, len(l), max_size):
-        yield list(l)[i:i+max_size]
+        yield list(l)[i:i + max_size]
 
 
 def remove_leading_space(s):
@@ -147,10 +147,18 @@ def full_id(message):
 
 
 class Config:
-    def __init__(self, config_path):
+    def __init__(self, config_path, default=None):
+        default = default or {}
         self.path = config_path
         self._db = open_json(config_path)
+        write = False
+        for n in default:
+            if n not in self._db:
+                self._db[n] = default[n]
+                write = True
         self.__dict__.update(self._db)
+        if write:
+            self._dump()
 
     def __getattr__(self, name):
         return self.__dict__.get(name, None)
@@ -192,4 +200,29 @@ def duration(dur: str) -> datetime.timedelta:
 
 
 tokens = open_json(path.join('config', 'tokens.json'))
-content = Config(path.join('config', 'content.json'))
+content = Config(path.join('config', 'content.json'), default={
+    "icons": {
+        "tag": "https://maxcdn.icons8.com/Share/icon/Ecommerce//price_tag1600.png"
+    },
+    "emoji": ["<3", "(\uff89\u25d5\u30ee\u25d5)\uff89*:\uff65\uff9f\u2727", "(\u261e\uff9f\u30ee\uff9f)\u261e"],
+    "statuses": ["dramatic posing", "with myself"],
+    "memes": {},
+    "attack": {
+        "self": ["me", "myself", "my"],
+        "esc": ["{} managed to escape!", "{} is a slippery bastard.", "{} was really a clone!",
+                "It reflected off of {}!", "{} blocked!"],
+        "el": ["ELIMINATED {}", "Bopped {}", "{} was removed from existence.", "{} is sleeping with fishes.",
+               "{} is 'life challenged'"],
+        "miss": ["Someday you'll hit something...", "Stop wasting ammo.", "Baka",
+                 "*You shoot at the sky\nYou attempt a badass pose\nTo mask your missed shot*"],
+        "kys": ["{} played themself.", "{} spread their brain on the wall.", "{} ended it all.", "{} embraced sdeath"],
+        "immune": ["{0} attempted to bop {1} but they were too powerful!", "{1} laughs at {0}'s feeble attempt.",
+                   "{1} doesn't even flinch, but glares at {0}."]
+    },
+    "tag_responses": {
+        "sdeath": ["sdeath"],
+        "disapproval": ["daddy"],
+        "nobully": ["no bully", "don't bully", "not bully"],
+        "bully": ["bully"]
+    }
+})
