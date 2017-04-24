@@ -79,11 +79,9 @@ class Weeabot(commands.Bot):
         """Load extensions and handle errors."""
         await self.init.wait()
         self.load_extension('cogs.profiles')
-        self.load_extension('cogs.tools')
-        self.load_extension('cogs.requestsystem')
-        self.load_extension('cogs.tagsystem')
-        for ext in self.config.base_extensions:
-            self.load_extension(ext)
+        for n in os.listdir('cogs'):
+            if n[:-3] not in self.config.ignored_cogs and n.endswith('.py'):
+                self.load_extension(f'cogs.{n[:-3]}')
 
     async def update_owner(self):
         await self.wait_until_ready()
