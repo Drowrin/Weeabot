@@ -212,8 +212,7 @@ bot = Weeabot()
 async def on_reaction_add(reaction, user):
     m = reaction.message
     callback = bot.react_listeners.pop(utils.full_id(m), asyncio.coroutine(lambda *args: None))
-    if callback:
-        await callback(reaction, user)
+    await callback(reaction, user)
 
 
 @bot.event
