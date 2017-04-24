@@ -340,10 +340,6 @@ async def load_extension(ext):
 @checks.is_owner()
 async def unload_extension(ext):
     """Unload an extension."""
-    if ext in bot.config.required_extensions:
-        await bot.say("{} is a required extension.".format(ext))
-        return
-    # noinspection PyBroadException
     try:
         bot.unload_extension(ext)
     except Exception:
