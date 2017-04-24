@@ -1,7 +1,7 @@
 {
   "prefix": "$",
   "required_extensions": {},
-  "base_extensions": ["cogs.rng", "cogs.images", "cogs.mal", "cogs.pointless", "cogs.polls", "cogs.twitter", "cogs.spoilers", "cogs.reminders", "cogs.anilist", "cogs.roles", "cogs.conversation", "cogs.ffxiv", "cogs.moderation", "cogs.mywaifulist"],
+  "base_extensions": ["cogs.rng", "cogs.images", "cogs.mal", "cogs.pointless", "cogs.polls", "cogs.spoilers", "cogs.reminders", "cogs.anilist", "cogs.roles", "cogs.conversation", "cogs.ffxiv", "cogs.twitch", "cogs.moderation", "cogs.mywaifulist"],
   "chatterbot": {
     "import_path": "chatterbot.storage.MongoDatabaseAdapter",
     "database_uri": "mongodb://localhost:27017/",

@@ -340,8 +340,8 @@ class TagMap:
         """Add a tag to the database.
 
         Tag names must be alphanumeric, and must contain at least one letter to differentiate from tag IDs."""
-        if not name.isalnum():
-            await self.bot.say("Tag names must be alphanumeric.")
+        if not re.match(r'^[A-za-z0-9_\-]+$', name):
+            await self.bot.say("Tag names must only contain numbers, letters, - and _.")
             return
         if name.isdigit():
             await self.bot.say("Tags can not be only numbers.")
@@ -376,8 +376,8 @@ class TagMap:
         ts = [t for t in tags_or_ids if t not in ids]
 
         # check for invalid tags
-        if any(not t.isalnum() for t in ts):
-            await self.bot.say("Tags must be alphanumeric.")
+        if any(not re.match(r'^[A-za-z0-9_\-]+$', t) for t in ts):
+            await self.bot.say("Tag names must only contain numbers, letters, - and _.")
             return
 
         # get relevant messages
@@ -438,8 +438,8 @@ class TagMap:
             author: usertag, comma seperated name and avatar url (avatar url and comma can be left out)
         Anything else will become a custome field.
         """
-        if not name.isalnum():
-            await self.bot.say("Tag names must be alphanumeric.")
+        if not re.match(r'^[A-za-z0-9_\-]+$', name):
+            await self.bot.say("Tag names must only contain numbers, letters, - and _.")
             return
         if name.isdigit():
             await self.bot.say("Tags can not be only numbers.")
@@ -506,8 +506,8 @@ class TagMap:
     @request(delete_source=False)
     async def _tag_alias(self, ctx, name: str, *, text: str):
         """Add an alias for a command."""
-        if not name.isalnum():
-            await self.bot.say("Tag names must be alphanumeric.")
+        if not re.match(r'^[A-za-z0-9_\-]+$', name):
+            await self.bot.say("Tag names must only contain numbers, letters, - and _.")
             return
         if name.isdigit():
             await self.bot.say("Tags can not be only numbers.")
