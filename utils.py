@@ -167,7 +167,7 @@ class Config:
         for k in self._db:
             self._db[k] = self.__dict__[k]
         with open(self.path, 'w') as f:
-            json.dump(self._db, f, ensure_ascii=True)
+            json.dump(self._db, f, ensure_ascii=True, indent=2)
 
     async def save(self):
         await asyncio.get_event_loop().run_in_executor(None, self._dump)
