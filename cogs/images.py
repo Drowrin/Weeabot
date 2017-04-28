@@ -4,6 +4,7 @@ import pyimgur
 import traceback
 import datetime
 import re
+import math
 
 from typing import Callable
 from typing import List
@@ -463,6 +464,75 @@ class Images(utils.SessionCog):
         self.bot.content.memes = self.memes
         await self.bot.content.save()
         await self.bot.say('Added {}'.format(name))
+
+    @image.group(pass_context=True, invoke_without_command=True)
+    async def overlay(self, ctx, template: str, *users: discord.Member):
+        """
+        Overlay faces onto templates.
+
+        The template is the name of the template to use.
+        After that you can list one or more users whose avatars will be used. Your's is used if you don't add any.
+        """
+        # default to author
+        users = list(users) or [ctx.message.author]
+
+        # get template or notify user that it was not found
+        try:
+            ov = self.bot.content.overlays[template]
+        except KeyError:
+            raise commands.BadArgument(f"{template} not found.")
+
+        link = ov['link']
+        coords = ov['coords']
+
+        # separate extra users into new images.
+        images = [
+            users[i*len(coords):(i+1)*len(coords)]
+            for i in range(0, math.ceil(len(users)//len(coords)))
+        ]
+        # fill remaining spots by duplicating the last user.
+        images[-1] += ([images[-1][-1]] * (len(coords)-len(images[-1])))
+
+        # read template image
+        with await utils.download_fp(self.session, link) as fp:
+            original = Image.open(fp)
+
+            # repeat once for each image to be generated
+            for i in images:
+                # copy image if there are more than one. If not use the original
+                im = original.copy() if len(images) > 1 else original
+
+                # paste each face
+                for index, c in enumerate(coords):
+                    # get user face for this coordinate
+                    u = i[index]
+                    with await utils.download_fp(self.session, u.avatar_url or u.default_avatar_url) as face_fp:
+                        face = Image.open(face_fp)
+
+                        # resize face to requested size
+                        face.thumbnail((c[2], c[2]))
+
+                        # paste the face
+                        im.paste(
+                            face,
+                            (
+                                c[0] - face.size[0]//2,
+                                c[1] - face.size[1]//2
+                            )
+                        )
+
+                # send the image
+                out = BytesIO()
+                im.save(out, 'PNG')
+                out.seek(0)
+                await self.bot.upload(out, filename=f"{template}.png")
+
+    @overlay.command(name='list')
+    async def __overlay__list(self):
+        """
+        available templates.
+        """
+        await self.bot.say(', '.join(self.bot.content.overlays.keys()))
 
 
 def setup(bot):

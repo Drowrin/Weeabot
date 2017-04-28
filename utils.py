@@ -207,6 +207,7 @@ content = Config(path.join('config', 'content.json'), default={
     "emoji": ["<3", "(\uff89\u25d5\u30ee\u25d5)\uff89*:\uff65\uff9f\u2727", "(\u261e\uff9f\u30ee\uff9f)\u261e"],
     "statuses": ["dramatic posing", "with myself"],
     "memes": {},
+    "overlays": {},
     "attack": {
         "self": ["me", "myself", "my"],
         "esc": ["{} managed to escape!", "{} is a slippery bastard.", "{} was really a clone!",
