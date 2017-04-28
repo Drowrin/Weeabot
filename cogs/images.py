@@ -488,7 +488,7 @@ class Images(utils.SessionCog):
         # separate extra users into new images.
         images = [
             users[i*len(coords):(i+1)*len(coords)]
-            for i in range(0, math.ceil(len(users)//len(coords)))
+            for i in range(0, math.ceil(len(users)/len(coords)))
         ]
         # fill remaining spots by duplicating the last user.
         images[-1] += ([images[-1][-1]] * (len(coords)-len(images[-1])))
