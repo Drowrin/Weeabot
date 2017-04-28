@@ -510,7 +510,12 @@ class Images(utils.SessionCog):
                         face = Image.open(face_fp)
 
                         # resize face to requested size
-                        face.thumbnail((c[2], c[2]))
+                        face.thumbnail((c[2], c[2]), Image.ANTIALIAS)
+
+                        # generate mask
+                        mask = Image.new("L", [s * 4 for s in face.size], color=0)
+                        ImageDraw.Draw(mask).ellipse((0, 0) + mask.size, fill=255)
+                        mask = mask.resize(face.size, Image.ANTIALIAS)
 
                         # paste the face
                         im.paste(
@@ -518,7 +523,8 @@ class Images(utils.SessionCog):
                             (
                                 c[0] - face.size[0]//2,
                                 c[1] - face.size[1]//2
-                            )
+                            ),
+                            mask
                         )
 
                 # send the image
