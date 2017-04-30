@@ -114,13 +114,6 @@ def down_to_minutes(td: timedelta):
     return timedelta(minutes=(td.seconds // 60))
 
 
-def str_limit(s: str, limit: int, tail='...') -> str:
-    """Limit a string to a certain length. If the string is over it will have ... placed at the end up to the limit"""
-    if len(s) <= limit:
-        return s
-    return s[:limit - len(tail)] + tail
-
-
 def partition(l, hashf):
     d = defaultdict(list)
     for i in l:

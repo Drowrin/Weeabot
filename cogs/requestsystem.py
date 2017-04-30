@@ -5,6 +5,7 @@ import os
 import typing
 
 from enum import Enum
+from textwrap import shorten
 
 import discord
 from discord.ext import commands
@@ -359,7 +360,7 @@ class RequestSystem:
 
         oor = [i for i in indexes if not 0 <= i < len(rs)]
         if oor:
-            await self.bot.say(utils.str_limit(f'Out of range: {oor}', 2000))
+            await self.bot.say(shorten(f'Out of range: {oor}', 2000, placeholder='...'))
 
         rs = [rs[i] for i in indexes if i not in oor]
 
@@ -391,7 +392,7 @@ class RequestSystem:
         rs = self.get_serv(server)
         oor = [i for i in indexes if not 0 <= i < len(rs)]
         if oor:
-            await self.bot.say(utils.str_limit(f'Out of range: {oor}', 2000))
+            await self.bot.say(shorten(f'Out of range: {oor}', 2000, placeholder='...'))
 
         rs = [rs[i] for i in indexes if i not in oor]
 

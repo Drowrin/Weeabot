@@ -1,9 +1,11 @@
 import re
 import json
-from difflib import SequenceMatcher
 import random
 import bs4
 import aiohttp
+
+from difflib import SequenceMatcher
+from textwrap import shorten
 
 import discord
 from discord.ext import commands
@@ -89,13 +91,13 @@ class WaifuData(object):
 
         e = discord.Embed(
             title=self.display_name,
-            description=utils.str_limit('\n'.join([
+            description=shorten('\n'.join([
                 f"`+{self.likes} | {self.percent:0.2%} | {self.trash}-`",
                 f"[{self.series['name']}]({base_url}/series/{self.series['slug']})",
-                utils.str_limit(self.description, 500, tail=f"[...read more]({base_url}/waifu/{self.slug})"),
+                shorten(self.description, 500, placeholder=f"[...read more]({base_url}/waifu/{self.slug})"),
                 f"tags: {', '.join(['[{0[name]}]({1}/browse?tag={0[slug]})'.format(t, base_url) for t in self.tags])}"
                 if self.tags else ''
-            ]), 2048),
+            ]), 2048, placeholder='...'),
             url=f"{base_url}/waifu/{self.slug}",
             timestamp=discord.utils.parse_time(self.created_at),
             colour=c
@@ -285,7 +287,7 @@ class MyWaifuList(utils.SessionCog):
         """See the closest matches to a search query.
 
         Single word queries tend to work better, though multi-word names work sometimes."""
-        await self.bot.say(utils.str_limit('Results: ' + ', '.join([s['slug'] for s in await self.search(query)]), 2048))
+        await self.bot.say(shorten('Results: ' + ', '.join([s['slug'] for s in await self.search(query)]), 2048), placeholder='...')
 
 
 def setup(bot):

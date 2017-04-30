@@ -14,6 +14,7 @@ from os import path
 from os import listdir
 from os import makedirs
 from io import BytesIO
+from textwrap import shorten
 
 import discord
 from discord.ext import commands
@@ -227,7 +228,7 @@ class Images(utils.SessionCog):
                 img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
             e = discord.Embed(
                 title='This Image',
-                description=utils.str_limit(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048),
+                description=shorten(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048, placeholder='...'),
                 url=f'{url}/index.php?page=post&s=view&id={im["id"]}'
             ).set_author(
                 name=f"{count} Images with these tags",
