@@ -556,7 +556,7 @@ class Images(utils.SessionCog):
                 # send the image
                 out = BytesIO()
                 if make_gif:
-                    frames[0].save(out, 'GIF', save_all=True, append_images=frames[1:])
+                    frames[0].save(out, 'GIF', save_all=True, append_images=frames[1:], loop=0)
                     out.seek(0)
                     await self.bot.upload(out, filename=f"{template}.gif")
                 else:
