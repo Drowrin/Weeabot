@@ -9,7 +9,7 @@ import math
 from typing import Callable
 from typing import List
 
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw, ImageSequence
 from os import path
 from os import listdir
 from os import makedirs
@@ -503,6 +503,9 @@ class Images(utils.SessionCog):
                 # copy image if there are more than one. If not use the original
                 im = original.copy() if len(images) > 1 else original
 
+                make_gif = any('.gif' in u.avatar_url for u in i)
+                frames = [im]
+
                 # paste each face
                 for index, c in enumerate(coords):
                     # get user face for this coordinate
@@ -510,29 +513,56 @@ class Images(utils.SessionCog):
                     with await utils.download_fp(self.session, u.avatar_url or u.default_avatar_url) as face_fp:
                         face = Image.open(face_fp)
 
-                        # resize face to requested size
-                        face.thumbnail((c[2], c[2]), Image.ANTIALIAS)
-
                         # generate mask
-                        mask = Image.new("L", [s * 4 for s in face.size], color=0)
+                        mask = Image.new("L", [c[2] * 4, c[2] * 4], color=0)
                         ImageDraw.Draw(mask).ellipse((0, 0) + mask.size, fill=255)
-                        mask = mask.resize(face.size, Image.ANTIALIAS)
+                        mask = mask.resize((c[2], c[2]), Image.ANTIALIAS)
 
                         # paste the face
-                        im.paste(
-                            face,
-                            (
-                                c[0] - face.size[0]//2,
-                                c[1] - face.size[1]//2
-                            ),
-                            mask
-                        )
+                        if not make_gif:
+                            # resize face to requested size
+                            face.thumbnail((c[2], c[2]), Image.ANTIALIAS)
+                            im.paste(
+                                face,
+                                (
+                                    c[0] - face.size[0]//2,
+                                    c[1] - face.size[1]//2
+                                ),
+                                mask
+                            )
+                        else:
+                            if face.format != 'GIF':
+                                for frame in frames:
+                                    frame.paste(
+                                        face,
+                                        (
+                                            c[0] - face.size[0] // 2,
+                                            c[1] - face.size[1] // 2
+                                        ),
+                                        mask
+                                    )
+                            else:
+                                for f_n, frame in enumerate(ImageSequence.Iterator(face)):
+                                    try:
+                                        f = frames[f_n]
+                                    except IndexError:
+                                        f = frames[-1].copy()
+                                        frames.append(f)
+                                    p = frame.copy()
+                                    p.thumbnail((c[2], c[2]), Image.ANTIALIAS)
+                                    m = mask.copy()
+                                    f.paste(p, (c[0] - p.size[0] // 2, c[1] - p.size[1] // 2), m)
 
                 # send the image
                 out = BytesIO()
-                im.save(out, 'PNG')
-                out.seek(0)
-                await self.bot.upload(out, filename=f"{template}.png")
+                if make_gif:
+                    frames[0].save(out, 'GIF', save_all=True, append_images=frames[1:])
+                    out.seek(0)
+                    await self.bot.upload(out, filename=f"{template}.gif")
+                else:
+                    im.save(out, 'PNG')
+                    out.seek(0)
+                    await self.bot.upload(out, filename=f"{template}.png")
 
     @overlay.command(name='list')
     async def __overlay__list(self):
