@@ -16,6 +16,7 @@ class Pointless(utils.SessionCog):
     def __init__(self, bot: commands.Bot):
         super(Pointless, self).__init__(bot)
         self.oc = 1
+        self.do_messages = {}
 
     async def text_embed(self, message: discord.Message, text: str):
         try:
@@ -155,16 +156,31 @@ class Pointless(utils.SessionCog):
     @commands.command(pass_context=True)
     async def do(self, ctx, n: int, *, command):
         """Repeat a command up to 5 times."""
-        banned = [f'{self.bot.command_prefix}req', f'{self.bot.command_prefix}do']
-        if any([x in command for x in banned]):
-            await self.bot.say(f"That command may not be used in {self.bot.command_prefix}do.")
+        limit = 5
+
+        # handle user input
+        if not command.startswith(self.bot.command_prefix):
+            command = self.bot.command_prefix + command
+        if n > limit:
+            n = limit
+
+        # check times run
+        if ctx.message.id not in self.do_messages:
+            self.do_messages[ctx.message.id] = 0
+        else:
+            # don't count nested do's, simplay pass through to counting executions of the actual command.
+            self.do_messages[ctx.message.id] -= 1
+        if self.do_messages[ctx.message.id] >= limit:
+            await self.bot.say('Repetition limit exceeded.')
             return
-        if n > 5:
-            await self.bot.say("Too many times.")
-            return
+
+        # prepare to do
         msg = copy.copy(ctx.message)
         msg.content = command
-        for i in range(n):
+
+        # do
+        while self.do_messages[msg.id] < n <= limit:
+            self.do_messages[msg.id] += 1
             await self.bot.process_commands(msg)
 
     @commands.command(pass_context=True)
