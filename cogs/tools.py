@@ -78,8 +78,6 @@ class Tools(utils.SessionCog):
         )
         try:
             lines = code.split('\n')
-            if not any('return' in l for l in lines):
-                lines[-1] = 'return ' + lines[-1]
             exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
             result = await ctx.exec()
             embed.add_field(
