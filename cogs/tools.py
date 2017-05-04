@@ -76,9 +76,16 @@ class Tools(utils.SessionCog):
             text=f'Python {sys.version.split()[0]}',
             icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/200px-Python-logo-notext.svg.png'
         )
+
+        # prepare to execute
+        lines = code.split('\n')
+        exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
+
+        embed.color = discord.Colour.blue()
+        embed.title = "In Progress"
+        msg = await self.bot.say(embed=embed)
+
         try:
-            lines = code.split('\n')
-            exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
             result = await ctx.exec()
             if result is not None:
                 embed.add_field(
@@ -94,7 +101,7 @@ class Tools(utils.SessionCog):
             )
             embed.colour = discord.Colour.red()
             embed.title = "Failure"
-        await self.bot.say(embed=embed)
+        await self.bot.edit_message(msg, embed=embed)
 
     @commands.command()
     @checks.is_owner()
