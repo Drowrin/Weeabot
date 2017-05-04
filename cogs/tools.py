@@ -68,10 +68,8 @@ class Tools(utils.SessionCog):
         }
         env.update(globals())
 
-        embed = discord.Embed().add_field(
-            name='Input',
-            value=block.format(code),
-            inline=False
+        embed = discord.Embed(
+            description=block.format(code)
         ).set_footer(
             text=f'Python {sys.version.split()[0]}',
             icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/200px-Python-logo-notext.svg.png'
@@ -84,6 +82,9 @@ class Tools(utils.SessionCog):
         embed.color = discord.Colour.blue()
         embed.title = "In Progress"
         msg = await self.bot.say(embed=embed)
+
+        # clean up code afterwards
+        embed.description = None
 
         try:
             result = await ctx.exec()
