@@ -28,10 +28,10 @@ class Moderation:
             if role is not None and channel is not None:
                 return role, channel
 
-        role = await self.bot.create_role(server, name="prisoner", hoist=True)
-
-        for ch in server.channels:
-            await self.bot.edit_channel_permissions(ch, role, discord.PermissionOverwrite(read_messages=False, send_messages=False))
+        server_perms = discord.Permissions()
+        server_perms.read_messages = False
+        server_perms.send_messages = False
+        role = await self.bot.create_role(server, name="prisoner", hoist=True, permissions=server_perms)
 
         po = discord.PermissionOverwrite(read_messages=True)
         prisoner = discord.ChannelPermissions(target=role, overwrite=po)
@@ -46,11 +46,6 @@ class Moderation:
         }
         self.bot.dump_server_configs()
         return role, channel
-
-    async def on_channel_create(self, channel):
-        if 'jails' in self.bot.server_configs[channel.server.id] and self.bot.server_configs[channel.server.id]['jails']['channel'] != channel.id:
-            role = discord.utils.get(channel.server.roles, id=self.bot.server_configs[channel.server.id]['jails']['role'])
-            await self.bot.edit_channel_permissions(channel, role, discord.PermissionOverwrite(read_messages=False, send_messages=False))
 
     async def arrest(self, mid: str):
         """Make an arrest based on member id key in the jails dict.
