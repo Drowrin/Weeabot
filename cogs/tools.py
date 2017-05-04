@@ -86,11 +86,14 @@ class Tools(utils.SessionCog):
                     value=block.format(result)
                 )
             embed.colour = discord.Colour.green()
+            embed.title = "Success"
         except Exception as e:
             embed.add_field(
                 name='Exception',
                 value=block.format(''.join(traceback.format_exception(type(e), e, None)))
-            ).colour = discord.Colour.red()
+            )
+            embed.colour = discord.Colour.red()
+            embed.title = "Failure"
         await self.bot.say(embed=embed)
 
     @commands.command()
