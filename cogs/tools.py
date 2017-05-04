@@ -80,10 +80,12 @@ class Tools(utils.SessionCog):
             lines = code.split('\n')
             exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
             result = await ctx.exec()
-            embed.add_field(
-                name='Result',
-                value=block.format(result)
-            ).colour = discord.Colour.green()
+            if result is not None:
+                embed.add_field(
+                    name='Result',
+                    value=block.format(result)
+                )
+            embed.colour = discord.Colour.green()
         except Exception as e:
             embed.add_field(
                 name='Exception',
