@@ -80,7 +80,7 @@ class Tools(utils.SessionCog):
         exec('async def _():\n    ' + '\n    '.join(lines) + '\nctx.exec = _', env)
 
         embed.color = discord.Colour.blue()
-        embed.title = "In Progress"
+        embed.title = "\N{TIMER CLOCK}"
         msg = await self.bot.say(embed=embed)
 
         # clean up code afterwards
@@ -94,14 +94,14 @@ class Tools(utils.SessionCog):
                     value=block.format(result)
                 )
             embed.colour = discord.Colour.green()
-            embed.title = "Success"
+            embed.title = "\N{OK HAND SIGN}"
         except Exception as e:
             embed.add_field(
                 name='Exception',
                 value=block.format(''.join(traceback.format_exception(type(e), e, None)))
             )
             embed.colour = discord.Colour.red()
-            embed.title = "Failure"
+            embed.title = "\N{CROSS MARK}"
         await self.bot.edit_message(msg, embed=embed)
 
     @commands.command()
