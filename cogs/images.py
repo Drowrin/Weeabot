@@ -516,12 +516,12 @@ class Images(utils.SessionCog):
                         # generate mask
                         mask = Image.new("L", [c[2] * 4, c[2] * 4], color=0)
                         ImageDraw.Draw(mask).ellipse((0, 0) + mask.size, fill=255)
-                        mask = mask.resize((c[2], c[2]), Image.ANTIALIAS)
 
                         # paste the face
                         if not make_gif:
                             # resize face to requested size
                             face.thumbnail((c[2], c[2]), Image.ANTIALIAS)
+                            mask = mask.resize(face.size, Image.ANTIALIAS)
                             im.paste(
                                 face,
                                 (
@@ -532,6 +532,8 @@ class Images(utils.SessionCog):
                             )
                         else:
                             if face.format != 'GIF':
+                                face.thumbnail((c[2], c[2]), Image.ANTIALIAS)
+                                mask = mask.resize(face.size, Image.ANTIALIAS)
                                 for frame in frames:
                                     frame.paste(
                                         face,
@@ -550,7 +552,7 @@ class Images(utils.SessionCog):
                                         frames.append(f)
                                     p = frame.copy()
                                     p.thumbnail((c[2], c[2]), Image.ANTIALIAS)
-                                    m = mask.copy()
+                                    m = mask.copy().resize(p.size, Image.ANTIALIAS)
                                     f.paste(p, (c[0] - p.size[0] // 2, c[1] - p.size[1] // 2), m)
 
                 # send the image
