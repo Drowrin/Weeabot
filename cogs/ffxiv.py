@@ -1,5 +1,6 @@
 import re
 import aiohttp
+import functools
 from datetime import datetime
 
 import bs4
@@ -24,79 +25,105 @@ class CacheData:
         return (datetime.now() - self.last_updated).seconds < self.timeout
 
 
+def lazy_property(default="ERROR", name: str=None):
+    """
+    default is what is returned when an exception occurs. If callable, is called on self.
+    name overrides the name pulled from the function name if given.
+    """
+    def wrapper(func):
+        n = f'_{name or func.__name__}'
+
+        @property
+        @functools.wraps(func)
+        def prop(self):
+            val = getattr(self, n)
+            if val is None:
+                try:
+                    val = func(self)
+                except:
+                    val = default(self) if callable(default) else default
+                setattr(self, n, val)
+            return val
+
+        return prop
+
+    return wrapper
+
+
 class CharacterData(object):
     """Data structure for character information on Lodestone. Parses from html."""
 
-    @staticmethod
-    def from_html(html, **data):
-        soup = bs4.BeautifulSoup(html, "html.parser")
-
-        data['name'] = soup.select('.player_name_txt h2 a')[0].text.strip()
-        data['server'] = soup.select('.player_name_txt h2 span')[0].text.strip()[1:-1]
-        try:
-            data['title'] = soup.select('.chara_title')[0].text.strip()
-        except (AttributeError, IndexError):
-            data['title'] = None
-        data['race'], data['clan'], data['gender'] = soup.select('.chara_profile_title')[0].text.split(' / ')
-        data['gender'] = 'male' if data['gender'].strip('\n\t')[-1] == u'\u2642' else 'female'
-
-        try:
-            data['grand_company'] = discord.utils.get(soup.select('.chara_profile_box_info dd'), text="Grand Company").parent.select('.txt_name')[0].text.split('/')
-        except (AttributeError, IndexError):
-            data['grand_company'] = None
-
-        try:
-            data['free_company'] = None
-            for elem in soup.select('.chara_profile_box_info'):
-                if 'Free Company' in elem.text:
-                    fc = elem.select('a.txt_yellow')[0]
-                    data['free_company'] = {
-                        'id': re.findall(r'(\d+)', fc['href'])[0],
-                        'name': fc.text,
-                        'crest': [x['src'] for x in
-                                  elem.find('div', attrs={'class': 'ic_crest_32'}).findChildren('img')]
-                    }
-                    break
-        except (AttributeError, IndexError):
-            data['free_company'] = None
-
-        data['classes'] = {}
-        for tag in soup.select('.class_list .ic_class_wh24_box'):
-            class_ = tag.text
-
-            if not class_:
-                continue
-
-            level = tag.next_sibling.next_sibling.text
-
-            if level == '-':
-                level = 0
-                exp = 0
-                exp_next = 0
-            else:
-                level = int(level)
-                exp = int(tag.next_sibling.next_sibling.next_sibling.next_sibling.text.split(' / ')[0])
-                exp_next = int(tag.next_sibling.next_sibling.next_sibling.next_sibling.text.split(' / ')[1])
-
-            data['classes'][class_] = dict(level=level, exp=exp, exp_next=exp_next)
-
-        data['image_full'] = soup.select('.bg_chara_264 img')[0].get('src')
-        data['image_face'] = soup.select('.player_name_thumb a img')[0].get('src')
-
-        return CharacterData(**data)
-
     def __init__(self, **kwargs):
-        self.name = kwargs.pop('name')
-        self.server = kwargs.pop('server')
-        self.title = kwargs.pop('title')
-        self.race = kwargs.pop('race')
-        self.clan = kwargs.pop('clan')
-        self.gender = kwargs.pop('gender')
-        self.grand_company = kwargs.pop('grand_company')
-        self.free_company = kwargs.pop('free_company')
-        self.classes = kwargs.pop('classes')
-        self.image_full = kwargs.pop('image_full')
-        self.image_face = kwargs.pop('image_face')
+        if 'html' in kwargs:
+            self.soup = bs4.BeautifulSoup(kwargs['html'], "html.parser")
+
+        self._name = kwargs.get('name')
+        self._server = kwargs.get('server')
+        self._title = kwargs.get('title')
+        self._race = kwargs.get('race')
+        self._clan = kwargs.get('clan')
+        self._gender = kwargs.get('gender')
+        self._grand_company = kwargs.get('grand_company')
+        self._free_company = kwargs.get('free_company')
+        self._classes = kwargs.get('classes')
+        self._image_full = kwargs.get('image_full')
+        self._image_face = kwargs.get('image_face')
+
+    @lazy_property()
+    def name(self):
+        return self.soup.find('p', class_='frame__chara__name').text
+
+    @lazy_property()
+    def server(self):
+        return self.soup.find('p', class_='frame__chara__world').text
+
+    @lazy_property(default=None)
+    def title(self):
+        return self.soup.find('p', class_='frame__chara__title').text
+
+    @lazy_property()
+    def race(self):
+        block = self.soup.find('p', class_='character-block__title', string='Race/Clan/Gender').parent
+        return list(block.find('p', class_='character-block__name').stripped_strings)[0]
+
+    @lazy_property()
+    def clan(self):
+        block = self.soup.find('p', class_='character-block__title', string='Race/Clan/Gender').parent
+        return list(block.find('p', class_='character-block__name').stripped_strings)[1].split(' / ')[0]
+
+    @lazy_property()
+    def gender(self):
+        block = self.soup.find('p', class_='character-block__title', string='Race/Clan/Gender').parent
+        return list(block.find('p', class_='character-block__name').stripped_strings)[1].split(' / ')[1]
+
+    @lazy_property(default=None)
+    def grand_company(self):
+        block = self.soup.find('p', class_='character-block__title', string='Grand Company').parent
+        return block.find('p', class_='character-block__name').text.split(' / ')
+
+    @lazy_property(default=None)
+    def free_company(self):
+        return {
+            'name': self.soup.find('div', class_='character__freecompany__name').find('a').text,
+            'id': self.soup.find('div', class_='character__freecompany__name').find('a')['href'].split('/')[-2],
+            'crest': [i['src'] for i in self.soup.find('div', class_='character__freecompany__crest__image').find_all('img')]
+        }
+
+    @lazy_property()
+    def classes(self):
+        return {
+            li.find('img')['data-tooltip']: li.text.strip()
+            for li in self.soup.select('.character__level__list li')
+            if li.text.strip() != '-'
+        }
+
+    @lazy_property(default=None)
+    def image_full(self):
+        return self.soup.find('div', class_='character__detail__image').find('img')['src']
+
+    @lazy_property(default=None)
+    def image_face(self):
+        return self.soup.find('div', class_='frame__chara__face').find('img')['src']
 
 
 class CharacterProfile:
@@ -118,7 +145,7 @@ class CharacterProfile:
             data = FFXIV.cache[self.id].data
         else:
             async with session.get(self.profile_url) as r:
-                data = CharacterData.from_html(await r.text())
+                data = CharacterData(html=await r.text())
 
             FFXIV.cache[self.id] = CacheData(data)
 
@@ -127,23 +154,22 @@ class CharacterProfile:
     async def profile_embed(self, session):
         data = await self.get_data(session)
 
-        classes = {n: d for n, d in data.classes.items() if d['level']}
-        classes = '\n'.join([f"{n:<{max(len(n) for n in classes)}} | {d['level']}" for n, d in classes.items()])
+        classes = '\n'.join([f"{n:<{max(len(n) for n in data.classes)}} | {l}" for n, l in data.classes.items()])
 
         e = discord.Embed(
             title=data.name,
             url=self.profile_url,
-            description=f"""
-            {data.title or ''}
-            {data.race}
-            Server: {data.server}
-            """
+            description=f"{data.title or ''}\n{data.race}\nServer: {data.server}"
 
-        ).set_thumbnail(
-            url=data.image_face
-        ).set_image(
-            url=data.image_full
         )
+        if data.image_face:
+            e.set_thumbnail(
+                url=data.image_face
+            )
+        if data.image_full:
+            e.set_image(
+                url=data.image_full
+            )
 
         if data.free_company:
             e.add_field(
@@ -195,10 +221,12 @@ class FFXIV(utils.SessionCog):
                 'content': f"[{data.name}]({c.profile_url})" if data is not None else c.profile_url
             }
 
-    @commands.group()
+    @commands.group(invoke_without_command=True, pass_context=True)
     @checks.profiles()
-    async def ffxiv(self):
+    async def ffxiv(self, ctx):
         """Commands related to Final Fantasy XIV"""
+        ctx.message.content = ctx.message.content.replace('ffxiv', 'ffxiv profile', 1)
+        await self.bot.process_commands(ctx.message)
 
     @ffxiv.command(pass_context=True)
     async def profile(self, ctx, user: discord.Member=None):
