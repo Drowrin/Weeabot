@@ -9,29 +9,22 @@ from weeabot import utils
 from .context import Context
 from .message import Message
 
+from ruamel import yaml
+
 
 class Weeabot(commands.Bot):
     """
     Simple additions to commands.Bot
     """
 
-    def __init__(self, *args, **kwargs):
-        # get config file first, since it can contain args passed to super.__init__.
-        self.config = utils.Config(os.path.join('config', 'config.json'), default={
-            "prefix": "~",
-            "description": "Weeabot",
-            "ignored_cogs": [],
-            "chatterbot": {
-                "import_path": "chatterbot.storage.MongoDatabaseAdapter",
-                "database_uri": "mongodb://localhost:27017/",
-                "database": "chatterbot-database"
-            },
-            "trusted": []
-        })
+    def __init__(self, config_path, *args, **kwargs):
+        # get config file first, since it can contain args passed to super.__init__.\
+        with open(config_path) as c:
+            self.config = yaml.load(c, Loader=yaml.Loader)
         if 'command_prefix' not in kwargs:
-            kwargs['command_prefix'] = self.config.prefix
+            kwargs['command_prefix'] = self.config['prefix']
         if 'description' not in kwargs:
-            kwargs['description'] = self.config.description
+            kwargs['description'] = self.config['description']
 
         # init commands.Bot
         super(Weeabot, self).__init__(*args, **kwargs)
@@ -79,9 +72,8 @@ class Weeabot(commands.Bot):
         Load extensions and handle errors.
         """
         await self.init.wait()
-        for n in os.listdir(os.path.join('weeabot', 'cogs')):
-            if n[:-3] not in self.config.ignored_cogs and n.endswith('.py') and not n.startswith('_'):
-                self.load_extension(f'weeabot.cogs.{n[:-3]}')
+        for n in self.config['default_cogs']:
+            self.load_extension(n)
 
     async def on_ready(self):
         await self.update_owner()

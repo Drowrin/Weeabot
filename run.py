@@ -1,6 +1,8 @@
+import os
+
 from weeabot import Weeabot
 
-bot = Weeabot(command_prefix='$')
+bot = Weeabot(os.path.join('config', 'config.yml'), command_prefix='$')
 
 
 @bot.command()

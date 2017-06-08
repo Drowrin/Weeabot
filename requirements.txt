@@ -4,3 +4,4 @@ Pillow
 cleverbot
 python-dateutil
 beautifulsoup4
+ruamel.yaml
