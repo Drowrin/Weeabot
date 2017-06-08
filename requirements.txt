@@ -1,9 +1,0 @@
-git+https://github.com/Rapptz/discord.py@master#egg=discord.py[voice]
-pyimgur
-Pillow
-cleverbot
-chatterbot
-python-dateutil
-xmltodict
-beautifulsoup4
-python-twitter
