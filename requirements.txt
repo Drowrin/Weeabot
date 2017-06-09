@@ -1,7 +1,9 @@
-
+kyoukai
+asphalt
 pyimgur
 Pillow
 cleverbot
 python-dateutil
 beautifulsoup4
 ruamel.yaml
+jinja2

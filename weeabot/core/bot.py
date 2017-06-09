@@ -9,6 +9,9 @@ from .context import Context
 from .message import Message
 
 from ruamel import yaml
+from kyoukai import Kyoukai
+
+from ..web.base import base
 
 
 class Weeabot(commands.Bot):
@@ -30,8 +33,6 @@ class Weeabot(commands.Bot):
 
         self.owner = None  # set in on_ready
 
-        self.content = utils.content
-
         # storage of information related to continuing operation of the bot
         self.guild_configs = utils.Storage('status', 'guilds.json')
         self.status = utils.Storage('status', 'status.json')
@@ -43,17 +44,27 @@ class Weeabot(commands.Bot):
         self.defaults = {}
         self.object_hooks = {}
 
+        # webserver
+        self.web = Kyoukai("Weeabot")
+
+        @self.web.root.before_request
+        async def add_bot(ctx):
+            # add the bot to the ctx so it can be accessed in requests
+            # pretty much everything else can be accessed through the bot so it is the only thing necessary
+            ctx.bot = self
+            return ctx
+
         self.loop.create_task(self.load_extensions())
         self.loop.create_task(self.random_status())
 
         self.init = asyncio.Event(loop=self.loop)
 
     def run(self, token=None, **kwargs):
-        if not utils.tokens.discord_token:
-            print(f'Please add your token to {utils.tokens._path}')
+        if not self.config['discord_token']:
+            print('Please add your token to the config')
             input()
             quit()
-        super(Weeabot, self).run(token or utils.tokens.discord_token, **kwargs)
+        super(Weeabot, self).run(token or self.config['discord_token'], **kwargs)
 
     async def on_message(self, message):
         await self.process_commands(Message(self, message))
@@ -79,6 +90,9 @@ class Weeabot(commands.Bot):
         print(f'Bot: {self.user.name}:{self.user.id}')
         print(f'Owner: {self.owner.name}:{self.owner.id}')
         print('------------------')
+        self.web.register_blueprint(base)
+        self.web.finalize()
+        await self.web.start(**self.config['web']['server'])
         self.init.set()
 
     async def random_status(self):
