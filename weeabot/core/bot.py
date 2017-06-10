@@ -1,5 +1,7 @@
+import datetime
 import asyncio
 import random
+import humanize
 
 import discord
 from discord.ext import commands
@@ -31,7 +33,9 @@ class Weeabot(commands.Bot):
         # init commands.Bot
         super(Weeabot, self).__init__(*args, **kwargs)
 
-        self.owner = None  # set in on_ready
+        # set in on_ready
+        self.owner = None
+        self.author = None
 
         # storage of information related to continuing operation of the bot
         self.guild_configs = utils.Storage('status', 'guilds.json')
@@ -59,6 +63,15 @@ class Weeabot(commands.Bot):
 
         self.init = asyncio.Event(loop=self.loop)
 
+        self.start_time = datetime.datetime.now()
+
+    @property
+    def uptime(self):
+        """
+        How long the bot has been running, formatted with humanize.
+        """
+        return humanize.naturaldelta(datetime.datetime.now() - self.start_time)
+
     def run(self, token=None, **kwargs):
         if not self.config['discord_token']:
             print('Please add your token to the config')
@@ -76,6 +89,7 @@ class Weeabot(commands.Bot):
     async def update_owner(self):
         await self.wait_until_ready()
         self.owner = (await self.application_info()).owner
+        self.author = await self.get_user_info(81149671447207936)
 
     async def load_extensions(self):
         """

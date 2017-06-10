@@ -1,0 +1,21 @@
+{% extends "main.html" %}
+{% block body %}
+    <ul class="collapsible popout" data-collapsible="accordion">
+        {% for c in cogs recursive%}
+            <div class="collapsible-header">
+                {%- if c.icon %}<i class="material-icons">{{c.icon}}</i>{% endif %}
+                {{c.name}}
+            </div>
+            <div class="collapsible-body">
+                <blockquote>{{c.signature}}</blockquote>
+                <span>{{c.help}}</span>
+                {% if c.children %}}
+                    <ul class="collapsible popout" data-collapsible="accordion">
+                        {{loop(c.children)}}
+                    </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </ul>
+{% endblock %}
+{% block jsinit %}$('.collapsible').collapsible(){% endblock %}

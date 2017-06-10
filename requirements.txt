@@ -7,3 +7,4 @@ python-dateutil
 beautifulsoup4
 ruamel.yaml
 jinja2
+humanize

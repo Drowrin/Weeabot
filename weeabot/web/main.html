@@ -7,33 +7,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/css/materialize.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <style>
-        .circle-crop {
-            height: 55px;
-            width: 55px;
-            margin-top: 4px;
-            overflow: hidden;
-            border-radius: 50%;
+        body {
+            display: flex;
+            min-height: 100vh;
+            flex-direction: column;
         }
-        .circle-crop img {
-            margin: 0 auto;
-            height: auto;
-            width: 100%;
+        main {
+            flex: 1 0 auto;
         }
         {% block style %}{% endblock %}
     </style>
     {% block head %}{% endblock %}
 </head>
 <body>
-<nav>
-    <div class="nav-wrapper blue-grey darken-2">
-        <a href="/" class="brand-logo center">
-            <div class="circle-crop">
-                <img src="{{ ctx.bot.user.avatar_url }}">
+<nav class="blue-grey darken-2">
+    <div class="nav-wrapper">
+        <a href="#" class="brand-logo center">
+            <div class="valign-wrapper">
+                <img class="circle" height="60px" src="{{ ctx.bot.user.avatar_url }}">
             </div>
         </a>
         <a href="#" data-activates="mobile-nav" class="button-collapse"><i class="material-icons">menu</i></a>
         {% set login %}
             {% if user is defined %}
+                <li><a href="#user">{{user.name}}</a></li>
             {% else %}
                 <li><a href="#"><i class="material-icons left">perm_identity</i>Login</a></li>
             {% endif %}
@@ -50,13 +47,27 @@
         </ul>
         <ul class="side-nav" id="mobile-nav">
             {{login}}
+            <div class="divider"></div>
             {{self.navbuttons()}}
         </ul>
     </div>
 </nav>
 
+<main class="container">
+    {% block body %}{% endblock %}
+</main>
 
-{% block body %}{% endblock %}
+<footer class="page-footer blue-grey darken-3">
+    <div class="footer-copyright blue-grey darken-4">
+        <div class="container">
+            Copyright &copy;
+            <script type="text/javascript">
+                document.write(new Date().getFullYear());
+            </script>
+        </div>
+    </div>
+</footer>
+
 <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
 <script>
