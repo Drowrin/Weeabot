@@ -2,9 +2,13 @@
 {% macro index_card(card_title, pic='') %}
     {# extra kwargs are placed as links in the card actions #}
     <div class="col s12 m6 l4">
-        <div class="card hoverable blue-grey darken-3">
-            {% if pic %}<div class="card-image"><img src="{{pic}}" style="background-color:white"></div>{% endif %}
-            <div class="card-content white-text">
+        <div class="card large hoverable blue-grey darken-3" style="height:600px!important">
+            {% if pic %}
+                <div class="card-image" style="max-height:80%">
+                    <img src="{{pic}}" style="background-color:white">
+                </div>
+            {% endif %}
+            <div class="card-content white-text" style="max-height:80%">
                 <span class="card-title orange-text text-accent-2">{{card_title}}</span>
                 <p class="flow-text">{{caller()}}</p>
             </div>
