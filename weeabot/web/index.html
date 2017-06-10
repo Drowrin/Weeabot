@@ -1,6 +1,6 @@
 {% extends "main.html" %}
 {% macro index_card(card_title, pic='') %}
-    {# extra args are placed as links in the card actions #}
+    {# extra kwargs are placed as links in the card actions #}
     <div class="col s12 m6 l4">
         <div class="card hoverable blue-grey darken-3">
             {% if pic %}<div class="card-image"><img src="{{pic}}" style="background-color:white"></div>{% endif %}
@@ -27,8 +27,8 @@
 {% endblock %}
 {% block body %}
 <div class="row">
-    <div class="col s12 m10 l4 offset-l2 offset-m1 pull-l1" style="margin-top:30px">
-        <div class="card hoverable blue-grey darken-3">
+    <div class="col s12 l6" style="margin-top:30px">
+        <div style="height:80%" class="card center hoverable blue-grey darken-3">
             <div class="card-image">
                 <img src="/img/d/not_female.png">
             </div>
