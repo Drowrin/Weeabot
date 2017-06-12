@@ -1,14 +1,14 @@
 {% extends "main.html" %}
 {% macro index_card(card_title, pic='') %}
     {# extra kwargs are placed as links in the card actions #}
-    <div class="col s12 m6 l4">
-        <div class="card large hoverable blue-grey darken-3" style="height:600px!important">
+    <div class="grid-item">
+        <div class="card hoverable blue-grey darken-3">
             {% if pic %}
-                <div class="card-image" style="max-height:80%">
+                <div class="card-image">
                     <img src="{{pic}}" style="background-color:white">
                 </div>
             {% endif %}
-            <div class="card-content white-text" style="max-height:80%">
+            <div class="card-content white-text">
                 <span class="card-title orange-text text-accent-2">{{card_title}}</span>
                 <p class="flow-text">{{caller()}}</p>
             </div>
@@ -27,6 +27,22 @@
     .hoverable:hover {
       transition: box-shadow .25s;
       box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19), 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+
+    /* Mobile First */
+    .grid-sizer, .grid-item {
+        width: 100%;
+        padding: 5px 10px;
+    }
+    /* Medium (tablets, half-desktop) */
+    @media only screen and (min-width: 768px) {
+        .grid-sizer {width: 50%;}
+        .grid-item {width: 50%;}
+    }
+    /* Desktop */
+    @media only screen and (min-width: 1400px) {
+        .grid-sizer {width: 33%;}
+        .grid-item {width: 33%;}
     }
 {% endblock %}
 {% block body %}
@@ -49,7 +65,8 @@
     </div>
 </div>
 <div class="divider"></div>
-<div class="section row">
+<div class="section grid">
+    <div class="grid-sizer"></div>
     {% call index_card('Who', pic=ctx.bot.user.avatar_url) %}
         {{ctx.bot.greeting}} I'm {{ctx.bot.user.name}}! I'm a bot for discord written by {{ctx.bot.author.name}}.
     {% endcall %}
@@ -78,4 +95,14 @@
         I simply grab your user id (which is public) and store it in cookies so I know who you are.
     {% endcall %}
 </div>
+{% endblock %}
+{% block scripts %}
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+{% endblock %}
+{% block jsinit %}
+    $('.grid').masonry({
+        itemSelector: '.grid-item',
+        columnWidth: '.grid-sizer',
+        percentPosition: true
+    })
 {% endblock %}
