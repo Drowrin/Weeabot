@@ -24,7 +24,7 @@ class Weeabot(commands.Bot):
         aug.augmenter.properties['__client'] = lambda x: self
         aug.augmenter()
 
-        # get config file first, since it can contain args passed to super.__init__.\
+        # get config file first, since it can contain args passed to super.__init__.
         with open(config_path) as c:
             self.config = yaml.load(c, Loader=yaml.Loader)
         if 'command_prefix' not in kwargs:
@@ -60,9 +60,6 @@ class Weeabot(commands.Bot):
             ctx.bot = self
             return ctx
 
-        self.loop.create_task(self.load_extensions())
-        self.loop.create_task(self.random_status())
-
         self.init = asyncio.Event(loop=self.loop)
 
         self.start_time = datetime.datetime.now()
@@ -90,23 +87,24 @@ class Weeabot(commands.Bot):
         """
         Load extensions and handle errors.
         """
-        await self.init.wait()
         for n in self.config['default_cogs']:
             self.load_extension(n)
 
+    @utils.run_once
     async def on_ready(self):
         await self.update_owner()
         print(f'Bot: {self.user.name}:{self.user.id}')
         print(f'Owner: {self.owner.name}:{self.owner.id}')
         print('------------------')
+        await self.load_extensions()
         self.web.register_blueprint(base)
         self.web.finalize()
         await self.web.start(**self.config['web']['server'])
+        self.loop.create_task(self.random_status())
         self.init.set()
 
     async def random_status(self):
         """Rotating statuses."""
-        await self.init.wait()
         while not self.is_closed:
             n = random.choice(self.content.statuses)
             await self.change_presence(game=discord.Game(name=n, url='', type=0))

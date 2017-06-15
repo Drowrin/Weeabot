@@ -3,6 +3,18 @@ import asyncio
 from os import path, makedirs
 
 
+def run_once(func):
+    """
+    Decorator for events that should only run once.
+    """
+    async def wrapped(*args, **kwargs):
+        if not wrapped.run:
+            wrapped.run = True
+            return await func(*args, **kwargs)
+    wrapped.run = False
+    return wrapped
+
+
 def open_json(fn: str):
     """Open a json file and handle the errors."""
     makedirs(path.dirname(fn), exist_ok=True)
