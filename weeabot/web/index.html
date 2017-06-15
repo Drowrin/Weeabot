@@ -1,4 +1,4 @@
-{% extends "main.html" %}
+{% extends "masonrycards.html" %}
 {% macro index_card(card_title, pic='') %}
     {# extra kwargs are placed as links in the card actions #}
     <div class="grid-item">
@@ -22,30 +22,7 @@
         </div>
     </div>
 {%- endmacro %}
-{# temp fix for chrome bug #}
-{% block style %}
-    .hoverable:hover {
-      transition: box-shadow .25s;
-      box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19), 0 0 0 0 rgba(0, 0, 0, 0);
-    }
-
-    /* Mobile First */
-    .grid-sizer, .grid-item {
-        width: 100%;
-        padding: 5px 10px;
-    }
-    /* Medium (tablets, half-desktop) */
-    @media only screen and (min-width: 768px) {
-        .grid-sizer {width: 50%;}
-        .grid-item {width: 50%;}
-    }
-    /* Desktop */
-    @media only screen and (min-width: 1400px) {
-        .grid-sizer {width: 33%;}
-        .grid-item {width: 33%;}
-    }
-{% endblock %}
-{% block body %}
+{% block top %}
 <div class="row">
     <div class="col s12 l6" style="margin-top:30px">
         <div style="height:70%" class="card center hoverable blue-grey darken-3">
@@ -64,9 +41,8 @@
         </blockquote>
     </div>
 </div>
-<div class="divider"></div>
-<div class="section grid">
-    <div class="grid-sizer"></div>
+{% endblock %}
+{% block cards %}
     {% call index_card('Who', pic=ctx.bot.user.avatar_url) %}
         {{ctx.bot.greeting}} I'm {{ctx.bot.user.name}}! I'm a bot for discord written by {{ctx.bot.author.name}}.
     {% endcall %}
@@ -94,15 +70,4 @@
         Don't worry! The process is secure, this site never even sees your password or token.
         I simply grab your user id (which is public) and store it in cookies so I know who you are.
     {% endcall %}
-</div>
-{% endblock %}
-{% block scripts %}
-    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
-{% endblock %}
-{% block jsinit %}
-    $('.grid').masonry({
-        itemSelector: '.grid-item',
-        columnWidth: '.grid-sizer',
-        percentPosition: true
-    })
 {% endblock %}

@@ -1,0 +1,43 @@
+{% extends "main.html" %}
+{% block style %}
+    /* temp fix for chrome bug */
+    .hoverable:hover {
+      transition: box-shadow .25s;
+      box-shadow: 0 8px 17px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19), 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+
+    /* Layouts */
+    /* Mobile First */
+    .grid-sizer, .grid-item {
+        width: 100%;
+        padding: 5px 10px;
+    }
+    /* Medium (tablets, half-desktop) */
+    @media only screen and (min-width: 768px) {
+        .grid-sizer {width: 50%;}
+        .grid-item {width: 50%;}
+    }
+    /* Desktop */
+    @media only screen and (min-width: 1400px) {
+        .grid-sizer {width: 33%;}
+        .grid-item {width: 33%;}
+    }
+{% endblock %}
+{% block body %}
+    {% block top %}{% endblock %}
+    <div class="divider"></div>
+    <div class="section grid">
+        <div class="grid-sizer"></div>
+        {% block cards %}{% endblock %}
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
+{% endblock %}
+{% block jsinit %}
+    $('.grid').masonry({
+        itemSelector: '.grid-item',
+        columnWidth: '.grid-sizer',
+        percentPosition: true
+    })
+{% endblock %}
