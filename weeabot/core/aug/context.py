@@ -1,10 +1,9 @@
 from discord.ext import commands
-
-from weeabot import utils
-from .message import Message
+from . import augmenter
 
 
-class Context(utils.wrapper(commands.Context)):
+@augmenter.add(commands.Context)
+class Context:
     """
     Additional shortcuts and features for commands.Context
     Mostly syntactic sugar
@@ -30,4 +29,4 @@ class Context(utils.wrapper(commands.Context)):
         Additional arguments will be passed to self.send
         """
         m = await self.send(*args, **kwargs)
-        return await Message(self.bot, m).confirm(user or self.message.author)
+        return await m.confirm(user or self.message.author)

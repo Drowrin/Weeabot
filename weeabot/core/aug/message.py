@@ -1,9 +1,9 @@
 import discord
+from . import augmenter
 
-from weeabot import utils
 
-
-class Message(utils.wrapper(discord.Message)):
+@augmenter.add(discord.Message)
+class Message:
     """
     discord.Message with some additions.
     """

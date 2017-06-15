@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
+from . import augmenter
 
 
-class Command(commands.Command):
+@augmenter.add(commands.Command)
+class Command:
     """
     Added functionality to commands.Command
     """

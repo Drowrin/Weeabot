@@ -3,24 +3,6 @@ import asyncio
 from os import path, makedirs
 
 
-def wrapper(cls):
-    """
-    Add functionality and attributes to an instantiated object even with __slots__.
-    """
-    class Wrapper(cls):
-        __slots__ = ('__internal', '__client')
-
-        def __init__(self, client, internal):
-            self.__internal = internal
-            self.__client = client
-
-        def __getattr__(self, item):
-            if item == f'_{cls.__name__}__client':
-                return self.__client
-            return getattr(self.__internal, item)
-    return Wrapper
-
-
 def open_json(fn: str):
     """Open a json file and handle the errors."""
     makedirs(path.dirname(fn), exist_ok=True)

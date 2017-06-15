@@ -7,9 +7,7 @@ import discord
 from discord.ext import commands
 
 from weeabot import utils
-from .context import Context
-from .message import Message
-
+from . import aug
 from ruamel import yaml
 from kyoukai import Kyoukai
 
@@ -22,6 +20,10 @@ class Weeabot(commands.Bot):
     """
 
     def __init__(self, config_path, *args, **kwargs):
+        # run augmentation
+        aug.augmenter.properties['__client'] = lambda x: self
+        aug.augmenter()
+
         # get config file first, since it can contain args passed to super.__init__.\
         with open(config_path) as c:
             self.config = yaml.load(c, Loader=yaml.Loader)
@@ -78,13 +80,6 @@ class Weeabot(commands.Bot):
             input()
             quit()
         super(Weeabot, self).run(token or self.config['discord_token'], **kwargs)
-
-    async def on_message(self, message):
-        await self.process_commands(Message(self, message))
-
-    async def process_commands(self, message):
-        ctx = Context(self, await self.get_context(message))
-        await self.invoke(ctx)
 
     async def update_owner(self):
         await self.wait_until_ready()

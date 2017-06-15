@@ -1,7 +1,6 @@
 import os
 
 from weeabot import Weeabot
-from weeabot.core.context import Context
 
 import discord
 
@@ -20,7 +19,7 @@ async def test(ctx):
 
 
 @bot.command()
-async def image(ctx: Context):
+async def image(ctx):
     f = discord.File(os.path.join('images', 'test.png'))
     await ctx.send(
         file=f,
