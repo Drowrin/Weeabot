@@ -108,6 +108,7 @@ class Weeabot(commands.Bot):
         self.web.register_blueprint(base)
         self.web.finalize()
         await self.web.start(**self.config['web']['server'])
+        await self.db.prepare()
         self.loop.create_task(self.random_status())
         self.init.set()
 
