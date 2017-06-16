@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from weeabot import utils
 from . import aug
+from weeabot.storage.db import DBHelper
 from ruamel import yaml
 from kyoukai import Kyoukai
 
@@ -60,6 +61,9 @@ class Weeabot(commands.Bot):
             ctx.bot = self
             return ctx
 
+        # database
+        self.db = DBHelper(self.config['db']['dsn'], self)
+
         self.init = asyncio.Event(loop=self.loop)
 
         self.start_time = datetime.datetime.now()
@@ -89,6 +93,10 @@ class Weeabot(commands.Bot):
         """
         for n in self.config['default_cogs']:
             self.load_extension(n)
+
+    async def on_message(self, message):
+        await self.init.wait()
+        await self.process_commands(message)
 
     @utils.run_once
     async def on_ready(self):
