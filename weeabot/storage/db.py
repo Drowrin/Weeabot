@@ -1,16 +1,20 @@
+import random
 import discord
 from asyncio_extras import threadpool, async_contextmanager
-from sqlalchemy import Column, engine, orm
-from .tables import User
+from sqlalchemy import engine, orm
+from .tables import *
+
 
 class DBHelper:
     """
     Collection of async helper functions for accessing the database.
     """
 
-    def __init__(self, dsn):
+    def __init__(self, dsn, bot):
         self.dsn = dsn
+        self.bot = bot
         # Will be set on once prepaired
+        self._engine = None
         self._make_session = None
 
     async def prepare(self):
@@ -18,33 +22,110 @@ class DBHelper:
         Prepare the db for use. Required before anything else.
         """
         async with threadpool():
-            e = engine.create_engine(self.dsn)
-            self._make_session = orm.sessionmaker(bind=e)
+            self._engine = engine.create_engine(self.dsn)
+            self._make_session = orm.sessionmaker(bind=self._engine, expire_on_commit=False)
 
     @async_contextmanager
     async def session(self):
         """
-        Yields a session to access the db, and runs code in an executor.
+        Yields a session to access the db.
         """
-        async with threadpool():
-            s = self._make_session()
-            try:
-                yield s
-                s.commit()
-            except:
-                s.rollback()
-                raise
-            finally:
-                s.close()
+        s = self._make_session()
+        s.bot = self.bot
+        try:
+            yield s
+            s.commit()
+        except:
+            s.rollback()
+            raise
+        finally:
+            s.close()
 
+    @async_contextmanager
     async def get_user(self, user: discord.User):
         """
-        Get a user's profile from the database. Will create if nonexistent.
+        Get a user's profile from the database. Will create a row if nonexistent.
         """
         async with self.session() as s:
             u = s.query(User).filter(User.id == user.id).first()
             if u is None:
                 u = User(id=user.id)
+                s.add(u)
 
-        return u
+            yield u
 
+    @async_contextmanager
+    async def get_guild(self, guild: discord.Guild):
+        """
+        Get a guild from the database. Will create a row if nonexistent.
+        """
+        async with self.session() as s:
+            g = s.query(Guild).filter(Guild.id == guild.id).first()
+            if g is None:
+                g = Guild(id=guild.id)
+                s.add(g)
+
+            yield g
+
+    @async_contextmanager
+    async def get_channel(self, channel: discord.TextChannel):
+        """
+        Get a channel from the database. Will create a row if nonexistent
+        """
+        async with self.session() as s:
+            c = s.query(Channel).filter(Channel.id == channel.id).first()
+            if c is None:
+                g = await self.get_guild(channel.guild)
+                c = Channel(id=channel.id)
+                s.add(c)
+                g.channels.append(c)
+
+            yield c
+
+    @async_contextmanager
+    async def get_poll(self, id):
+        """
+        Get a Poll by id. Does not create missing rows.
+        """
+        async with self.session() as s:
+            yield s.query(Poll).filter(Poll.id == id).first()
+
+    @async_contextmanager
+    async def get_total_usage(self, name):
+        """
+        Get a list of all CommandUsage objects for a command.
+        """
+        async with self.session() as s:
+            yield s.query(CommandUsage).filter(CommandUsage.name == name).all()
+
+    @async_contextmanager
+    async def get_specific_stub(self, id):
+        """
+        Get a specific stub by id. Does not create missing rows.
+        """
+        async with self.session() as s:
+            yield s.query(Stub).filter(Stub.id == id).first()
+
+    @async_contextmanager
+    async def get_tag(self, name):
+        """
+        Get a specific tag by name. Creates missing rows.
+        """
+        async with self.session() as s:
+            t = s.query(Tag).filter(Tag.name == name).first()
+
+            if t is None:
+                t = Tag(name)
+                s.add(t)
+
+            yield t
+
+    @async_contextmanager
+    async def get_random_stub(self, *tags):
+        """
+        Get a random stub with the given tags.
+        """
+        async with self.session() as s:
+            filters = [Stub.tags.any(name=t) for t in tags]
+            stubs = s.query(Stub).filter(*filters).all()
+            yield random.choice(stubs)
