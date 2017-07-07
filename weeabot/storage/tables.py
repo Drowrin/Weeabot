@@ -32,7 +32,7 @@ class DiscordObject:
     """
     Common functionality of discord objects.
     """
-    id = Column(BigInteger, primary_key=True, autoincrement=False, unique=True)
+    id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=False, unique=True)
 
     @property
     def bot(self):
@@ -53,6 +53,9 @@ class DiscordObject:
 
 
 class CommandUsage(Base):
+    """
+    For tracking how commands are used.
+    """
     user_id = Column(BigInteger, ForeignKey('user.id'))
     user = relationship("User", back_populates="usage")
     name = Column(String, nullable=False)
@@ -87,7 +90,7 @@ class Guild(DiscordObject, Base):
     """
     Representation of a Guild.
     """
-    #channels = relationship("Channel", back_populates="guild", cascade="all, delete, delete-orphan")
+    # channels = relationship("Channel", back_populates="guild", cascade="all, delete, delete-orphan")
 
     poll_channel_id = Column(BigInteger, ForeignKey('channel.id'))
     poll_channel = relationship("Channel", foreign_keys=[poll_channel_id])
@@ -99,11 +102,26 @@ class Guild(DiscordObject, Base):
 
     jail_id = Column(BigInteger, ForeignKey('channel.id'))
     jail = relationship("Channel", foreign_keys=[jail_id])
+    jail_sentences = relationship("JailSentence", back_populates="guild")
 
     stubs = relationship("Stub", back_populates='guild')
 
 
+class JailSentence(Base):
+    """
+    Describes how long a member has been sentenced to jail.
+    """
+    guild_id = Column(BigInteger, ForeignKey('guild.id'))
+    guild = relationship("Guild", back_populates="jail_sentences")
+
+    user = Column(BigInteger)
+    finished = Column(DateTime)
+
+
 class Poll(Base):
+    """
+    Reprisents a poll running in this guild's poll channel.
+    """
     guild_id = Column(BigInteger, ForeignKey('guild.id'))
     guild = relationship("Guild", back_populates="polls")
     author_id = Column(BigInteger, ForeignKey('user.id'))
@@ -119,15 +137,40 @@ class Channel(DiscordObject, Base):
     """
     Representation of a Channel.
     """
-    #guild_id = Column(BigInteger, ForeignKey('guild.id'))
-    #guild = relationship("Guild", back_populates="channels", foreign_keys=[guild_id])
+    # These aren't really necessary due to `DiscordObject.get()`
+    # guild_id = Column(BigInteger, ForeignKey('guild.id'))
+    # guild = relationship("Guild", back_populates="channels", foreign_keys=[guild_id])
     hidden = Column(Boolean, nullable=False, default=False)
-    twitter = Column(String)
-    spoiler = Column(Boolean, nullable=False, default=False)
-    spoiler_members = Column(ARRAY(BigInteger, dimensions=1))
-    spoiler_trusted = Column(ARRAY(BigInteger, dimensions=1))
-    spoiler_creator = Column(BigInteger)
-    spoiler_status = Column(String)
+    tweetstreams = relationship("TweetStream", back_populates="channel")
+    spoiler = relationship("Spoiler", uselist=False, back_populates="channel")
+
+
+class TweetStream(Base):
+    """
+    Contains information necessary to repost tweets to a channel.
+    """
+    channel_id = Column(BigInteger, ForeignKey('channel.id'))
+    channel = relationship("Channel", back_populates="tweetstreams")
+    twitter_id = Column(BigInteger)
+    last_tweet = Column(String)
+
+
+spoiler_association_table = Table(
+    'association', Base.metadata,
+    Column('spoiler_id', Integer, ForeignKey('spoiler.id')),
+    Column('user_id', BigInteger, ForeignKey('user.id'))
+)
+
+
+class Spoiler(Base):
+    """
+    Contains information necessary to the operation of a spoiler channel.
+    """
+    channel_id = Column(BigInteger, ForeignKey('channel.id'))
+    channel = relationship("Channel", back_populates="spoiler")
+    members = relationship("User", secondary=spoiler_association_table)
+    creator = Column(BigInteger)
+    status = Column(String)
 
 
 # association table to create many-to-many relationship
@@ -140,6 +183,9 @@ tag_association_table = Table(
 
 
 class Stub(Base):
+    """
+    User defined and organized content.
+    """
     tags = relationship(
         'Tag',
         secondary=tag_association_table,
@@ -159,6 +205,9 @@ class Stub(Base):
 
 
 class Tag(Base):
+    """
+    Used to organize and access Stubs.
+    """
     stubs = relationship(
         'Stub',
         secondary=tag_association_table,
@@ -166,3 +215,21 @@ class Tag(Base):
     )
 
     name = Column(String, nullable=False, unique=True)
+
+
+class Reminder(Base):
+    """
+    A reminder sent to a user after a specified time.
+    """
+    channel_id = Column(BigInteger, ForeignKey('channel.id'))
+    channel = relationship("Channel")
+
+    finished = Column(DateTime)
+
+    user_id = Column(BigInteger, ForeignKey('user.id'))
+    user = relationship("User")
+
+    message = Column(String)
+
+
+    # TODO: use sqlalchemy pickletype for requests so that system doesn't need rewriting
