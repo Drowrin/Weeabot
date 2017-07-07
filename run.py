@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import traceback
+import textwrap
 
 from weeabot import Weeabot
 
@@ -50,7 +51,7 @@ async def execute(ctx, *, code: str):
     env.update(globals())
 
     embed = discord.Embed(
-        description=block.format(code)
+        description=block.format(textwrap.shorten(code, width=1000))
     ).set_footer(
         text=f'Python {sys.version.split()[0]}',
         icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/200px-Python-logo-notext.svg.png'
@@ -72,7 +73,7 @@ async def execute(ctx, *, code: str):
         if result is not None:
             embed.add_field(
                 name='Result',
-                value=block.format(result)
+                value=block.format(textwrap.shorten(str(result), width=1000))
             )
         embed.colour = discord.Colour.green()
         embed.title = "\N{OK HAND SIGN}"
@@ -83,7 +84,13 @@ async def execute(ctx, *, code: str):
         )
         embed.colour = discord.Colour.red()
         embed.title = "\N{CROSS MARK}"
-    await msg.edit(embed=embed)
+    try:
+        await msg.edit(embed=embed)
+    except discord.HTTPException:
+        print(embed.fields[0].value)
+        embed.remove_field(0)
+        embed.description = "Output too large, check logs"
+        await msg.edit(embed=embed)
 
 
 if __name__ == '__main__':
