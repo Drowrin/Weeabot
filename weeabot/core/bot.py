@@ -40,10 +40,6 @@ class Weeabot(commands.Bot):
         self.owner = None
         self.author = None
 
-        # storage of information related to continuing operation of the bot
-        self.guild_configs = utils.Storage('status', 'guilds.json')
-        self.status = utils.Storage('status', 'status.json')
-
         # added to by cogs
         self.services = {}
         self.formatters = {}
