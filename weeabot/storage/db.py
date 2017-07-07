@@ -75,7 +75,10 @@ class DBHelper:
         async with self.session() as s:
             c = s.query(Channel).filter(Channel.id == channel.id).first()
             if c is None:
-                g = await self.get_guild(channel.guild)
+                g = s.query(Guild).filter(Guild.id == channel.guild.id).first()
+                if g is None:
+                    g = Guild(id=channel.guild.id)
+                    s.add(g)
                 c = Channel(id=channel.id)
                 s.add(c)
                 g.channels.append(c)
