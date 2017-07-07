@@ -90,6 +90,26 @@ class DBHelper:
         async with self.session() as s:
             yield s.query(Poll).filter(Poll.id == id).first()
 
+    async def inc_command_usage(self, user, name):
+        """
+        Increment the command usage count of a particular user and command.
+        """
+        async with self.session() as s:
+            usage = s.query(CommandUsage).filter(CommandUsage.user_id == user.id).filter(
+                CommandUsage.name == name).first()
+
+            if usage is None:
+                u = s.query(User).filter(User.id == user.id).first()
+
+                if u is None:
+                    u = User(id=user.id)
+                    s.add(u)
+
+                usage = CommandUsage(u, name, 0)
+                u.usage.append(usage)
+
+            usage.count += 1
+
     @async_contextmanager
     async def get_total_usage(self, name):
         """
@@ -123,9 +143,9 @@ class DBHelper:
     @async_contextmanager
     async def get_random_stub(self, *tags):
         """
-        Get a random stub with the given tags.
+        Get a random stub with the given tags. Can return None
         """
         async with self.session() as s:
             filters = [Stub.tags.any(name=t) for t in tags]
             stubs = s.query(Stub).filter(*filters).all()
-            yield random.choice(stubs)
+            yield random.choice(stubs) if stubs else None
