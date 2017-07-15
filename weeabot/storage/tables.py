@@ -12,14 +12,22 @@ class _Base:
     Base functionality of tables.
     """
 
+    @property
+    def __repr_props__(self):
+        """
+        An iterable defining what properties to expose in __repr__.
+        Defaults to everything. Override in subclasses to change this behavior.
+        """
+        return self.__mapper__.columns.keys()
+
     id = Column(Integer, primary_key=True)
 
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
 
-    def __repr__(self, **kwargs):
-        return "<{} {}>".format(type(self).__name__, ' '.join(["{}={}".format(k, v) for k, v in kwargs.items()]))
+    def __repr__(self):
+        return "<{} {}>".format(type(self).__name__, ' '.join(["{}={}".format(k, getattr(self, k)) for k in self.__repr_props__]))
 
     def __str__(self):
         return self.__repr__()
@@ -38,11 +46,6 @@ class DiscordObject:
     def bot(self):
         s = Session.object_session(self)
         return s.bot  # set right after session creation
-
-    def __repr__(self, **kwargs):
-        if 'id' not in kwargs:
-            kwargs['id'] = self.id
-        return super(DiscordObject, self).__repr__(**kwargs)
 
     def get(self):
         """
