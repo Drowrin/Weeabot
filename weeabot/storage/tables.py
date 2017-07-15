@@ -4,7 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, Session
 
 
-__all__ = ('User', 'CommandUsage', 'Guild', 'Poll', 'Channel', 'Stub', 'Tag')
+__all__ = ('User', 'CommandUsage', 'Guild', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
+           'Reminder')
 
 
 class _Base:
