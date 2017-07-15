@@ -156,7 +156,7 @@ class TweetStream(Base):
 
 
 spoiler_association_table = Table(
-    'association', Base.metadata,
+    'spoiler_association', Base.metadata,
     Column('spoiler_id', Integer, ForeignKey('spoiler.id')),
     Column('user_id', BigInteger, ForeignKey('user.id'))
 )
@@ -175,7 +175,7 @@ class Spoiler(Base):
 
 # association table to create many-to-many relationship
 tag_association_table = Table(
-    'association',
+    'tag_association',
     Base.metadata,
     Column('stub_id', ForeignKey('stub.id'), primary_key=True),
     Column('tag_id', ForeignKey('tag.id'), primary_key=True)
