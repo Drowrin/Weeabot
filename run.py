@@ -5,6 +5,7 @@ import traceback
 import textwrap
 
 from weeabot import Weeabot
+from weeabot.cogs.stats import do_not_track
 
 import discord
 
@@ -32,6 +33,7 @@ async def image(ctx):
 
 
 @bot.command(pass_context=True, name='exec')
+@do_not_track
 async def execute(ctx, *, code: str):
     """Code is executed as a coroutine and the return is output to this channel."""
     lang = re.match(r'```(\w+\s*\n)', code)

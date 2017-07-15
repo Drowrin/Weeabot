@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from . import BaseCog
+from .stats import do_not_track
 
 
 class Moderation(BaseCog):
@@ -13,6 +14,7 @@ class Moderation(BaseCog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
+    @do_not_track
     async def autorole(self, ctx: commands.Context, role: discord.Role):
         """
         Set a role to be assigned to all new users.
