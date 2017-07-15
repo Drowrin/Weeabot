@@ -1,5 +1,6 @@
 import aiohttp
 
+from ..core import Weeabot
 
 def base_cog(shortcut=False, session=False):
     """
@@ -103,7 +104,7 @@ def base_cog(shortcut=False, session=False):
 
             return dec
 
-        def __init__(self, bot):
+        def __init__(self, bot: Weeabot):
             self.bot = bot
 
             bot.services.update(self.services)
