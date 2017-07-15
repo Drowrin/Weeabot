@@ -108,7 +108,7 @@ class DBHelper:
                     u = User(id=user.id)
                     s.add(u)
 
-                usage = CommandUsage(u, name, 0)
+                usage = CommandUsage(user=u, name=name, count=0)
                 u.usage.append(usage)
 
             usage.count += 1
