@@ -25,7 +25,7 @@ class Profiles(base_cog(shortcut=True, session=True)):
     This cog only handles accessing profile data, it does not collect anything itself.
     """
 
-    @commands.group(invoke_without_command=True, name='profile', aliases=('p',))
+    @commands.command(name='profile', aliases=('p',))
     @do_not_track
     async def prof(self, ctx: commands.Context, user: discord.Member=None):
         """
@@ -53,6 +53,7 @@ class Profiles(base_cog(shortcut=True, session=True)):
                 await f(u)(e)
 
         await ctx.send(embed=e)
+
 
 
 
