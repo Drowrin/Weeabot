@@ -1,5 +1,8 @@
+import operator
+from tabulate import tabulate
 from discord.ext import commands
 from . import base_cog
+from ..storage.tables import User
 
 
 def do_not_track(command):
@@ -36,6 +39,17 @@ class Stats(base_cog(shortcut=True)):
         """
         if not message.author.bot:
             await self.bot.db.inc_xp(message.author)
+
+
+@Stats.formatter(name='Top Commands', order=2, inline=False)
+async def usage_formatter(u: User):
+    usages = await u.bot.db.get_user_usage(u.get())
+    top = sorted(usages.items(), key=operator.itemgetter(1), reverse=True)[:5]
+    if len(top) > 0:
+        t = tabulate(top, headers=['Command', 'Usages'], tablefmt='simple')
+        return '\n'.join(f'`{r}`' for r in t.split('\n'))
+    else:
+        return "No usage recorded"
 
 
 def setup(bot):

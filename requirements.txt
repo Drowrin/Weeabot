@@ -13,3 +13,4 @@ dateparser
 psycopg2
 SQLAlchemy
 asyncio_extras
+tabulate

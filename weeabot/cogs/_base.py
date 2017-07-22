@@ -1,4 +1,8 @@
 import aiohttp
+import inspect
+import traceback
+from functools import total_ordering
+from discord import Embed
 
 from ..core import Weeabot
 
@@ -22,16 +26,55 @@ def base_cog(shortcut=False, session=False):
         object_hooks = {}
 
         @classmethod
-        def formatter(cls, name=None):
+        def formatter(cls, *, name=None, inline=True, order=0):
             """
             Decorator that adds a formatter function to this cog.
-            Can be a coroutine.
+            The function should take user data from the db and return field contents.
+            Optionally a coroutine.
             Name will be taken from the function name if none is given.
+            inline controls whether the field will be inline.
+            order is a priority where lower is near the top. Can be negative. Defaults to 0
             """
 
             def dec(func):
-                cls.formatters[name or func.__name__] = func
-                return func
+                @total_ordering
+                class ProfileFormatter:
+                    order_priority = order
+                    handler = None
+
+                    def __eq__(self, other):
+                        return self.order_priority == other.order_priority
+
+                    def __lt__(self, other):
+                        return self.order_priority < other.order_priority
+
+                    def __init__(self, user):
+                        self.user = user
+
+                    async def __call__(self, embed: Embed):
+                        try:
+                            result = func(self.user)
+                            if inspect.isawaitable(result):
+                                result = await result
+                        except Exception as e:
+                            traceback.print_exc()
+                            result = self.handler(e, self.user) if self.handler else "ERROR"
+                        embed.add_field(
+                            name=name,
+                            value=result,
+                            inline=inline
+                        )
+
+                    def error_handler(self, f):
+                        """
+                        Register the error handler for this formatter.
+                        If none and there is an error, field will simply display ERROR.
+                        Function should take as parameters the exception followed by the data, returning a result.
+                        """
+                        self.handler = f
+
+                cls.formatters[name or func.__name__] = ProfileFormatter
+                return ProfileFormatter
 
             return dec
 
