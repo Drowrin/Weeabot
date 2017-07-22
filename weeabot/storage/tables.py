@@ -1,10 +1,12 @@
+from datetime import datetime
+
 from sqlalchemy import func, Column, Table, ForeignKey, BigInteger, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import relationship, Session, reconstructor
 
 
-__all__ = ('User', 'CommandUsage', 'Guild', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
+__all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
            'Reminder')
 
 
@@ -43,10 +45,9 @@ class DiscordObject:
     """
     id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=False, unique=True)
 
-    @property
-    def bot(self):
-        s = Session.object_session(self)
-        return s.bot  # set right after session creation
+    @reconstructor
+    def on_load(self):
+        self.bot = Session.object_session(self).bot
 
     def get(self):
         """
@@ -106,6 +107,7 @@ class Guild(DiscordObject, Base):
 
     jail_id = Column(BigInteger, ForeignKey('channel.id'))
     jail = relationship("Channel", foreign_keys=[jail_id])
+    jail_role_id = Column(BigInteger)
     jail_sentences = relationship("JailSentence", back_populates="guild")
 
     stubs = relationship("Stub", back_populates='guild')
