@@ -30,6 +30,12 @@ class Stats(base_cog(shortcut=True)):
     async def on_command_completion(self, ctx):
         await self.inc_use(ctx.message.author, ctx.command)
 
+    async def on_message(self, message):
+        """
+        Called on every message the bot can see.
+        """
+        await self.bot.db.inc_xp(message.author)
+
 
 def setup(bot):
     bot.add_cog(Stats(bot))
