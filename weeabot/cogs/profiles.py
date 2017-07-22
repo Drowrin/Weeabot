@@ -59,7 +59,7 @@ class Profiles(base_cog(shortcut=True, session=True)):
             headers=['User', 'Level'],
             tablefmt='orgtbl'
         )
-        table = '\n'.join(f'`{r}`' for r in table.split('\n'))
+        table = '\n'.join('`{}`'.format(r) for r in table.split('\n'))
 
         await ctx.send("Leaderboard of server activity\n" + table)
 
