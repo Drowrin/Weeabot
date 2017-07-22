@@ -77,6 +77,20 @@ class DBHelper:
 
             yield g
 
+    async def get_top_users(self, guild: discord.Guild, limit: int=5):
+        """
+        Get the top users for the specified guild.
+        """
+        async with threadpool(), self.session() as s:
+            return {
+                u.get_member(guild): u.xp
+                for u in
+                s.query(User).
+                    filter(User.id.in_([m.id for m in guild.members])).
+                    order_by(User.xp.desc()).
+                    limit(limit)
+            }
+
     async def set_jail_role(self, guild: discord.Guild, role: discord.Role):
         """
         Sets the specified guild's jail role.

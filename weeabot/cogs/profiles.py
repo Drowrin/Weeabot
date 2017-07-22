@@ -6,7 +6,7 @@ import traceback
 
 import discord
 from discord.ext import commands
-
+from tabulate import tabulate
 from asyncio_extras import threadpool
 
 from .. import utils
@@ -54,7 +54,21 @@ class Profiles(base_cog(shortcut=True, session=True)):
 
         await ctx.send(embed=e)
 
+    @commands.command()
+    @do_not_track
+    async def leaderboard(self, ctx: commands.Context):
+        """
+        The leaderboard of server activity.
+        """
+        top = await self.bot.db.get_top_users(ctx.guild)
+        table = tabulate(
+            {u.display_name: level(x) for u, x in top.items()}.items(),
+            headers=['User', 'Level'],
+            tablefmt='orgtbl'
+        )
+        table = '\n'.join(f'`{r}`' for r in table.split('\n'))
 
+        await ctx.send("Leaderboard of server activity\n" + table)
 
 
 def setup(bot):
