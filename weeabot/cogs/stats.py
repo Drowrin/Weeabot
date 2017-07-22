@@ -46,7 +46,7 @@ async def usage_formatter(u: User):
     usages = await u.bot.db.get_user_usage(u.get())
     top = sorted(usages.items(), key=operator.itemgetter(1), reverse=True)[:5]
     if len(top) > 0:
-        t = tabulate(top, headers=['Command', 'Usages'], tablefmt='simple')
+        t = tabulate(top, headers=['Command', 'Usages'], tablefmt='orgtbl')
         return '\n'.join(f'`{r}`' for r in t.split('\n'))
     else:
         return "No usage recorded"
