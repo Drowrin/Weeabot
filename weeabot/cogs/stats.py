@@ -34,7 +34,8 @@ class Stats(base_cog(shortcut=True)):
         """
         Called on every message the bot can see.
         """
-        await self.bot.db.inc_xp(message.author)
+        if not message.author.bot:
+            await self.bot.db.inc_xp(message.author)
 
 
 def setup(bot):
