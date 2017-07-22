@@ -2,6 +2,7 @@ import aiohttp
 
 from ..core import Weeabot
 
+
 def base_cog(shortcut=False, session=False):
     """
     Generate a cog template with certain flags.
