@@ -1,4 +1,5 @@
 import datetime
+import os
 import asyncio
 import random
 import humanize
@@ -20,7 +21,7 @@ class Weeabot(commands.Bot):
     Simple additions to commands.Bot
     """
 
-    def __init__(self, config_path, *args, **kwargs):
+    def __init__(self, config_path, *args, content_path=None, **kwargs):
         # run augmentation
         aug.augmenter.properties['__client'] = lambda x: self
         aug.augmenter()
@@ -35,6 +36,12 @@ class Weeabot(commands.Bot):
 
         # init commands.Bot
         super(Weeabot, self).__init__(*args, **kwargs)
+
+        # load content.yml
+        if content_path is None:
+            content_path = os.path.join(os.path.dirname(config_path), 'content.yml')
+        with open(content_path) as c:
+            self.content = yaml.load(c, Loader=yaml.Loader)
 
         # set in on_ready
         self.owner = None
@@ -110,7 +117,7 @@ class Weeabot(commands.Bot):
 
     async def random_status(self):
         """Rotating statuses."""
-        while not self.is_closed:
-            n = random.choice(self.content.statuses)
+        while not self.is_closed():
+            n = random.choice(self.content['statuses'])
             await self.change_presence(game=discord.Game(name=n, url='', type=0))
             await asyncio.sleep(60)
