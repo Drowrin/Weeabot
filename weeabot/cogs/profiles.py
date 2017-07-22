@@ -1,15 +1,8 @@
-import operator
-import os
-import json
-import inspect
-import traceback
-
 import discord
 from discord.ext import commands
 from tabulate import tabulate
 from asyncio_extras import threadpool
 
-from .. import utils
 from ._base import base_cog
 from .stats import do_not_track
 
