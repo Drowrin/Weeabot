@@ -178,7 +178,7 @@ class DBHelper:
         """
         Get a dictionary of command name --> usage count for this user.
         """
-        async with threadpool(), self.session() as s:
+        async with self.session() as s:
             usages = s.query(CommandUsage).filter(CommandUsage.user_id == user.id).all()
             return {u.name: u.count for u in usages}
 
