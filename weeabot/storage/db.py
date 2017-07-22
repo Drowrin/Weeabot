@@ -55,6 +55,15 @@ class DBHelper:
 
             yield u
 
+    async def inc_xp(self, user: discord.User):
+        """
+        Increments a user's xp.
+        """
+        async def task():
+            async with self.get_user(user) as u:
+                u.xp = (u.xp or 0) + 1
+        await self.bot.loop.create_task(task())
+
     @async_contextmanager
     async def get_guild(self, guild: discord.Guild):
         """
@@ -164,6 +173,14 @@ class DBHelper:
         """
         async with self.session() as s:
             yield s.query(CommandUsage).filter(CommandUsage.name == name).all()
+
+    async def get_user_usage(self, user: discord.User):
+        """
+        Get a dictionary of command name --> usage count for this user.
+        """
+        async with threadpool(), self.session() as s:
+            usages = s.query(CommandUsage).filter(CommandUsage.user_id == user.id).all()
+            return {u.name: u.count for u in usages}
 
     @async_contextmanager
     async def get_specific_stub(self, id):
