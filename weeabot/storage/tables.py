@@ -1,13 +1,17 @@
 from datetime import datetime
 
-from sqlalchemy import func, Column, Table, ForeignKey, BigInteger, Integer, String, Boolean, DateTime, Text
+import discord
+
+from sqlalchemy import func, Column, Table, ForeignKey, BigInteger, Integer, String, Boolean, DateTime, Text, PickleType
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, Session, reconstructor
 
+from ..cogs.requestsystem import PermissionLevel
+
 
 __all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
-           'Reminder')
+           'Reminder', 'Request')
 
 
 class _Base:
@@ -238,4 +242,36 @@ class Reminder(Base):
     message = Column(String)
 
 
-    # TODO: use sqlalchemy pickletype for requests so that system doesn't need rewriting
+class Request(Base):
+    """
+    Represents a request made through cogs.requestsystem
+    """
+    id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=False, unique=True)
+    level = Column(Integer)
+    current_level = Column(Integer, default=0)
+    status_message = Column(BigInteger)
+
+    @property
+    def approved(self):
+        return self.current_level >= self.level
+
+    async def get_message(self):
+        return await self.bot.get_message(self.id)
+
+    async def get_status_message(self):
+        try:
+            return await self.bot.get_message(self.status_message)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            return None
+
+    async def send_status(self):
+        m = await self.get_message()
+        s = "{} your request has been elevated! Status: {}/{}".format(
+            m.author.mention, PermissionLevel(self.current_level).name, PermissionLevel(self.level).name
+        )
+        sm = await self.get_status_message()
+        if sm is None:
+            sm = await m.channel.send(s)
+        else:
+            await sm.edit(s)
+        return sm

@@ -204,7 +204,6 @@ class DBHelper:
         async with self.session() as s:
             s = s.query(Stub).filter(Stub.id == id).first()
             yield s
-            s.touch()
 
     @async_contextmanager
     async def get_tag(self, name):
@@ -229,3 +228,31 @@ class DBHelper:
             filters = [Stub.tags.any(name=t) for t in tags]
             stubs = s.query(Stub).filter(*filters).all()
             yield random.choice(stubs) if stubs else None
+
+    async def get_request(self, message_id):
+        """
+        Get a request from the db. Does not create new entries.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(Request).filter(Request.id == message_id).first()
+
+    async def create_request(self, ctx, level, status_message):
+        """
+        Create a request based on context.
+        """
+        async with threadpool(), self.session() as s:
+            r = Request(
+                id=ctx.message.id,
+                level=level.value,
+                current_level=0,
+                status_message=status_message.id
+            )
+            s.add(r)
+        return r
+
+    async def delete_request(self, request: Request):
+        """
+        Remove a request from the db (usually when accepted or rejected)
+        """
+        async with threadpool(), self.session() as s:
+            s.delete(request)
