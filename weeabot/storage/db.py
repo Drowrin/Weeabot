@@ -243,6 +243,7 @@ class DBHelper:
         async with threadpool(), self.session() as s:
             r = Request(
                 id=ctx.message.id,
+                user_id=ctx.author.id,
                 level=level.value,
                 current_level=0,
                 status_message=status_message.id

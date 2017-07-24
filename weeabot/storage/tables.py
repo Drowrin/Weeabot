@@ -246,6 +246,7 @@ class Request(Base):
     """
     Represents a request made through cogs.requestsystem
     """
+    user_id = Column(BigInteger)  # used for limiting user concurrent request count
     id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=False, unique=True)
     level = Column(Integer)
     current_level = Column(Integer, default=0)
