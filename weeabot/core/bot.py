@@ -53,6 +53,7 @@ class Weeabot(commands.Bot):
         self.verbose_formatters = {}
         self.defaults = {}
         self.object_hooks = {}
+        self.guild_configs = {}
 
         # webserver
         self.web = Kyoukai("Weeabot")

@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship, Session, reconstructor
 from ..cogs.requestsystem import PermissionLevel
 
 
-__all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
+__all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
            'Reminder', 'Request')
 
 
@@ -115,6 +115,17 @@ class Guild(DiscordObject, Base):
     jail_sentences = relationship("JailSentence", back_populates="guild")
 
     stubs = relationship("Stub", back_populates='guild')
+
+
+class GuildSetting(Base):
+    """
+    Guild settings.
+    Pickles the value so that it is flexible for any type of setting. Booleans, Strings, Dicts, etc.
+    """
+
+    guild_id = Column(BigInteger)
+    key = Column(String)
+    value = Column(PickleType)
 
 
 class JailSentence(Base):

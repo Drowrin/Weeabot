@@ -30,7 +30,7 @@ def get_user_level(ctx: commands.Context) -> PermissionLevel:
     return PermissionLevel.NONE
 
 
-def request(bypass=lambda ctx: False, level: PermissionLevel=PermissionLevel.SERVER):
+def request(bypass=lambda ctx: False, level: PermissionLevel=PermissionLevel.GUILD):
 
     def decorator(func):
         async def request_predicate(ctx):
@@ -89,4 +89,21 @@ class RequestSystem(base_cog(shortcut=True)):
     server_limit = 30
     global_limit = 100
 
-    
+
+@RequestSystem.guild_config(default=False)
+async def requests(ctx):
+    """
+    Turn the request system on or off
+    """
+    current = await ctx.bot.guild_configs['requests'].get(ctx)
+    v = ctx.kwargs.get('value')
+    if v:
+        try:
+            return {'on': True, 'off': False}[v.lower()]
+        except KeyError:
+            raise commands.BadArgument(f'invalid value: `{v}`')
+    return not current
+
+
+def setup(bot):
+    bot.add_cog(RequestSystem(bot))

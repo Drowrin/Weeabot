@@ -257,3 +257,32 @@ class DBHelper:
         """
         async with threadpool(), self.session() as s:
             s.delete(request)
+
+    @async_contextmanager
+    async def get_or_create_guild_config(self, guild: discord.Guild, key):
+        """
+        Get a guild config. Creates missing entries.
+        """
+        async with self.session() as s:
+            c = s.query(GuildSetting).filter(and_(
+                GuildSetting.guild_id == guild.id,
+                GuildSetting.key == key
+            )).first()
+            if c is None:
+                c = GuildSetting(
+                    guild_id=guild.id,
+                    key=key,
+                    value=self.bot.guild_configs[key].default
+                )
+                s.add(c)
+            yield c
+
+    async def get_guild_config(self, guild: discord.Guild, key):
+        """
+        Get a guild config or None.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(GuildSetting).filter(and_(
+                GuildSetting.guild_id == guild.id,
+                GuildSetting.key == key
+            )).first()

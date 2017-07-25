@@ -180,6 +180,32 @@ class Moderation(BaseCog):
 
         await self.unjail(ctx.guild, user)
 
+    @commands.group(no_pm=True, invoke_without_command=True)
+    @commands.has_permissions(manage_guild=True)
+    @do_not_track
+    async def config(self, ctx, setting, *, value=None):
+        """
+        Bot settings for this guild.
+        """
+        c = self.bot.guild_configs.get(setting)
+        if c is None:
+            raise commands.BadArgument(f"{setting} not found.")
+        val = await c(ctx)
+        async with threadpool(), self.bot.db.get_or_create_guild_config(ctx.guild, setting) as conf:
+            conf.value = val
+        await ctx.send("Set `{}` to `{}`".format(setting, val))
+
+    @config.command(no_pm=True)
+    @do_not_track
+    async def list(self, ctx):
+        """
+        List the bot settings for this guild.
+        """
+        await ctx.send('\n'.join([
+            await c.status_str(ctx)
+            for c in self.bot.guild_configs.values()
+        ]))
+
 
 def setup(bot):
     bot.add_cog(Moderation(bot))

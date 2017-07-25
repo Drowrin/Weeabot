@@ -4,8 +4,6 @@ import traceback
 from functools import total_ordering
 from discord import Embed
 
-from ..core import Weeabot
-
 
 def base_cog(shortcut=False, session=False):
     """
@@ -24,6 +22,7 @@ def base_cog(shortcut=False, session=False):
         services = {}
         defaults = {}
         object_hooks = {}
+        guild_configs = {}
 
         @classmethod
         def formatter(cls, *, name=None, inline=True, order=0):
@@ -148,7 +147,45 @@ def base_cog(shortcut=False, session=False):
 
             return dec
 
-        def __init__(self, bot: Weeabot):
+        @classmethod
+        def guild_config(cls, name=None, description=None, default=None):
+            """
+            Decorator to add a guild config.
+            This can be a coroutine.
+            Should take a context and return the setting to be stored. (will be pickled)
+            The Description will be taken from the docstring if none is given.
+            Name will be taken from the function name if none is given.
+            A default can be given for when there is no value.
+            """
+
+            class GuildConfigWrapper:
+                def __init__(self, f):
+                    self.name = name or f.__name__
+                    self.callback = f
+                    cls.guild_configs[self.name] = self
+                    self.description = description or f.__doc__
+                    self.default = default
+
+                async def __call__(self, ctx):
+                    result = self.callback(ctx)
+                    if inspect.isawaitable(result):
+                        result = await result
+                    return result
+
+                async def status_str(self, ctx):
+                    return "{}\t:\t{}\t:\t{}".format(
+                        self.name,
+                        self.description.strip(),
+                        await self.get(ctx)
+                    )
+
+                async def get(self, ctx):
+                    c = await ctx.bot.db.get_guild_config(ctx.guild, self.name)
+                    return c.value if c is not None else self.default
+
+            return GuildConfigWrapper
+
+        def __init__(self, bot):
             self.bot = bot
 
             bot.services.update(self.services)
@@ -156,6 +193,7 @@ def base_cog(shortcut=False, session=False):
             bot.formatters.update(self.formatters)
             bot.verbose_formatters.update(self.verbose_formatters)
             bot.object_hooks.update(self.object_hooks)
+            bot.guild_configs.update(self.guild_configs)
 
             if shortcut:
                 setattr(bot, type(self).__name__.lower(), self)
@@ -174,6 +212,8 @@ def base_cog(shortcut=False, session=False):
                 del self.bot.verbose_formatters[k]
             for k in self.object_hooks:
                 del self.bot.object_hooks[k]
+            for k in self.guild_configs:
+                del self.bot.guild_configs[k]
 
             delattr(self.bot, type(self).__name__.lower())
             self.bot.loop.create_task(self.session.close())
