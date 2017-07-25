@@ -30,3 +30,10 @@ class Context:
         """
         m = await self.send(*args, **kwargs)
         return await m.confirm(user or self.message.author)
+
+    @property
+    def argstring(self):
+        """
+        The unprocessed `argument` portion of the command call.
+        """
+        return ' '.join(self.message.content.split(self.invoked_with))
