@@ -34,7 +34,7 @@ class ReactionListeners(base_cog(shortcut=True)):
         super(ReactionListeners, self).__init__(bot)
         self.listeners = {}
 
-    def add(self, message, callback):
+    def add(self, message, callback, single_use=True, user=None, reactions=None):
         """
         add a listener to perform an action when a reaction is done on a given message.
 
@@ -43,7 +43,7 @@ class ReactionListeners(base_cog(shortcut=True)):
         Does not persist through restarts.
         """
 
-        self.listeners[message.id] = ReactionListener(message, callback)
+        self.listeners[message.id] = ReactionListener(message, callback, single_use, user, reactions)
 
     async def on_reaction_add(self, reaction, user):
         m = reaction.message
