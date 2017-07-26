@@ -2,19 +2,23 @@ from . import base_cog
 
 
 class ReactionListener:
-    def __init__(self, message, callback, single_use=True, user=None):
+    def __init__(self, message, callback, single_use=True, user=None, reactions=None):
         self.message = message
         self.callback = callback
         self.single_use = single_use
         self.user = user
+        self.reactions = reactions
 
     async def __call__(self, reaction, user):
-        r  = await self.callback(reaction, user)
+        r = await self.callback(reaction, user)
         self.single_use = bool(r) if r is not None else self.single_use
 
     def check(self, reaction, user):
         if self.user is not None:
             if user != self.user:
+                return False
+        if self.reactions is not None:
+            if reaction.emoji not in self.reactions:
                 return False
         if reaction.message == self.message:
             return True
