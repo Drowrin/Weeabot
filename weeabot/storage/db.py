@@ -229,34 +229,48 @@ class DBHelper:
             stubs = s.query(Stub).filter(*filters).all()
             yield random.choice(stubs) if stubs else None
 
+    @async_contextmanager
     async def get_request(self, message_id):
         """
         Get a request from the db. Does not create new entries.
         """
-        async with threadpool(), self.session() as s:
-            return s.query(Request).filter(Request.id == message_id).first()
+        async with self.session() as s:
+            yield s.query(Request).filter(Request.message == message_id).first()
 
-    async def create_request(self, ctx, level, status_message):
+    async def get_request_from_status(self, message_id):
         """
-        Create a request based on context.
+        Get a request from the db. Does not create new entries. Can return None.
         """
-        async with threadpool(), self.session() as s:
-            r = Request(
-                id=ctx.message.id,
-                user_id=ctx.author.id,
-                level=level.value,
-                current_level=0,
-                status_message=status_message.id
-            )
-            s.add(r)
-        return r
+        async with self.session() as s:
+            r = s.query(Request).filter(Request.status_message == message_id).first()
+            return r.message if r is not None else None
 
-    async def delete_request(self, request: Request):
+    @async_contextmanager
+    async def get_or_create_request(self, ctx, level, status_message=None):
+        """
+        Create a request based on context. Creates missing entries.
+        """
+        async with self.session() as s:
+            r = s.query(Request).filter(Request.message == ctx.message.id).first()
+            if r is None:
+                r = Request(
+                    message=ctx.message.id,
+                    user_id=ctx.author.id,
+                    channel=ctx.channel.id,
+                    guild=ctx.guild.id,
+                    level=level.value,
+                    current_level=0,
+                    status_message=status_message.id if status_message is not None else None
+                )
+                s.add(r)
+            yield r
+
+    async def delete_request(self, r_id):
         """
         Remove a request from the db (usually when accepted or rejected)
         """
-        async with threadpool(), self.session() as s:
-            s.delete(request)
+        async with self.session() as s:
+            s.delete(s.query(Request).filter(Request.id == r_id).first())
 
     @async_contextmanager
     async def get_or_create_guild_config(self, guild: discord.Guild, key):

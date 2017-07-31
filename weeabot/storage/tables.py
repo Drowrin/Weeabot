@@ -1,13 +1,9 @@
-from datetime import datetime
-
 import discord
 
 from sqlalchemy import func, Column, Table, ForeignKey, BigInteger, Integer, String, Boolean, DateTime, Text, PickleType
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, Session, reconstructor
-
-from ..cogs.requestsystem import PermissionLevel
 
 
 __all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
@@ -257,8 +253,10 @@ class Request(Base):
     """
     Represents a request made through cogs.requestsystem
     """
+    message = Column(BigInteger)  # main message the request is based on
     user_id = Column(BigInteger)  # used for limiting user concurrent request count
-    id = Column(BigInteger, primary_key=True, nullable=False, autoincrement=False, unique=True)
+    channel = Column(BigInteger)  # used for getting messages and sending status
+    guild = Column(BigInteger)  # used for limits on requests per guild and origin info
     level = Column(Integer)
     current_level = Column(Integer, default=0)
     status_message = Column(BigInteger)
@@ -266,24 +264,3 @@ class Request(Base):
     @property
     def approved(self):
         return self.current_level >= self.level
-
-    async def get_message(self):
-        return await self.bot.get_message(self.id)
-
-    async def get_status_message(self):
-        try:
-            return await self.bot.get_message(self.status_message)
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-            return None
-
-    async def send_status(self):
-        m = await self.get_message()
-        s = "{} your request has been elevated! Status: {}/{}".format(
-            m.author.mention, PermissionLevel(self.current_level).name, PermissionLevel(self.level).name
-        )
-        sm = await self.get_status_message()
-        if sm is None:
-            sm = await m.channel.send(s)
-        else:
-            await sm.edit(s)
-        return sm
