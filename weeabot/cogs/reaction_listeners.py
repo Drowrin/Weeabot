@@ -20,7 +20,7 @@ class ReactionListener:
         if self.reactions is not None:
             if reaction.emoji not in self.reactions:
                 return False
-        if reaction.message == self.message:
+        if reaction.message.id == self.message.id:
             return True
         return False
 
@@ -50,7 +50,7 @@ class ReactionListeners(base_cog(shortcut=True)):
         callback = self.listeners.get(m.id)
         if callback is not None and callback.check(reaction, user):
             await callback(reaction, user)
-            if callback.delete_after:
+            if callback.single_use:
                 try:
                     del self.listeners[m.id]
                 except KeyError:
