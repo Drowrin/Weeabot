@@ -1,8 +1,4 @@
-import copy
-import os
-
 from enum import IntEnum
-from textwrap import shorten
 from asyncio_extras import threadpool
 
 import discord
@@ -10,6 +6,7 @@ from discord.ext import commands
 
 from ._base import base_cog
 from ..storage.tables import Request
+from .stats import do_not_track
 
 
 class RequestLimit(commands.CommandError):
@@ -52,7 +49,7 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
             if level >= PermissionLevel.GLOBAL > r.current_level:
                 m = ctx.bot.owner.send(
                     "<r{}> | New request ```{}\n{}```}".format(
-                        r.id, ctx.message.content, '\n'.join([a.url for a in ctx.message.attachments])
+                        r.message, ctx.message.content, '\n'.join([a.url for a in ctx.message.attachments])
 
                     )
                 )
@@ -104,10 +101,10 @@ class RequestSystem(base_cog(shortcut=True)):
     async def send_status(self, r: Request, rejected=False):
         m = await self.get_message(r)
         if rejected:
-            s = f"{m.author.mention} your request {r.id} has been rejected!"
+            s = f"{m.author.mention} your request {r.message} has been rejected!"
         else:
             s = "{} your request {} has been elevated! Status: {}/{}".format(
-                m.author.mention, r.id,
+                m.author.mention, r.message,
                 PermissionLevel(r.current_level).name, PermissionLevel(r.level).name
             )
         sm: discord.Message = await self.get_status_message(r)
@@ -187,11 +184,35 @@ class RequestSystem(base_cog(shortcut=True)):
 
     @commands.command()
     @request()
+    @do_not_track
     async def req(self, ctx):
         """
         test req feature
         """
         await ctx.send('did the thing')
+
+    @commands.group(aliases=('r',))
+    @commands.check(lambda ctx: ctx.bot.requestsystem.get_user_level(ctx.author) > PermissionLevel.NONE)
+    @do_not_track
+    async def request(self, ctx):
+        """
+        Request management commands.
+        """
+
+    @request.command(aliases=('a', 'approve'))
+    @do_not_track
+    async def accept(self, ctx, request_id: int):
+        """
+        Accept a request based on id. Useful if reactions were broken by a bot restart.
+        """
+        await self.attempt_approval(request_id, ctx.author)
+
+    @request.command(aliases=('r',))
+    @do_not_track
+    async def reject(self, ctx, request_id: int):
+        """
+        Reject a request based on it. Useful if reactions were broken by a bot restart.
+        """
 
 
 @RequestSystem.guild_config(default=False)
