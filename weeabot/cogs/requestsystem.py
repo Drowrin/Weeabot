@@ -47,7 +47,7 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
             # handle request elevation/resolution
             async with threadpool(), ctx.bot.db.get_or_create_request(ctx, level) as r:
                 if r.approved:
-                    await ctx.bot.db.delete_request(r.id)
+                    r.delete()
                     return True
             if level >= PermissionLevel.GLOBAL > r.current_level:
                 m = ctx.bot.owner.send(
@@ -101,18 +101,22 @@ class RequestSystem(base_cog(shortcut=True)):
         except (discord.NotFound, discord.Forbidden, discord.HTTPException):
             return None
 
-    async def send_status(self, r: Request):
+    async def send_status(self, r: Request, rejected=False):
         m = await self.get_message(r)
-        s = "{} your request has been elevated! Status: {}/{}".format(
-            m.author.mention, PermissionLevel(r.current_level).name, PermissionLevel(r.level).name
-        )
-        sm = await self.get_status_message(r)
+        if rejected:
+            s = f"{m.author.mention} your request {r.id} has been rejected!"
+        else:
+            s = "{} your request {} has been elevated! Status: {}/{}".format(
+                m.author.mention, r.id,
+                PermissionLevel(r.current_level).name, PermissionLevel(r.level).name
+            )
+        sm: discord.Message = await self.get_status_message(r)
         if sm is None:
             sm = await self.bot.get_channel(r.channel).send(s)
             async with self.bot.db.get_request(m.id) as rdb:
                 rdb.status_message = sm.id
         else:
-            await sm.edit(s)
+            await sm.edit(content=s)
 
         await sm.add_reaction('\N{THUMBS UP SIGN}')
         await sm.add_reaction('\N{THUMBS DOWN SIGN}')
@@ -149,6 +153,19 @@ class RequestSystem(base_cog(shortcut=True)):
         await self.bot.process_commands(await self.bot.get_channel(req.channel).get_message(req.message))
         return req.approved  # to destroy the listener if approved
 
+    async def attempt_rejection(self, mess_id, user):
+        """
+        Evaluate user's top permission level and reject request if above current level.
+        """
+        user_level = self.get_user_level(user)
+        async with threadpool(), self.bot.db.get_request(mess_id) as req:
+            if user_level > req.current_level:
+                req.delete()
+        if user_level > req.current_level:
+            await self.send_status(req, rejected=True)
+            return True
+        return False
+
     async def reaction_handler(self, reaction, user):
         """
         Callback for handling reactions on status messages.
@@ -166,8 +183,7 @@ class RequestSystem(base_cog(shortcut=True)):
         if accept:
             return await self.attempt_approval(mess_id, user)
         else:
-            pass
-            # TODO: handle rejection
+            return await self.attempt_rejection(mess_id, user)
 
     @commands.command()
     @request()

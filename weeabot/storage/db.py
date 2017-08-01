@@ -265,13 +265,6 @@ class DBHelper:
                 s.add(r)
             yield r
 
-    async def delete_request(self, r_id):
-        """
-        Remove a request from the db (usually when accepted or rejected)
-        """
-        async with self.session() as s:
-            s.delete(s.query(Request).filter(Request.id == r_id).first())
-
     @async_contextmanager
     async def get_or_create_guild_config(self, guild: discord.Guild, key):
         """

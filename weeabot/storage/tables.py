@@ -1,10 +1,8 @@
-import discord
-
 from sqlalchemy import func, Column, Table, ForeignKey, BigInteger, Integer, String, Boolean, DateTime, Text, PickleType
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, Session, reconstructor
-
+from sqlalchemy.orm.session import object_session
 
 __all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
            'Reminder', 'Request')
@@ -264,3 +262,6 @@ class Request(Base):
     @property
     def approved(self):
         return self.current_level >= self.level
+
+    def delete(self):
+        object_session(self).delete(self)
