@@ -51,11 +51,24 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
                     return True
             if level >= PermissionLevel.GLOBAL > r.current_level:
                 m = ctx.bot.owner.send(
-                    "<m{}> | New request {}\n```{}```\n{}".format(
+                    "<r{}> | New request ```{}\n{}```}".format(
                         r.id, ctx.message.content, '\n'.join([a.url for a in ctx.message.attachments])
 
                     )
-                )  # TODO: add react listener here
+                )
+                async def callback(reaction, user):
+                    return await ctx.bot.requestsystem.handle_evaluation(
+                        r.message, user,
+                        accept={'\N{THUMBS UP SIGN}': True, '\N{THUMBS DOWN SIGN}': False}[reaction.emoji]
+                    )
+                await m.add_reaction('\N{THUMBS UP SIGN}')
+                await m.add_reaction('\N{THUMBS DOWN SIGN}')
+                ctx.bot.reactionlisteners.add(
+                    m,
+                    callback,
+                    user=ctx.bot.owner,
+                    reactions=('\N{THUMBS UP SIGN}', '\N{THUMBS DOWN SIGN}')
+                )
             await ctx.bot.requestsystem.send_status(r)
             return False
 
@@ -140,11 +153,20 @@ class RequestSystem(base_cog(shortcut=True)):
         """
         Callback for handling reactions on status messages.
         """
-        req_id = await self.bot.db.get_request_from_status(reaction.message.id)
-        if {'\N{THUMBS UP SIGN}': True, '\N{THUMBS DOWN SIGN}': False}[reaction.emoji]:
-            return await self.attempt_approval(req_id, user)
+        mess_id = await self.bot.db.get_request_from_status(reaction.message.id)
+        await self.handle_evaluation(
+            mess_id, user,
+            accept={'\N{THUMBS UP SIGN}': True, '\N{THUMBS DOWN SIGN}': False}[reaction.emoji]
+        )
+
+    async def handle_evaluation(self, mess_id, user, accept=True):
+        """
+        handle evaluation separately because DRY.
+        """
+        if accept:
+            return await self.attempt_approval(mess_id, user)
         else:
-            return True
+            pass
             # TODO: handle rejection
 
     @commands.command()
