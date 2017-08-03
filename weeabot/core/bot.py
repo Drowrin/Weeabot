@@ -49,9 +49,7 @@ class Weeabot(commands.Bot):
 
         # added to by cogs
         self.services = {}
-        self.formatters = {}
-        self.verbose_formatters = {}
-        self.defaults = {}
+        self.profile_fields = {}
         self.object_hooks = {}
         self.guild_configs = {}
 

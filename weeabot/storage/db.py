@@ -64,6 +64,30 @@ class DBHelper:
                 u.xp = (u.xp or 0) + 1
         await self.bot.loop.create_task(task())
 
+    async def create_profile_field(self, user: discord.User, key, value):
+        """
+        GCreate a profile field.
+        """
+        async with threadpool(), self.session() as s:
+            p = ProfileField(
+                user_id=user.id,
+                key=key,
+                value=value
+            )
+            s.add(p)
+        return p
+
+    @async_contextmanager
+    async def get_profile_field(self, user: discord.User, key):
+        """
+        Get a profile field or None.
+        """
+        async with self.session() as s:
+            yield s.query(ProfileField).filter(and_(
+                ProfileField.user_id == user.id,
+                ProfileField.key == key
+            )).first()
+
     @async_contextmanager
     async def get_guild(self, guild: discord.Guild):
         """

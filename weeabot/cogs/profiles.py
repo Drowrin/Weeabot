@@ -18,7 +18,7 @@ class Profiles(base_cog(shortcut=True, session=True)):
     This cog only handles accessing profile data, it does not collect anything itself.
     """
 
-    @commands.command(name='profile', aliases=('p',))
+    @commands.group(name='profile', aliases=('p',), invoke_without_command=True)
     @do_not_track
     async def prof(self, ctx: commands.Context, user: discord.Member=None):
         """
@@ -41,11 +41,43 @@ class Profiles(base_cog(shortcut=True, session=True)):
             ).set_footer(
                 text="Joined at"
             )
-            order = sorted(self.bot.formatters.values())
-            for f in order:
-                await f(u)(e)
+        order = sorted(self.bot.profile_fields.values())
+        for f in order:
+            await f(ctx, user, e)
 
         await ctx.send(embed=e)
+
+    def get_settable_fields(self):
+        return {k: v for k, v in self.bot.profile_fields.items() if v.setter is not None}
+
+    @prof.group(name='set', invoke_without_command=True)
+    async def _set(self, ctx, key, *, value=None):
+        """
+        Set the value of a profile field.
+        """
+        if key not in self.get_settable_fields():
+            raise commands.BadArgument("Unknown key")
+        result = await self.bot.profile_fields[key].setter(ctx, ctx.author, value)
+        if result is not None:
+            async with threadpool(), self.bot.db.get_profile_field(ctx.author, key) as f:
+                if f is not None:
+                    f.value = result
+                    await ctx.affirmative()
+                    return
+            await self.bot.db.create_profile_field(ctx.author, key, result)
+            await ctx.affirmative()
+        else:
+            await ctx.negative()
+
+    @_set.command(name='list')
+    async def _set_list(self, ctx):
+        """
+        List the fields you can set in your profile.
+        """
+        await ctx.send('\n'.join([
+             await c.status_str(ctx, ctx.author)
+             for c in self.get_settable_fields().values()
+         ]))
 
     @commands.command()
     @do_not_track

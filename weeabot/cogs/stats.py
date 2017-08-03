@@ -41,15 +41,22 @@ class Stats(base_cog(shortcut=True)):
             await self.bot.db.inc_xp(message.author)
 
 
-@Stats.formatter(name='Top Commands', order=2, inline=False)
-async def usage_formatter(u: User):
-    usages = await u.bot.db.get_user_usage(u.get())
-    top = sorted(usages.items(), key=operator.itemgetter(1), reverse=True)[:5]
+@Stats.profile_field(name='Top Commands', order=2, inline=False)
+async def usage_formatter(top):
+    """
+    Most common commands.
+    """
     if len(top) > 0:
         t = tabulate(top, headers=['Command', 'Usages'], tablefmt='orgtbl')
         return '\n'.join(f'`{r}`' for r in t.split('\n'))
     else:
         return "No usage recorded"
+
+
+@usage_formatter.set_getter
+async def usage_getter(ctx, user):
+    usages = await ctx.bot.db.get_user_usage(user)
+    return sorted(usages.items(), key=operator.itemgetter(1), reverse=True)[:5]
 
 
 def setup(bot):

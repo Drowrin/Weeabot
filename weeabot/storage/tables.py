@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.orm.session import object_session
 
 __all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
-           'Reminder', 'Request')
+           'Reminder', 'Request', 'ProfileField')
 
 
 class _Base:
@@ -71,11 +71,6 @@ class User(DiscordObject, Base):
     """
     xp = Column(Integer, nullable=False, default=0)
 
-    twitch = Column(String, nullable=True)
-    ffxiv = Column(String, nullable=True)
-    mal = Column(String, nullable=True)
-    mwl = Column(String, nullable=True)
-
     usage = relationship("CommandUsage", order_by=CommandUsage.count,
                          back_populates="user", cascade="all, delete, delete-orphan")
 
@@ -89,20 +84,26 @@ class User(DiscordObject, Base):
         return self.bot.get_guild(guild.id).get_member(self.id)
 
 
+class ProfileField(Base):
+    """
+    A field in a user profile.
+    """
+
+    user_id = Column(BigInteger)
+    key = Column(String)
+    value = Column(PickleType)
+
+
 class Guild(DiscordObject, Base):
     """
     Representation of a Guild.
     """
-    # channels = relationship("Channel", back_populates="guild", cascade="all, delete, delete-orphan")
 
-    poll_channel_id = Column(BigInteger, ForeignKey('channel.id'))
-    poll_channel = relationship("Channel", foreign_keys=[poll_channel_id])
     polls = relationship("Poll", back_populates="guild",
                          cascade="all, delete, delete-orphan")
 
-    twitch_channel_id = Column(BigInteger, ForeignKey('channel.id'))
-    twitch_channel = relationship("Channel", foreign_keys=[twitch_channel_id])
-
+    # Jail is not created by a config, but automatically
+    # so unlike other channels it is stored here
     jail_id = Column(BigInteger, ForeignKey('channel.id'))
     jail = relationship("Channel", foreign_keys=[jail_id])
     jail_role_id = Column(BigInteger)

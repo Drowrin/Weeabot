@@ -3,6 +3,7 @@ import inspect
 import traceback
 from functools import total_ordering
 from discord import Embed
+from asyncio_extras import threadpool
 
 
 def base_cog(shortcut=False, session=False):
@@ -17,79 +18,98 @@ def base_cog(shortcut=False, session=False):
         Common functionality of cogs.
         """
 
-        formatters = {}
-        verbose_formatters = {}
+        profile_fields = {}
         services = {}
-        defaults = {}
         object_hooks = {}
         guild_configs = {}
 
         @classmethod
-        def formatter(cls, *, name=None, inline=True, order=0):
+        def profile_field(cls, *, name=None, description=None, inline=True, order=0):
             """
-            Decorator that adds a formatter function to this cog.
-            The function should take user data from the db and return field contents.
-            Optionally a coroutine.
+            Decorator that adds a profile field function to this cog.
+            Should take unpacked data and return a formatted string for the embed field value.
             Name will be taken from the function name if none is given.
+            Description will be taken from the docstring if none is given.
             inline controls whether the field will be inline.
             order is a priority where lower is near the top. Can be negative. Defaults to 0
             """
 
-            def dec(func):
-                @total_ordering
-                class ProfileFormatter:
-                    order_priority = order
-                    handler = None
+            @total_ordering
+            class ProfileField:
+                def __init__(self, f):
+                    self.name = name or f.__name__
+                    cls.profile_fields[self.name] = self
+                    self.callback = f
+                    self.description = (description or f.__doc__ or "").strip()
+                    self.handler = None
+                    self.order_priority = order
+                    self.getter = None
+                    self.setter = None
 
-                    def __eq__(self, other):
-                        return self.order_priority == other.order_priority
+                def __eq__(self, other):
+                    return self.order_priority == other.order_priority
 
-                    def __lt__(self, other):
-                        return self.order_priority < other.order_priority
+                def __lt__(self, other):
+                    return self.order_priority < other.order_priority
 
-                    def __init__(self, user):
-                        self.user = user
+                def error_handler(self, f):
+                    """
+                    Register the error handler for this formatter.
+                    If none and there is an error, field will simply display ERROR.
+                    Function should take as parameters the exception followed by the data, returning a result.
+                    """
+                    self.handler = f
 
-                    async def __call__(self, embed: Embed):
-                        try:
-                            result = func(self.user)
-                            if inspect.isawaitable(result):
-                                result = await result
-                        except Exception as e:
-                            traceback.print_exc()
-                            result = self.handler(e, self.user) if self.handler else "ERROR"
+                def set_getter(self, f):
+                    """
+                    Decorator to override the default get function.
+                    Useful if you don't need to get data from a profile field in
+                    the db or want to do extra processing on it first.
+                    """
+                    self.getter = f
+
+                def set_setter(self, f):
+                    """
+                    Register the setter function for this formatter.
+                    Used to let a user set their own value for the field.
+                    Do not register this if the data is generated.
+                    The function should be a coroutine that takes a ctx, user, and value(string from user)
+                    and returns the data to be stored (will be pickled).
+                    """
+                    self.setter = f
+
+                async def __call__(self, ctx, user, embed):
+                    try:
+                        data = await self.get(ctx, user)
+                        if data is None:
+                            return
+                        result = self.callback(data)
+                        if inspect.isawaitable(result):
+                            result = await result
+                    except Exception as e:
+                        traceback.print_exc()
+                        result = self.handler(e, user) if self.handler else "ERROR"
+                    if result is not None:
                         embed.add_field(
-                            name=name,
+                            name=self.name,
                             value=result,
                             inline=inline
                         )
 
-                    def error_handler(self, f):
-                        """
-                        Register the error handler for this formatter.
-                        If none and there is an error, field will simply display ERROR.
-                        Function should take as parameters the exception followed by the data, returning a result.
-                        """
-                        self.handler = f
+                async def get(self, ctx, user):
+                    if self.getter is not None:
+                        return await self.getter(ctx, user)
+                    async with threadpool(), ctx.bot.db.get_profile_field(user, self.name) as f:
+                        return f.value if f is not None else None
 
-                cls.formatters[name or func.__name__] = ProfileFormatter
-                return ProfileFormatter
+                async def status_str(self, ctx, user):
+                    return "{}\t:\t{}```{}```".format(
+                        self.name,
+                        await self.get(ctx, user),
+                        self.description
+                    )
 
-            return dec
-
-        @classmethod
-        def verbose_formatter(cls, name=None):
-            """
-            Decorator that adds a verbose formatter function to this cog.
-            Can be a coroutine.
-            Name will be taken from the function name if none is given.
-            """
-
-            def dec(func):
-                cls.verbose_formatters[name or func.__name__] = func
-                return func
-
-            return dec
+            return ProfileField
 
         @classmethod
         def service(cls, name=None):
@@ -101,20 +121,6 @@ def base_cog(shortcut=False, session=False):
 
             def dec(func):
                 cls.services[name or func.__name__] = func
-                return func
-
-            return dec
-
-        @classmethod
-        def default(cls, name=None):
-            """
-            Decorator to add a default profile field. Function should return the default value.
-            Can be a coroutine.
-            Name will be taken from the function name if none is given.
-            """
-
-            def dec(func):
-                cls.defaults[name or func.__name__] = func
                 return func
 
             return dec
@@ -163,8 +169,9 @@ def base_cog(shortcut=False, session=False):
                     self.name = name or f.__name__
                     self.callback = f
                     cls.guild_configs[self.name] = self
-                    self.description = description or f.__doc__
+                    self.description = description or f.__doc__.strip()
                     self.default = default
+                    self._transform = None
 
                 async def __call__(self, ctx):
                     result = self.callback(ctx)
@@ -173,15 +180,26 @@ def base_cog(shortcut=False, session=False):
                     return result
 
                 async def status_str(self, ctx):
-                    return "{}\t:\t{}\t:\t{}".format(
+                    return "{}\t:\t{}```{}```".format(
                         self.name,
-                        self.description.strip(),
-                        await self.get(ctx)
+                        await self.get(ctx),
+                        self.description
                     )
+
+                def transform(self, f):
+                    """
+                    Decorator to set the transform function for this config.
+                    Called between getting results from the db and returning them.
+                    Should be a coroutine.
+                    """
+                    self._transform = f
 
                 async def get(self, ctx):
                     c = await ctx.bot.db.get_guild_config(ctx.guild, self.name)
-                    return c.value if c is not None else self.default
+                    result = c.value if c is not None else self.default
+                    if self._transform:
+                        result = await self._transform(ctx, result)
+                    return result
 
             return GuildConfigWrapper
 
@@ -189,9 +207,7 @@ def base_cog(shortcut=False, session=False):
             self.bot = bot
 
             bot.services.update(self.services)
-            bot.defaults.update(self.defaults)
-            bot.formatters.update(self.formatters)
-            bot.verbose_formatters.update(self.verbose_formatters)
+            bot.profile_fields.update(self.profile_fields)
             bot.object_hooks.update(self.object_hooks)
             bot.guild_configs.update(self.guild_configs)
 
@@ -204,18 +220,15 @@ def base_cog(shortcut=False, session=False):
         def __unload(self):
             for k in self.services:
                 del self.bot.services[k]
-            for k in self.defaults:
-                del self.bot.defaults[k]
-            for k in self.formatters:
-                del self.bot.formatters[k]
-            for k in self.verbose_formatters:
-                del self.bot.verbose_formatters[k]
+            for k in self.profile_fields:
+                del self.bot.profile_fields[k]
             for k in self.object_hooks:
                 del self.bot.object_hooks[k]
             for k in self.guild_configs:
                 del self.bot.guild_configs[k]
 
             delattr(self.bot, type(self).__name__.lower())
-            self.bot.loop.create_task(self.session.close())
+            if session:
+                self.bot.loop.create_task(self.session.close())
 
     return BaseCog
