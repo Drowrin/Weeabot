@@ -66,8 +66,6 @@ class Profiles(base_cog(shortcut=True, session=True)):
                     return
             await self.bot.db.create_profile_field(ctx.author, key, result)
             await ctx.affirmative()
-        else:
-            await ctx.negative()
 
     @_set.command(name='list')
     async def _set_list(self, ctx):
