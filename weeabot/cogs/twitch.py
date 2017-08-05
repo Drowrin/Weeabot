@@ -36,13 +36,13 @@ class Twitch(base_cog(session=True)):
             )
 
 
-class Twitch_Notifier(base_cog(session=True)):
+class TwitchNotifier(base_cog(session=True)):
     """
     Twitch automatic stream notifications.
     """
 
     def __init__(self, bot):
-        super(Twitch_Notifier, self).__init__(bot)
+        super(TwitchNotifier, self).__init__(bot)
         self._ws = None
         self.reconnect = False
         self.next_connect = datetime.now()
@@ -52,7 +52,7 @@ class Twitch_Notifier(base_cog(session=True)):
         self.startloop()
 
     def __unload(self):
-        super(Twitch_Notifier, self).__unload()
+        super(TwitchNotifier, self).__unload()
         self.stoploop()
 
     def stoploop(self):
@@ -302,5 +302,5 @@ async def twitch_setter(ctx, user, value):
 
 
 def setup(bot):
-    bot.add_cog(Twitch_Notifier(bot))
+    bot.add_cog(TwitchNotifier(bot))
     bot.add_cog(Twitch(bot))
