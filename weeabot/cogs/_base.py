@@ -75,6 +75,7 @@ def base_cog(shortcut=False, session=False):
                     Do not register this if the data is generated.
                     The function should be a coroutine that takes a ctx, user, and value(string from user)
                     and returns the data to be stored (will be pickled).
+                    If no data should be stored and the function handles everything, or in failure, just return none.
                     """
                     self.setter = f
 
