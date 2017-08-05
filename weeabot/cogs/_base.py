@@ -1,8 +1,8 @@
 import aiohttp
 import inspect
 import traceback
+import itertools
 from functools import total_ordering
-from discord import Embed
 from asyncio_extras import threadpool
 
 
@@ -36,6 +36,8 @@ def base_cog(shortcut=False, session=False):
 
             @total_ordering
             class ProfileField:
+                bot = None  # set on cog load
+
                 def __init__(self, f):
                     self.name = name or f.__name__
                     cls.profile_fields[self.name] = self
@@ -167,6 +169,8 @@ def base_cog(shortcut=False, session=False):
             """
 
             class GuildConfigWrapper:
+                bot = None  # set on cog load
+
                 def __init__(self, f):
                     self.name = name or f.__name__
                     self.callback = f
@@ -181,10 +185,10 @@ def base_cog(shortcut=False, session=False):
                         result = await result
                     return result
 
-                async def status_str(self, ctx):
+                async def status_str(self, guild):
                     return "{}\t:\t{}```{}```".format(
                         self.name,
-                        await self.get(ctx),
+                        await self.get(guild),
                         self.description
                     )
 
@@ -193,14 +197,15 @@ def base_cog(shortcut=False, session=False):
                     Decorator to set the transform function for this config.
                     Called between getting results from the db and returning them.
                     Should be a coroutine.
+                    Takes a reference to self and the data. Returns data.
                     """
                     self._transform = f
 
-                async def get(self, ctx):
-                    c = await ctx.bot.db.get_guild_config(ctx.guild, self.name)
+                async def get(self, guild):
+                    c = await self.bot.db.get_guild_config(guild, self.name)
                     result = c.value if c is not None else self.default
                     if self._transform:
-                        result = await self._transform(ctx, result)
+                        result = await self._transform(self, result)
                     return result
 
             return GuildConfigWrapper
@@ -212,6 +217,9 @@ def base_cog(shortcut=False, session=False):
             bot.profile_fields.update(self.profile_fields)
             bot.object_hooks.update(self.object_hooks)
             bot.guild_configs.update(self.guild_configs)
+
+            for o in itertools.chain(self.services.values(), self.guild_configs.values()):
+                o.bot = bot
 
             if shortcut:
                 setattr(bot, type(self).__name__.lower(), self)

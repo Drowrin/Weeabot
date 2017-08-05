@@ -202,7 +202,7 @@ class Moderation(BaseCog):
         List the bot settings for this guild.
         """
         await ctx.send('\n'.join([
-            await c.status_str(ctx)
+            await c.status_str(ctx.guild)
             for c in self.bot.guild_configs.values()
         ]))
 

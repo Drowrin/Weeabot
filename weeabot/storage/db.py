@@ -1,7 +1,7 @@
 import random
 import discord
 from asyncio_extras import threadpool, async_contextmanager
-from sqlalchemy import engine, orm, and_
+from sqlalchemy import engine, orm, and_, func
 from .tables import *
 
 
@@ -87,6 +87,47 @@ class DBHelper:
                 ProfileField.user_id == user.id,
                 ProfileField.key == key
             )).first()
+
+    async def create_twitch_user(self, user_id: int, twitch_id: int, name: str):
+        """
+        Create a twitch user from all 3 fields.
+        """
+        async with threadpool(), self.session() as s:
+            t = TwitchUser(
+                user_id=user_id,
+                twitch_id=twitch_id,
+                name=name
+            )
+            s.add(t)
+            return t
+
+    async def get_twitch_by_user(self, user: discord.User):
+        """
+        Get twitch info based on user.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(TwitchUser).filter(TwitchUser.user_id == user.id).first()
+
+    async def get_twitch_by_id(self, id: int):
+        """
+        Get twitch info by twitch id.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(TwitchUser).filter(TwitchUser.twitch_id == id).first()
+
+    async def get_twitch_by_name(self, name: str):
+        """
+        Get twitch info by twitch username.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(TwitchUser).filter(func.lower(TwitchUser.name) == func.lower(name)).first()
+
+    async def get_all_twitch_users(self):
+        """
+        Get all twitch users.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(TwitchUser).all()
 
     @async_contextmanager
     async def get_guild(self, guild: discord.Guild):

@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.orm.session import object_session
 
 __all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
-           'Reminder', 'Request', 'ProfileField')
+           'Reminder', 'Request', 'ProfileField', 'TwitchUser')
 
 
 class _Base:
@@ -92,6 +92,16 @@ class ProfileField(Base):
     user_id = Column(BigInteger)
     key = Column(String)
     value = Column(PickleType)
+
+
+class TwitchUser(Base):
+    """
+    Twitch information for a user.
+    """
+
+    user_id = Column(BigInteger)
+    twitch_id = Column(Integer)
+    name = Column(String)
 
 
 class Guild(DiscordObject, Base):
