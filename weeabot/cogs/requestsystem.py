@@ -34,7 +34,7 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
             if ctx.bot.requestsystem is None:
                 return False
             # Always pass on help so it shows up in the list.
-            if ctx.command.name == 'help':
+            if ctx.invoked_with == 'help':
                 return True
             # bypass predicates
             if bypass(ctx):
