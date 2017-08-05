@@ -65,6 +65,7 @@ def base_cog(shortcut=False, session=False):
                     Decorator to override the default get function.
                     Useful if you don't need to get data from a profile field in
                     the db or want to do extra processing on it first.
+                    Should take ctx and user and return the data.
                     """
                     self.getter = f
 
