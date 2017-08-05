@@ -18,8 +18,31 @@ class Twitch(base_cog(session=True)):
     Twitch commands.
     """
 
+    @commands.command()
+    async def multistream(self, ctx: commands.Context, *users: discord.Member):
+        """
+        Generate a multistre.am link.
+        """
+        l = []
+        for u in users:
+            t = await ctx.bot.db.get_twitch_by_user(u)
+            if t is None:
+                await ctx.send(f"{u} has no twitch channel linked.")
+            else:
+                l.append(t.name.lower())
+        if l:
+            await ctx.send(
+                content='https://multistre.am/{}'.format('/'.join(l))
+            )
+
+
+class Twitch_Notifier(base_cog(session=True)):
+    """
+    Twitch automatic stream notifications.
+    """
+
     def __init__(self, bot):
-        super(Twitch, self).__init__(bot)
+        super(Twitch_Notifier, self).__init__(bot)
         self._ws = None
         self.reconnect = False
         self.next_connect = datetime.now()
@@ -29,7 +52,7 @@ class Twitch(base_cog(session=True)):
         self.startloop()
 
     def __unload(self):
-        super(Twitch, self).__unload()
+        super(Twitch_Notifier, self).__unload()
         self.stoploop()
 
     def stoploop(self):
@@ -279,4 +302,5 @@ async def twitch_setter(ctx, user, value):
 
 
 def setup(bot):
+    bot.add_cog(Twitch_Notifier(bot))
     bot.add_cog(Twitch(bot))
