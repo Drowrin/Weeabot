@@ -1,7 +1,9 @@
 import random
 import discord
 from asyncio_extras import threadpool, async_contextmanager
-from sqlalchemy import engine, orm, and_, func
+from sqlalchemy import engine, orm, and_, or_, func
+from typing import List
+from datetime import datetime
 from .tables import *
 
 
@@ -83,10 +85,10 @@ class DBHelper:
         Get a profile field or None.
         """
         async with self.session() as s:
-            yield s.query(ProfileField).filter(and_(
+            yield s.query(ProfileField).filter(
                 ProfileField.user_id == user.id,
                 ProfileField.key == key
-            )).first()
+            ).first()
 
     async def create_twitch_user(self, user_id: int, twitch_id: int, name: str):
         """
@@ -186,7 +188,7 @@ class DBHelper:
         async with self.session() as s:
             yield s.query(JailSentence).\
                 options(orm.joinedload(JailSentence.guild)).\
-                filter(and_(JailSentence.user == user.id, JailSentence.guild_id == guild.id)).first()
+                filter(JailSentence.user == user.id, JailSentence.guild_id == guild.id).first()
 
     async def get_all_jails(self):
         """
@@ -261,38 +263,97 @@ class DBHelper:
             usages = s.query(CommandUsage).filter(CommandUsage.user_id == user.id).all()
             return {u.name: u.count for u in usages}
 
+    async def create_stub(self, author: discord.User, tags: List[str], timestamp: datetime, guild: discord.Guild,
+                          text: str=None, image: str=None, method: str=None, is_global=False):
+        """
+        Create a stub from all properties.
+        """
+        if len(tags) == 0:
+            raise TypeError("missing argument(s): tags")
+        async with threadpool(), self.session() as s:
+            tags = [await self.get_tag(t, s=s) for t in tags]
+            u = s.query(User).filter(User.id == author.id).first()
+            if u is None:
+                u = User(id=author.id)
+                s.add(u)
+            g = s.query(Guild).filter(Guild.id == guild.id).first()
+            if g is None:
+                g = Guild(id=guild.id)
+                s.add(g)
+            stub = Stub(
+                author=u,
+                timestamp=timestamp,
+                origin_guild_id=guild.id,
+                guilds=[g],
+                is_global=is_global,
+                tags=tags,
+                text=text,
+                image=image,
+                method=method
+            )
+            s.add(stub)
+            return stub
+
+    async def set_stub_image(self, stub_id: int, path: str):
+        """
+        Set the image path of a stub.
+        """
+        async with threadpool(), self.session() as s:
+            stub = s.query(Stub).filter(Stub.id == stub_id).first()
+            stub.image = path
+
     @async_contextmanager
-    async def get_specific_stub(self, id):
+    async def get_specific_stub(self, guild, stub_id):
         """
         Get a specific stub by id. Does not create missing rows.
         """
         async with self.session() as s:
-            s = s.query(Stub).filter(Stub.id == id).first()
-            yield s
+            yield s.query(Stub).join(Stub.guilds).filter(
+                Stub.id == stub_id,
+                or_(Guild.id == guild.id, Stub.is_global)
+            ).first()
 
     @async_contextmanager
-    async def get_tag(self, name):
-        """
-        Get a specific tag by name. Creates missing rows.
-        """
-        async with self.session() as s:
-            t = s.query(Tag).filter(Tag.name == name).first()
-
-            if t is None:
-                t = Tag(name)
-                s.add(t)
-
-            yield t
-
-    @async_contextmanager
-    async def get_random_stub(self, *tags):
+    async def get_random_stub(self, guild, *tags):
         """
         Get a random stub with the given tags. Can return None
         """
         async with self.session() as s:
             filters = [Stub.tags.any(name=t) for t in tags]
-            stubs = s.query(Stub).filter(*filters).all()
-            yield random.choice(stubs) if stubs else None
+            stubs = s.query(Stub).join(Stub.guilds).filter(*filters, or_(Guild.id == guild.id, Stub.is_global))
+            count = int(stubs.count())
+            if count != 0:
+                yield stubs.offset(random.randrange(0, count)).first()
+
+    async def make_stub_global(self, stub_id):
+        """
+        Set the global status of a stub.
+        """
+        async with threadpool(), self.session() as s:
+            stub = s.query(Stub).filter(Stub.id == stub_id).first()
+            stub.is_global = True
+
+    async def get_tag(self, name, s=None):
+        """
+        Get a specific tag by name. Creates missing rows.
+        """
+        if s is None:
+            async with threadpool(), self.session() as session:
+                return await self.get_tag(name, s=session)
+
+        t = s.query(Tag).filter(Tag.name == name).first()
+
+        if t is None:
+            t = Tag(name=name)
+            s.add(t)
+        return t
+
+    async def get_tags_in(self, guild: discord.Guild):
+        """
+        Get the tags visible to this guild. Includes globals.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(Tag).join('stubs', 'guilds').filter(or_(Guild.id == guild.id, Stub.is_global)).all()
 
     @async_contextmanager
     async def get_request(self, message_id):
@@ -336,10 +397,10 @@ class DBHelper:
         Get a guild config. Creates missing entries.
         """
         async with self.session() as s:
-            c = s.query(GuildSetting).filter(and_(
+            c = s.query(GuildSetting).filter(
                 GuildSetting.guild_id == guild.id,
                 GuildSetting.key == key
-            )).first()
+            ).first()
             if c is None:
                 c = GuildSetting(
                     guild_id=guild.id,
@@ -354,7 +415,7 @@ class DBHelper:
         Get a guild config or None.
         """
         async with threadpool(), self.session() as s:
-            return s.query(GuildSetting).filter(and_(
+            return s.query(GuildSetting).filter(
                 GuildSetting.guild_id == guild.id,
                 GuildSetting.key == key
-            )).first()
+            ).first()

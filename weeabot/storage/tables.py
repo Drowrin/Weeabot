@@ -104,6 +104,14 @@ class TwitchUser(Base):
     name = Column(String)
 
 
+stub_association_table = Table(
+    'stub_association',
+    Base.metadata,
+    Column('stub_id', ForeignKey('stub.id'), primary_key=True),
+    Column('guild_id', ForeignKey('guild.id'), primary_key=True)
+)
+
+
 class Guild(DiscordObject, Base):
     """
     Representation of a Guild.
@@ -119,7 +127,11 @@ class Guild(DiscordObject, Base):
     jail_role_id = Column(BigInteger)
     jail_sentences = relationship("JailSentence", back_populates="guild")
 
-    stubs = relationship("Stub", back_populates='guild')
+    stubs = relationship(
+        "Stub",
+        secondary=stub_association_table,
+        back_populates='guilds'
+    )
 
 
 class GuildSetting(Base):
@@ -222,12 +234,17 @@ class Stub(Base):
     author = relationship("User", back_populates='stubs')
 
     timestamp = Column(DateTime)
-    text = Column(Text)
-    image = Column(String)
-    method = Column(String)
+    text = Column(Text, nullable=True)
+    image = Column(String, nullable=True)
+    method = Column(String, nullable=True)
 
-    guild_id = Column(BigInteger, ForeignKey('guild.id'))
-    guild = relationship("Guild", back_populates='stubs')
+    origin_guild_id = Column(BigInteger)
+    is_global = Column(Boolean)
+    guilds = relationship(
+        'Guild',
+        secondary=stub_association_table,
+        back_populates='stubs'
+    )
 
 
 class Tag(Base):
