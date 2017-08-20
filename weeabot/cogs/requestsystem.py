@@ -22,6 +22,7 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
     def decorator(func):
         async def request_predicate(ctx):
             ctx.bypassed = ''
+            ctx.request_approved = False
 
             user_level = ctx.bot.requestsystem.get_user_level(ctx.author)
 
@@ -48,6 +49,7 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
             async with threadpool(), ctx.bot.db.get_or_create_request(ctx, level) as r:
                 if r.approved:
                     r.delete()
+                    ctx.request_approved = True
                     return True
             if level >= PermissionLevel.GLOBAL > r.current_level:
                 m = ctx.bot.owner.send(
