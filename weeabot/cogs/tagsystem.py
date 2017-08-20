@@ -229,6 +229,49 @@ class Tags(base_cog(shortcut=True, session=True)):
             ).first()
             stub.author = u
 
+    @staticmethod
+    def stub_bypass(ctx: commands.Context):
+        if ctx.invoked_with == 'help':
+            return True  # Always display in help since no args are passed.
+        if ctx.bot.owner == ctx.author:
+            return True  # Always allow owner to delete
+        # everything else will depend on the particular stub, so it should be done in the command
+
+    @_stub.command(name='delete', aliases=('remove',))
+    @request(bypass=stub_bypass)
+    async def _stub_delete(self, ctx, stub_id: int):
+        """
+        Delete a stub.
+
+        Can be performed by the author or moderators.
+        """
+        if ctx.bypassed:
+            await self.bot.db.delete_stub(stub_id)
+        else:
+            async with threadpool(), self.bot.db.get_specific_stub(ctx.guild, stub_id) as s:
+                if s is None:
+                    raise commands.CheckFailure(f"{stub_id} not found in this guild.")
+                if ctx.request_approved or ctx.author.guild_permissions.manage_guild or s.author_id == ctx.author.id:
+                    s.delete()
+                else:
+                    raise commands.CheckFailure(f"You do not have permission to do that.")
+        await ctx.affirmative()
+
+    @_stub.command(name='method')
+    @request(bypass=stub_bypass)
+    async def _stub_method(self, ctx, stub_id: int, *, method: str):
+        """
+        Set the method this stub uses.
+        """
+        async with threadpool(), self.bot.db.get_specific_stub(ctx.guild, stub_id) as s:
+            if s is None:
+                raise commands.CheckFailure(f"{stub_id} not found in this guild.")
+            if ctx.request_approved or ctx.bypassed or ctx.author.guild_permissions.manage_guild or s.author_id == ctx.author.id:
+                s.method = method
+            else:
+                raise commands.CheckFailure(f"You do not have permission to do that.")
+        await ctx.affirmative()
+
 
 def setup(bot):
     bot.add_cog(Tags(bot))

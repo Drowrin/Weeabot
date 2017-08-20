@@ -333,6 +333,14 @@ class DBHelper:
             stub = s.query(Stub).filter(Stub.id == stub_id).first()
             stub.is_global = True
 
+    async def delete_stub(self, stub_id):
+        """
+        Delete a stub.
+        """
+        async with threadpool(), self.session() as s:
+            stub = s.query(Stub).filter(Stub.id == stub_id).first()
+            s.delete(stub)
+
     async def get_tag(self, name, s=None):
         """
         Get a specific tag by name. Creates missing rows.
