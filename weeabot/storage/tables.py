@@ -33,6 +33,9 @@ class _Base:
     def __str__(self):
         return self.__repr__()
 
+    def delete(self):
+        object_session(self).delete(self)
+
 
 Base = declarative_base(cls=_Base)
 
@@ -290,6 +293,3 @@ class Request(Base):
     @property
     def approved(self):
         return self.current_level >= self.level
-
-    def delete(self):
-        object_session(self).delete(self)
