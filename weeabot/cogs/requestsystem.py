@@ -1,3 +1,4 @@
+import inspect
 from enum import IntEnum
 from asyncio_extras import threadpool
 
@@ -37,8 +38,10 @@ def request(bypass=lambda ctx: False, level: PermissionLevel = PermissionLevel.G
             if ctx.invoked_with == 'help':
                 return True
             # bypass predicates
-            if bypass(ctx):
-                ctx.bypassed = True
+            ctx.bypassed = bypass(ctx)
+            if inspect.isawaitable(ctx.bypassed):
+                ctx.bypassed = await ctx.bypassed
+            if ctx.bypassed:
                 return True
 
             # handle request elevation/resolution
