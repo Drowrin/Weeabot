@@ -1,6 +1,17 @@
 import json
 import asyncio
+import aiohttp
+import io
 from os import path, makedirs
+
+async def download_fp(session: aiohttp.ClientSession, link: str):
+    """Download to a memory filepointer, instead of disk."""
+    async with session.get(link) as r:
+        fp = io.BytesIO()
+        val = await r.read()
+        fp.write(val)
+        fp.seek(0)
+    return fp
 
 
 def run_once(func):
