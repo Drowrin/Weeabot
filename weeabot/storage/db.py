@@ -314,16 +314,29 @@ class DBHelper:
             ).first()
 
     @async_contextmanager
-    async def get_random_stub(self, guild, *tags):
+    async def get_random_stub(self, guild, *tags, force_images=False):
         """
         Get a random stub with the given tags. Can return None
         """
         async with self.session() as s:
             filters = [Stub.tags.any(name=t) for t in tags]
+            if force_images:
+                filters.append(Stub.image != None)
             stubs = s.query(Stub).join(Stub.guilds).filter(*filters, or_(Guild.id == guild.id, Stub.is_global))
             count = int(stubs.count())
             if count != 0:
                 yield stubs.offset(random.randrange(0, count)).first()
+
+    async def get_stubs(self, guild, *tags, limit=1, force_images=False):
+        """
+        Get a collection of stubs based on tags. Can return an empty list.
+        """
+        async with threadpool(), self.session() as s:
+            filters = [Stub.tags.any(name=t) for t in tags]
+            if force_images:
+                filters.append(Stub.image != None)
+            stubs = s.query(Stub).join(Stub.guilds).filter(*filters, or_(Guild.id == guild.id, Stub.is_global))
+            return stubs.order_by(func.random()).limit(limit).all()
 
     async def make_stub_global(self, stub_id):
         """
