@@ -40,7 +40,7 @@ def base_cog(shortcut=False, session=False):
 
                 def __init__(self, f):
                     self.name = name or f.__name__
-                    cls.profile_fields[self.name] = self
+                    cls.profile_fields[self.name.lower()] = self
                     self.callback = f
                     self.description = (description or f.__doc__ or "").strip()
                     self.handler = None
@@ -103,7 +103,7 @@ def base_cog(shortcut=False, session=False):
                 async def get(self, ctx, user):
                     if self.getter is not None:
                         return await self.getter(ctx, user)
-                    async with threadpool(), ctx.bot.db.get_profile_field(user, self.name) as f:
+                    async with threadpool(), ctx.bot.db.get_profile_field(user, self.name.lower()) as f:
                         return f.value if f is not None else None
 
                 async def status_str(self, ctx, user):

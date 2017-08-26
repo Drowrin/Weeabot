@@ -55,16 +55,16 @@ class Profiles(base_cog(shortcut=True, session=True)):
         """
         Set the value of a profile field.
         """
+        key = key.lower()
         if key not in self.get_settable_fields():
             raise commands.BadArgument("Unknown key")
         result = await self.bot.profile_fields[key].setter(ctx, ctx.author, value)
         if result is not None:
-            async with threadpool(), self.bot.db.get_profile_field(ctx.author, key) as f:
-                if f is not None:
+            try:
+                async with threadpool(), self.bot.db.get_profile_field(ctx.author, key) as f:
                     f.value = result
-                    await ctx.affirmative()
-                    return
-            await self.bot.db.create_profile_field(ctx.author, key, result)
+            except AttributeError:  # didn't already exist
+                await self.bot.db.create_profile_field(ctx.author, key, result)
             await ctx.affirmative()
 
     @_set.command(name='list')
