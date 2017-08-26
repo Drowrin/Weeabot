@@ -17,11 +17,11 @@ class Tools(base_cog(session=True)):
     Bot Admin Tools
     """
 
-    def __global_check(self, ctx):
+    def __global_check(self, ctx: commands.Context):
         """
         Only allow bot owner to use these tools.
         """
-        return ctx.bot.owner == ctx.author
+        return ctx.cog != self or ctx.bot.owner == ctx.author
 
     @commands.group()
     @do_not_track
