@@ -15,6 +15,8 @@ class Toys(base_cog()):
     def __init__(self, bot):
         super(Toys, self).__init__(bot)
         self.do_messages = {}
+        self.atk = self.bot.content['attack']
+        self.guns = {}
 
     @staticmethod
     async def text_embed(message: discord.Message, text: str):
@@ -133,6 +135,122 @@ class Toys(base_cog()):
         while self.do_messages[msg.id] < n <= limit:
             self.do_messages[msg.id] += 1
             await self.bot.process_commands(msg)
+
+    @commands.command(aliases=('pick', 'choice'))
+    async def choose(self, ctx, *, choices):
+        """
+        Choose from a list of choices. Separate with semicolons.
+        """
+        await ctx.send(random.choice(choices.split(';')))
+
+    @commands.command()
+    async def roll(self, ctx, sides: str = '6'):
+        """
+        Roll a die.
+
+        Defaults to d6.
+        Can use DnD format: 2d6
+        """
+        try:
+            if 'd' in sides:
+                sp = sides.split('d')
+                n = int(sp[0])
+                s = int(sp[1])
+                await ctx.send('```\n{}\n```'.format(
+                    '\n'.join(['{}: {}/{}'.format(i, random.randint(1, s), s) for i in range(0, n)])))
+            else:
+                await ctx.send("You rolled a {} out of {}.".format(random.randint(1, int(sides)), sides))
+        except ValueError:
+            await ctx.send("Incorrect die formatting.")
+
+    @commands.command(name='8ball', rest_is_raw=True)
+    async def eight_ball(self, ctx, *, question: str):
+        """
+        8ball responses to your questions.
+        """
+        r = [
+            'Yes, in due time.',
+            'My sources say no.',
+            'Definitely not.',
+            'Yes.',
+            'I have my doubts.',
+            'Who knows?',
+            'Probably.',
+            'Only if you type "I am trash" in the next five seconds.'
+        ]
+        await ctx.send('{}\n{}'.format(question, random.choice(r)))
+
+    @commands.command()
+    async def rate(self, ctx, *, thing: str):
+        """
+        Rate something. Anything. Go nuts.
+        """
+        s = sum([hash(c) % 10 for c in list(thing)])
+        await ctx.send("I give it a {}/10.".format((s if "&knuckles" in thing else s % 10) + 1))
+
+    @commands.command(aliases=('a', 'shoot', 'kill'))
+    async def attack(self, ctx: commands.Context, target: str = None):
+        """
+        Attempt to attack someone.
+        """
+
+        if target is None:
+            await ctx.send(random.choice(self.atk['miss']))
+            return
+
+        author = ctx.message.author
+        selves = [author.mention, author.name, author.display_name] + self.atk['self']
+        immune = [self.bot.user.mention, ctx.guild.me.mention, self.bot.user.name, ctx.guild.me.display_name]
+
+        if target in immune:
+            await ctx.send(random.choice(self.atk['immune']).format(author.display_name, target))
+        elif target in selves:
+            await ctx.send(random.choice(self.atk['kys']).format(author.display_name))
+        else:
+            if random.randint(0, 1):
+                await ctx.send(random.choice(self.atk['el']).format(target))
+            else:
+                await ctx.send(random.choice(self.atk['esc']).format(target))
+
+    @commands.group(aliases=('rr',), invoke_without_command=True)
+    async def russian_roulette(self, ctx):
+        """
+        A game of russian roulette.
+        """
+        g = self.guns.get(ctx.channel.id, [])
+        if any(g):
+            if g[0]:
+                g[0] = 0
+                await ctx.send(":boom: :gun:")
+            else:
+                await ctx.send(":gun: *click*")
+            self.guns[ctx.channel.id] = g[1:] + g[:1]
+        else:
+            await ctx.send("The gun is empty.")
+
+    @russian_roulette.command()
+    async def spin(self, ctx):
+        """
+        Spin the cylinder.
+        """
+        g = self.guns.get(ctx.channel.id, [])
+        if g:
+            s = random.randint(1, 5)
+            self.guns[ctx.channel.id] = g[s:] + g[:s]
+        await ctx.send(":gun: :arrows_counterclockwise:")
+
+    @russian_roulette.command()
+    async def reload(self, ctx, bullets: int):
+        """
+        Reload the gun with a certain number of bullets.
+        """
+        if bullets not in range(0, 7):
+            await self.bot.say("Slow down there partner.")
+            return
+        self.guns[ctx.channel.id] = [0, 0, 0, 0, 0, 0]
+        while sum(self.guns[ctx.channel.id]) < bullets:
+            self.guns[ctx.channel.id][random.randint(0, 5)] = 1
+        await ctx.send("There are now {} bullets in the gun.".format(bullets))
 
 
 def setup(bot):
