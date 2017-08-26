@@ -106,6 +106,9 @@ class TwitchUser(Base):
     twitch_id = Column(Integer)
     name = Column(String)
 
+    def __str__(self):
+        return self.name
+
 
 stub_association_table = Table(
     'stub_association',
