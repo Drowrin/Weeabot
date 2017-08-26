@@ -11,6 +11,7 @@ ruamel.yaml
 jinja2
 humanize
 dateparser
+xmltodict
 psycopg2
 SQLAlchemy
 asyncio_extras
