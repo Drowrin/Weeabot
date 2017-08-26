@@ -55,7 +55,7 @@ class MAL(base_cog(session=True)):
             await self.bot.edit_message(tmp, "Could not connect to MAL, try again later.")
 
     async def getmal(self, ctx, user: discord.User):
-        mal = await self.bot.profile_fields['MyAnimeList'].get(ctx, user)
+        mal = await self.bot.profile_fields['myanimelist'].get(ctx, user)
         if mal is None:
             raise commands.BadArgument("{} has no saved MAL username.".format(user.display_name))
         params = {'u': mal, 'type': 'anime', 'status': 'all'}
@@ -128,6 +128,45 @@ class MAL(base_cog(session=True)):
         Defaults to your own MAL if it is saved.
         """
         await self.pick_anime(ctx, ['2'], user)
+
+    @commands.command(aliases=('fite',))
+    async def fight(self, ctx, user2: str, threshold: int = 2):
+        """
+        Fight about MAL scores.
+
+        Finds an anime the two users disagree on based on score.
+        Bigger disagreements are more likely.
+        If a threshold is supplied, only shows with a larger difference will be selected.
+        """
+        user1 = ctx.message.author
+        try:
+            user2 = await commands.MemberConverter().convert(ctx, user2)
+        except commands.BadArgument as e:
+            await ctx.send(e)
+            return
+        tmp = await ctx.send(
+            "Getting MAL information for {} and {}...".format(user1.display_name, user2.display_name))
+        try:
+            mal1 = await self.getmal_retry(ctx, user1, tmp=tmp)
+            mal2 = await self.getmal_retry(ctx, user2, tmp=tmp)
+        except commands.BadArgument as e:
+            await tmp.edit(content=e)
+            return
+        anime1 = mal1['anime']
+        anime2 = mal2['anime']
+        dict1 = {anime['series_title']: anime for anime in anime1}
+        dict2 = {anime['series_title']: anime for anime in anime2}
+        common = {title: abs(int(dict1[title]['my_score']) - int(dict2[title]['my_score']))
+                  for title in dict1.keys() if title in dict2.keys()}
+        common = {title: common[title] for title in common.keys() if common[title] >= threshold and
+                  dict1[title]['my_score'] != '0' and dict2[title]['my_score'] != '0'}
+        if len(common) <= 0:
+            await tmp.edit(content="Nothing in common, or no disagreements above the threshold.")
+            return
+        wlist = [title for title in common.keys()]
+        chosen = random.choice(wlist)
+        await tmp.edit(content="{}({}) should fight {}({}) about {}".format(
+            user1.mention, dict1[chosen]['my_score'], user2.mention, dict2[chosen]['my_score'], chosen))
 
 
 @MAL.profile_field(name='MyAnimeList')
