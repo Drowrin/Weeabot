@@ -1,4 +1,5 @@
 import random
+import copy
 
 import discord
 from discord.ext import commands
@@ -10,6 +11,10 @@ class Toys(base_cog()):
     """
     Pointless stuff goes here.
     """
+
+    def __init__(self, bot):
+        super(Toys, self).__init__(bot)
+        self.do_messages = {}
 
     @staticmethod
     async def text_embed(message: discord.Message, text: str):
@@ -98,6 +103,36 @@ class Toys(base_cog()):
         ])
         emoji = str.maketrans(translated, translated_to)
         await self.text_embed(ctx.message, '      '.join(text.translate(emoji).split()))
+
+    @commands.command(pass_context=True)
+    async def do(self, ctx, n: int, *, command):
+        """Repeat a command up to 5 times."""
+        limit = 5
+
+        # handle user input
+        if not command.startswith(self.bot.command_prefix):
+            command = self.bot.command_prefix + command
+        if n > limit:
+            n = limit
+
+        # check times run
+        if ctx.message.id not in self.do_messages:
+            self.do_messages[ctx.message.id] = 0
+        else:
+            # don't count nested do's, simplay pass through to counting executions of the actual command.
+            self.do_messages[ctx.message.id] -= 1
+        if self.do_messages[ctx.message.id] >= limit:
+            await ctx.send('Repetition limit exceeded.')
+            return
+
+        # prepare to do
+        msg = copy.copy(ctx.message)
+        msg.content = command
+
+        # do
+        while self.do_messages[msg.id] < n <= limit:
+            self.do_messages[msg.id] += 1
+            await self.bot.process_commands(msg)
 
 
 def setup(bot):
