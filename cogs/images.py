@@ -223,7 +223,10 @@ class Images(utils.SessionCog):
         if isinstance(im, dict):
             count = await self.count_booru(url, tags)
             if 'file_url' in im:
-                img_url = f'{url.split(":")[0]}:{im["file_url"]}'
+                if im['file_url'].startswith('http'):
+                    img_url = im['file_url']
+                else:
+                    img_url = f'{url.split(":")[0]}:{im["file_url"]}'
             else:
                 img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
             e = discord.Embed(
