@@ -132,7 +132,8 @@ class TagItem:
             try:
                 name = ctx.message.server.get_member(self.author).display_name
             except AttributeError:
-                name = discord.utils.get(ctx.bot.get_all_members(), id=self.author).name
+                u = discord.utils.get(ctx.bot.get_all_members(), id=self.author)
+                name = u.name if u is not None else "<user lookup error>"
         return "{}(id:{}) by {}".format(', '.join(self.tags), self.id, name)
 
     def str(self, ctx):
