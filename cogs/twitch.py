@@ -243,7 +243,7 @@ class Twitch(utils.SessionCog):
 
     def dispatch(self, r):
         t = r['type']
-        print(f'Twitch event received: {r}')
+        # print(f'Twitch event received: {r}')
 
         # special reconnect case
         if t == 'RECONNECT':
