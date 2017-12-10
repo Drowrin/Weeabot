@@ -81,7 +81,6 @@ class CleverCacheLogicAdapter(logic.LowConfidenceAdapter):
                 # construct high confidence response
                 s = Statement(data['output'], in_response_to=[input_statement])
                 s.confidence = 1
-                print(f"Cleverbot: {input_statement.text} --> {s.text}")
                 return s
 
         # return dummy with 0 confidence
