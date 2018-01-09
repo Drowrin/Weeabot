@@ -297,13 +297,14 @@ class Twitch(utils.SessionCog):
                     messages = []
                     for c in self.channels:
                         mem = c.server.get_member(did)
-                        messages.append(await self.bot.send_message(c, embed=discord.Embed(
-                            description='Waiting for Twitch API...'
-                        ).set_author(
-                            name=f"{mem.display_name} started streaming",
-                            icon_url=mem.avatar_url or mem.default_avatar_url,
-                            url=f'https://www.twitch.tv/{name}'
-                        )))
+                        if mem is not None:  # handle users leaving guilds
+                            messages.append(await self.bot.send_message(c, embed=discord.Embed(
+                                description='Waiting for Twitch API...'
+                            ).set_author(
+                                name=f"{mem.display_name} started streaming",
+                                icon_url=mem.avatar_url or mem.default_avatar_url,
+                                url=f'https://www.twitch.tv/{name}'
+                            )))
 
                     self.bot.loop.create_task(self.update_stream(messages, did, tid))
             except:
