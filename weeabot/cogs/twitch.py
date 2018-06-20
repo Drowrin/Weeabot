@@ -4,6 +4,7 @@ import traceback
 import websockets
 import random
 from datetime import datetime, timedelta
+from typing import Iterable
 
 import discord
 from discord.ext import commands
@@ -19,7 +20,7 @@ class Twitch(base_cog(session=True)):
     """
 
     @commands.command()
-    async def multistream(self, ctx: commands.Context, *users: discord.Member):
+    async def multistream(self, ctx: commands.Context, *users: Iterable[discord.Member]):
         """
         Generate a multistre.am link.
         """
