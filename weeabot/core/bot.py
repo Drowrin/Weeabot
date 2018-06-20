@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import asyncio
 import random
 import humanize
@@ -99,6 +100,19 @@ class Weeabot(commands.Bot):
     async def on_message(self, message):
         await self.init.wait()
         await self.process_commands(message)
+
+    async def on_command_error(self, ctx, exception):
+
+        # nice error report formatting
+        name = re.sub(r'(?!^)([A-Z][a-z]+)', r' \1', exception.__class__.__name__)
+        message = f"{name}: {exception}" if len(str(exception)) else name
+
+        # repond to user input error
+        if isinstance(exception, commands.UserInputError):
+            await ctx.send(message)
+            return
+
+        super(Weeabot, self).on_command_error(ctx, exception)
 
     @utils.run_once
     async def on_ready(self):
