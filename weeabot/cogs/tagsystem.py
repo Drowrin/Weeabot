@@ -101,12 +101,16 @@ class Tags(base_cog(shortcut=True, session=True)):
         If a stub_id is passed, tags will be ignored.
         If either the id or the tag combination does not exist, will return nothing.
         """
-        if stub_id is not None:
-            async with threadpool(), self.bot.db.get_specific_stub(guild, stub_id) as stub:
-                return Stub(stub)
-        else:
-            async with threadpool(), self.bot.db.get_random_stub(guild, *tags) as stub:
-                return Stub(stub)
+        try:
+            if stub_id is not None:
+                async with threadpool(), self.bot.db.get_specific_stub(guild, stub_id) as stub:
+                    return Stub(stub)
+            else:
+                async with threadpool(), self.bot.db.get_random_stub(guild, *tags) as stub:
+                    return Stub(stub)
+        except StopAsyncIteration:
+            # tag not found. potentially show near matches? TODO
+            return
 
     async def create(self, message: discord.Message, *tags: List[str], method: str=None, is_global: bool=False, image=None):
         """
@@ -154,9 +158,9 @@ class Tags(base_cog(shortcut=True, session=True)):
         """
         try:
             t = await self.parse_and_get(ctx.guild, tag_or_id)
-        except ValueError:
-            raise commands.BadArgument('No stub found.')
-        await t.send_to(ctx.channel)
+            await t.send_to(ctx.channel)
+        except (ValueError, AttributeError):
+            raise commands.BadArgument(message='No stub found.')
 
     @_stub.group(name='add', invoke_without_command=True)
     async def _stub_add(self, ctx: commands.Context, tag_name: str, *, text: str=''):
