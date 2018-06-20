@@ -164,6 +164,8 @@ class TwitchNotifier(base_cog(session=True)):
 
         if await self.send_listen(ws):
             self.stoploop()
+
+        print('successfully listened to twitch topics')
         return ws
 
     async def get_ws(self):
