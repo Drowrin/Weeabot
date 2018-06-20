@@ -266,7 +266,7 @@ class Images(base_cog(session=True)):
             out_height = sum(ims[1][0].size[1] for ims in image_array) + ((len(image_array) - 1) * line_width)
 
             # create new Image object
-            image = Image.new('RGB', (width, int(out_height)))
+            image = Image.new('RGBA', (width, int(out_height)))
 
             # draw images on output image
             y = 0
