@@ -5,6 +5,7 @@ import traceback
 import datetime
 import re
 import math
+from io import BytesIO
 
 from typing import Callable
 from typing import List
@@ -293,10 +294,14 @@ class Images(base_cog(session=True)):
             images = [s.image for s in stubs]
 
             if len(images) < 5:
-                raise commands.BadArgument("Not enough images in that tag. Need at least 5 static images.")
+                raise commands.BadArgument(message="Not enough images in that tag. Need at least 5 static images.")
 
             for i in images:
-                yield Image.open(i)
+                async with self.session.get(i) as resp:
+                    imagedata = BytesIO(await resp.read())
+                    imagedata.seek(0)
+                im = Image.open(imagedata)
+                yield im
 
         # processing can take a while, so we type to acknowledge the command and run it in and executor.
         async with ctx.typing():

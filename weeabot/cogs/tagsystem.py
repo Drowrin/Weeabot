@@ -59,7 +59,6 @@ class Stub:
         """
         author = self.author_in(destination)
         e = discord.Embed(description=f'ERROR METHOD NOT FOUND {self.method}')
-        f: discord.File = None
         c: str = None
 
         if self.method is None:  # default case
@@ -74,12 +73,9 @@ class Stub:
             )
 
             if self.image is not None:
-                f = discord.File(self.image)
-                e.set_image(
-                    url=f'attachment://{f.filename}'
-                )
+                e.set_image(url=self.image)
 
-        return await destination.send(embed=e, content=c, file=f)
+        return await destination.send(embed=e, content=c)
 
 
 class Tags(base_cog(shortcut=True, session=True)):
@@ -129,17 +125,8 @@ class Tags(base_cog(shortcut=True, session=True)):
             is_global=is_global
         )
         if link is not None:
-            async with self.session.get(link) as r:
-                d = await r.read()
-
-            ext = discord.utils._get_mime_type_for_image(d).split('/')[1]
-            p = path.join(self.bot.config['paths']['stub_images'], f"{stub.id}.{ext}")
-
-            with open(p, "wb") as f:
-                f.write(d)
-
-            await self.bot.db.set_stub_image(stub.id, p)
-            stub.image = p
+            await self.bot.db.set_stub_image(stub.id, link)
+            stub.image = link
         return Stub(stub, bot=self.bot)
 
     async def parse_and_get(self, guild: discord.Guild, *args: List[str]) -> Stub:
