@@ -4,8 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.orm.session import object_session
 
-__all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream', 'Spoiler', 'Stub', 'Tag',
-           'Reminder', 'Request', 'ProfileField', 'TwitchUser')
+__all__ = ('Base', 'User', 'CommandUsage', 'Guild', 'GuildSetting', 'JailSentence', 'Poll', 'Channel', 'TweetStream',
+           'Spoiler', 'Stub', 'Tag', 'Reminder', 'Request', 'ProfileField', 'TwitchUser')
 
 
 class _Base:
@@ -28,7 +28,10 @@ class _Base:
         return cls.__name__.lower()
 
     def __repr__(self):
-        return "<{} {}>".format(type(self).__name__, ' '.join(["{}={}".format(k, getattr(self, k)) for k in self.__repr_props__]))
+        return "<{} {}>".format(
+            type(self).__name__,
+            ' '.join(["{}={}".format(k, getattr(self, k)) for k in self.__repr_props__])
+        )
 
     def __str__(self):
         return self.__repr__()
