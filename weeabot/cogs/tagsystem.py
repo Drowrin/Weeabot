@@ -110,7 +110,7 @@ class Tags(base_cog(shortcut=True, session=True)):
                     return Stub(stub)
         except StopAsyncIteration:
             # tag not found. potentially show near matches? TODO
-            return
+            pass
 
     async def create(self, message: discord.Message, *tags: List[str], method: str=None, is_global: bool=False, image=None):
         """
