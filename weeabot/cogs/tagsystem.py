@@ -139,12 +139,12 @@ class Tags(base_cog(shortcut=True, session=True)):
         return await self.get(guild, *args)
 
     @commands.group(aliases=('tag', 'tags'), name='stub', invoke_without_command=True)
-    async def _stub(self, ctx, tag_or_id: str):
+    async def _stub(self, ctx, *tags_or_id):
         """
         Get a random stub with the specified tag or id.
         """
         try:
-            t = await self.parse_and_get(ctx.guild, tag_or_id)
+            t = await self.parse_and_get(ctx.guild, *tags_or_id)
             await t.send_to(ctx.channel)
         except (ValueError, AttributeError):
             raise commands.BadArgument(message='No stub found.')
