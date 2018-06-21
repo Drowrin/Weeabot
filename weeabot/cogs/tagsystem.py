@@ -141,7 +141,8 @@ class Tags(base_cog(shortcut=True, session=True)):
     @commands.group(aliases=('tag', 'tags'), name='stub', invoke_without_command=True)
     async def _stub(self, ctx, *tags_or_id):
         """
-        Get a random stub with the specified tag or id.
+        Get a random stub with the specified tags or id.
+        If multiple tags are passed, only stubs with *all* of these tags are returned.
         """
         try:
             t = await self.parse_and_get(ctx.guild, *tags_or_id)
