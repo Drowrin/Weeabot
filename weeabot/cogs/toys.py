@@ -112,8 +112,8 @@ class Toys(base_cog()):
         limit = 5
 
         # handle user input
-        if not command.startswith(self.bot.command_prefix):
-            command = self.bot.command_prefix + command
+        if not command.startswith(ctx.prefix):
+            command = ctx.prefix + command
         if n > limit:
             n = limit
 
