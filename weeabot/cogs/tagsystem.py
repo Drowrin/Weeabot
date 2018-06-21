@@ -1,4 +1,6 @@
 import re
+import sys
+from traceback import format_exc
 from copy import copy
 from datetime import datetime
 from typing import List
@@ -145,8 +147,12 @@ class Tags(base_cog(shortcut=True, session=True)):
         """
         try:
             t = await self.parse_and_get(ctx.guild, *tags_or_id)
-            await t.send_to(ctx.channel)
-        except (ValueError, AttributeError) as e:
+            if t is not None:
+                await t.send_to(ctx.channel)
+            else:
+                raise commands.BadArgument(message='No stub found.')
+        except (ValueError, AttributeError):
+            print(format_exc(), file=sys.stderr)
             raise commands.BadArgument(message='No stub found.')
 
     @_stub.group(name='add', invoke_without_command=True)
