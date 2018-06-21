@@ -132,5 +132,5 @@ class Weeabot(commands.Bot):
         """Rotating statuses."""
         while not self.is_closed():
             n = random.choice(self.content['statuses'])
-            await self.change_presence(game=discord.Game(name=n, url='', type=0))
+            await self.change_presence(activity=discord.Game(name=n, url='', type=0))
             await asyncio.sleep(60)
