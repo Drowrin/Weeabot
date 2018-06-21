@@ -1,6 +1,9 @@
 # imports legacy json data (with image links, not local paths. see local_to_host.py)
 # into current postgresql db (may eventually convert to edgedb and will need new script)
 
+import sys
+sys.path.insert(0, './..')
+
 import os
 import json
 import asyncio
