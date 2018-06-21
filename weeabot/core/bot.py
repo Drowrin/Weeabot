@@ -115,7 +115,7 @@ class Weeabot(commands.Bot):
             await ctx.send(message)
             return
 
-        super(Weeabot, self).on_command_error(ctx, exception)
+        await super(Weeabot, self).on_command_error(ctx, exception)
 
     @utils.run_once
     async def on_ready(self):
