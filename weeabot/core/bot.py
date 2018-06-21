@@ -104,7 +104,7 @@ class Weeabot(commands.Bot):
         await self.init.wait()
         await self.process_commands(message)
 
-    async def on_command_error(self, ctx, exception):
+    async def on_command_error(self, ctx: commands.Context, exception):
 
         # nice error report formatting
         name = re.sub(r'(?!^)([A-Z][a-z]+)', r' \1', exception.__class__.__name__)
@@ -113,6 +113,17 @@ class Weeabot(commands.Bot):
         # repond to user input error
         if isinstance(exception, commands.UserInputError):
             await ctx.send(message)
+            return
+
+        # tag fallback from command not found
+        # essentially allows shortcutting out stub calls
+        if isinstance(exception, commands.CommandNotFound):
+            if await self.db.does_tag_exist(ctx.guild, ctx.invoked_with):
+                # inject stub command call for proper tracking etc
+                ctx.message.content = f'{ctx.prefix}stub {ctx.message.content[len(ctx.prefix):]}'
+                self.loop.create_task(self.process_commands(ctx.message))
+            else:
+                pass  # Here is where fuzzy searching could be done.
             return
 
         await super(Weeabot, self).on_command_error(ctx, exception)

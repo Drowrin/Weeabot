@@ -1,7 +1,7 @@
 import random
 import discord
 from asyncio_extras import threadpool, async_contextmanager
-from sqlalchemy import engine, orm, and_, or_, func
+from sqlalchemy import engine, orm, and_, or_, func, exists
 from typing import List
 from datetime import datetime
 from .tables import *
@@ -375,6 +375,17 @@ class DBHelper:
         """
         async with threadpool(), self.session() as s:
             return s.query(Tag).join('stubs', 'guilds').filter(or_(Guild.id == guild.id, Stub.is_global)).all()
+
+    async def does_tag_exist(self, guild: discord.Guild, tag_name: str):
+        """
+        Check if a specific tag is visible in this guild. Includes globals.
+        Returns a boolean.
+        """
+        async with threadpool(), self.session() as s:
+            return s.query(Tag).join('stubs', 'guilds').filter(and_(
+                    or_(Guild.id == guild.id, Stub.is_global),
+                    Tag.name == tag_name
+                )).first() is not None
 
     @async_contextmanager
     async def get_request(self, message_id):
