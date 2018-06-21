@@ -66,12 +66,15 @@ class Stub:
             e = discord.Embed(
                 description=self.text,
                 timestamp=self.timestamp
-            ).set_author(
-                name=author.display_name,
-                icon_url=author.avatar_url
             ).set_footer(
                 text=f"{self.id} — {', '.join(self.tags)}"
             )
+
+            if author is not None:
+                e.set_author(
+                    name=author.display_name,
+                    icon_url=author.avatar_url
+                )
 
             if self.image is not None:
                 e.set_image(url=self.image)
