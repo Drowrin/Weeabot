@@ -1,5 +1,4 @@
 import re
-from os import path
 from copy import copy
 from datetime import datetime
 from typing import List
@@ -147,7 +146,7 @@ class Tags(base_cog(shortcut=True, session=True)):
         try:
             t = await self.parse_and_get(ctx.guild, *tags_or_id)
             await t.send_to(ctx.channel)
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as e:
             raise commands.BadArgument(message='No stub found.')
 
     @_stub.group(name='add', invoke_without_command=True)
