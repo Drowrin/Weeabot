@@ -30,13 +30,16 @@ class Weeabot(commands.Bot):
         # get config file first, since it can contain args passed to super.__init__.
         with open(config_path) as c:
             self.config = yaml.load(c, Loader=yaml.Loader)
-        if 'command_prefix' not in kwargs:
-            kwargs['command_prefix'] = self.config['prefix']
-        if 'description' not in kwargs:
-            kwargs['description'] = self.config['description']
+
+        bot_kwargs = {}
+        bot_kwargs.update(kwargs)
+        if 'command_prefix' not in bot_kwargs:
+            bot_kwargs['command_prefix'] = self.config['prefix']
+        if 'description' not in bot_kwargs:
+            bot_kwargs['description'] = self.config['description']
 
         # init commands.Bot
-        super(Weeabot, self).__init__(*args, **kwargs)
+        super(Weeabot, self).__init__(*args, **bot_kwargs)
 
         # load content.yml
         if content_path is None:
