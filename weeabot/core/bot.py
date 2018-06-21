@@ -5,6 +5,8 @@ import asyncio
 import random
 import humanize
 
+from copy import copy
+
 import discord
 from discord.ext import commands
 
@@ -120,8 +122,9 @@ class Weeabot(commands.Bot):
         if isinstance(exception, commands.CommandNotFound):
             if await self.db.does_tag_exist(ctx.guild, ctx.invoked_with):
                 # inject stub command call for proper tracking etc
-                ctx.message.content = f'{ctx.prefix}stub {ctx.message.content[len(ctx.prefix):]}'
-                self.loop.create_task(self.process_commands(ctx.message))
+                m = copy(ctx.message)
+                m.content = f'{ctx.prefix}stub {ctx.message.content[len(ctx.prefix):]}'
+                await self.process_commands(m)
             else:
                 pass  # Here is where fuzzy searching could be done.
             return
