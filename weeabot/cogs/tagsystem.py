@@ -62,6 +62,13 @@ class Stub:
         e = discord.Embed(description=f'ERROR METHOD NOT FOUND {self.method}')
         c: str = None
 
+        # emote converter, for legacy tag data
+        # unconverted_emotes = set(re.findall(r':\w+:', self.text))
+        # for emote in unconverted_emotes:
+        #     rep = discord.utils.get(self.bot.emojis, name=emote[1:-1])
+        #     if rep is not None:
+        #         self.text = self.text.replace(emote, f'<:{rep.name}:>')
+
         if self.method is None:  # default case
             e = discord.Embed(
                 description=self.text,
@@ -78,6 +85,13 @@ class Stub:
 
             if self.image is not None:
                 e.set_image(url=self.image)
+        elif self.method == 'simple':
+            print(self.text)
+            e = discord.Embed(
+                description=self.text
+            ).set_footer(
+                text=f"{self.id} — {', '.join(self.tags)}"
+            )
 
         return await destination.send(embed=e, content=c)
 
