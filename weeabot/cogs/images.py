@@ -66,7 +66,7 @@ class Images(base_cog(session=True)):
                 embed=discord.Embed().set_image(url=f'attachment://{file.filename}')
             )
 
-    async def count_booru(self, url, tags):
+    async def count_booru(self, url: str, tags: str):
         params = {'page': 'dapi', 's': 'post', 'q': 'index', 'limit': 0, 'tags': tags}
         async with self.session.get(url + '/index.php', params=params) as r:
             try:
@@ -99,10 +99,7 @@ class Images(base_cog(session=True)):
         im = await self.fetch_booru_image(url, tags, *filters)
         if isinstance(im, dict):
             count = await self.count_booru(url, tags)
-            if 'file_url' in im:
-                img_url = f'{url.split(":")[0]}:{im["file_url"]}'
-            else:
-                img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
+            img_url = f'{url}/images/{im["directory"]}/{im["image"]}'
             e = discord.Embed(
                 title='This Image',
                 description=shorten(im['tags'].replace('_', r'\_').replace(' ', ', '), 2048, placeholder='...'),
@@ -121,9 +118,10 @@ class Images(base_cog(session=True)):
             await tmp.edit(content=im)
 
     @commands.group(invoke_without_command=True)
-    async def safebooru(self, ctx, * tags: str):
+    async def safebooru(self, ctx, *, tags: str):
         """
         Get an image from safebooru based on tags.
+        WIP
         """
         await self.post_booru_image(ctx, "http://safebooru.com", tags, lambda im: im['rating'] == 'e')
 
