@@ -14,7 +14,7 @@ from weeabot import utils
 from . import aug
 from weeabot.storage.db import DBHelper
 from ruamel import yaml
-from kyoukai import Kyoukai
+from vibora import Vibora
 
 from ..web.base import base
 
@@ -60,14 +60,8 @@ class Weeabot(commands.Bot):
         self.guild_configs = {}
 
         # webserver
-        self.web = Kyoukai("Weeabot")
-
-        @self.web.root.before_request
-        async def add_bot(ctx):
-            # add the bot to the ctx so it can be accessed in requests
-            # pretty much everything else can be accessed through the bot so it is the only thing necessary
-            ctx.bot = self
-            return ctx
+        self.web = Vibora()
+        self.web.add_component(self)  # make this bot instance available in any route
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
@@ -138,9 +132,8 @@ class Weeabot(commands.Bot):
         print(f'Owner: {self.owner.name}:{self.owner.id}')
         print('------------------')
         await self.load_extensions()
-        self.web.register_blueprint(base)
-        self.web.finalize()
-        await self.web.start(**self.config['web']['server'])
+        self.web.add_blueprint(base, prefixes={'base': '/'})
+        await self.web.run(**self.config['web']['server'])
         await self.db.prepare()
         self.loop.create_task(self.random_status())
         self.init.set()

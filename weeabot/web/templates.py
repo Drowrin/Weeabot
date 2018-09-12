@@ -1,12 +1,14 @@
-from kyoukai import HTTPRequestContext
+from vibora import Request
 from jinja2 import Environment, PackageLoader
+from weeabot.core.bot import Weeabot
 
 
 environment = Environment(loader=PackageLoader('weeabot', 'web'), enable_async=True)
 
-async def render(template: str, ctx: HTTPRequestContext, **kwargs):
+async def render(template: str, request: Request, **kwargs):
+    bot = request.get_component(Weeabot)
     return await environment.get_template(template).render_async({
-        "ctx": ctx,
-        "navpages": ctx.bot.config['web']['site']['navpages'],
+        "request": request,
+        "navpages": bot.config['web']['site']['navpages'],
         **kwargs
     })
