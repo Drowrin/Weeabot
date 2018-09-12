@@ -2,6 +2,10 @@
 import os
 import sys
 
+# workaround
+import socket
+socket.SO_REUSEPORT = 15
+
 from weeabot import Weeabot
 
 
