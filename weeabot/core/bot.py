@@ -17,6 +17,7 @@ from ruamel import yaml
 from vibora import Vibora
 
 from ..web.base import base
+from ..web.oauth import OAuthHelper
 
 
 class Weeabot(commands.Bot):
@@ -62,6 +63,7 @@ class Weeabot(commands.Bot):
         # webserver
         self.web = Vibora()
         self.web.add_component(self)  # make this bot instance available in any route
+        self.oauth = OAuthHelper(self)
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
