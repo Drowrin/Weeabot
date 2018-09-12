@@ -1,6 +1,8 @@
+itsdangerous
+vibora
+requests_oauthlib
 websockets
 aiohttp
-kyoukai
 asphalt
 pyimgur
 Pillow
