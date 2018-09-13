@@ -1,6 +1,6 @@
 from vibora import Request
 from jinja2 import Environment, PackageLoader
-from weeabot.core.bot import Weeabot
+from ..core.bot import Weeabot
 
 
 environment = Environment(loader=PackageLoader('weeabot', 'web'), enable_async=True)
