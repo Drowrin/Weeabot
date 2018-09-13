@@ -16,7 +16,7 @@ async def root(request: Request, bot: Weeabot):
     )
 
 
-@base.route('/d/<name>')
+@base.route('img/d/<name>')
 async def image_direct(name: str):
     with open(path.join('images', name), 'rb') as f:
         return Response(f.read())
