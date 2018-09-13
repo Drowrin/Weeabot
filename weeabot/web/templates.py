@@ -17,5 +17,6 @@ async def render(template: str, bot: Weeabot, request: Request, **kwargs):
     return await environment.get_template(template).render_async({
         "request": request,
         "navpages": bot.config['web']['site']['navpages'],
+        "bot": bot,
         **_kwargs
     })
