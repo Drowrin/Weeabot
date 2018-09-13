@@ -62,7 +62,7 @@ class Weeabot(commands.Bot):
         from ..web.oauth import OAuthHelper
         self.oauth = OAuthHelper(self)
         self.web = Vibora()
-        self.web.add_component(self)  # make this bot instance available in any route
+        self.web.components.add(self)  # make this bot instance available in any route
         self.web.add_blueprint(base, prefixes={'base': '/'})
 
         # database
