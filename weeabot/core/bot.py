@@ -16,9 +16,6 @@ from weeabot.storage.db import DBHelper
 from ruamel import yaml
 from vibora import Vibora
 
-from ..web.base import base
-from ..web.oauth import OAuthHelper
-
 
 class Weeabot(commands.Bot):
     """
@@ -61,9 +58,12 @@ class Weeabot(commands.Bot):
         self.guild_configs = {}
 
         # webserver
+        from ..web.base import base
+        from ..web.oauth import OAuthHelper
+        self.oauth = OAuthHelper(self)
         self.web = Vibora()
         self.web.add_component(self)  # make this bot instance available in any route
-        self.oauth = OAuthHelper(self)
+        self.web.add_blueprint(base, prefixes={'base': '/'})
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
@@ -134,7 +134,6 @@ class Weeabot(commands.Bot):
         print(f'Owner: {self.owner.name}:{self.owner.id}')
         print('------------------')
         await self.load_extensions()
-        self.web.add_blueprint(base, prefixes={'base': '/'})
         await self.web.run(**self.config['web']['server'])
         await self.db.prepare()
         self.loop.create_task(self.random_status())
