@@ -130,5 +130,5 @@ async def oauth2_callback(bot: Weeabot, request: Request):
         pass  # TODO: db entry storing token and user id
 
     cookie = bot.oauth.signer.dumps(user_data['id'])
-    return RedirectResponse(location='/', cookies=[cookie])
+    return RedirectResponse(location='/', cookies={'weeabot-user-id': cookie})
 
