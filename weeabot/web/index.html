@@ -43,8 +43,8 @@
 </div>
 {% endblock %}
 {% block cards %}
-    {% call index_card('Who', pic=ctx.bot.user.avatar_url) %}
-        {{ctx.bot.greeting}} I'm {{ctx.bot.user.name}}! I'm a bot for discord written by {{ctx.bot.author.name}}.
+    {% call index_card('Who', pic=bot.user.avatar_url) %}
+        {{bot.greeting}} I'm {{bot.user.name}}! I'm a bot for discord written by {{bot.author.name}}.
     {% endcall %}
     {% call index_card('What', pic='https://www.python.org/static/community_logos/python-powered-w.svg') %}
         Weeabot is written in python 3.6 with discord.py.<br/><br/>
@@ -58,7 +58,7 @@
     {% call index_card('When') %}
         I've been around since the summer of 2016.<br/>
         This site was not made until the summer of 2017.<br/>
-        I've been awake for {{ctx.bot.uptime}} straight!
+        I've been awake for {{bot.uptime}} straight!
     {% endcall %}
     {% call index_card('Why') %}
         Some things are just inconvenient to do over discord.
