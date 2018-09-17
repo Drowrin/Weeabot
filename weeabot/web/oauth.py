@@ -1,6 +1,4 @@
-from vibora import Request
-from vibora.responses import RedirectResponse
-from vibora.blueprints import Blueprint
+from quart import g, request, Blueprint
 from requests_oauthlib import OAuth2Session
 from asyncio_extras import threadpool
 from itsdangerous import Serializer
@@ -96,7 +94,7 @@ oauth_bp = Blueprint()
 
 
 @oauth_bp.route("/authenticate")
-async def oauth2_authenticate(bot: Weeabot):
+async def oauth2_authenticate():
     """
     'Log in' the user through Discord by initiating oauth2 authentication.
     This is simply the first step that kicks off the process.
@@ -106,7 +104,7 @@ async def oauth2_authenticate(bot: Weeabot):
 
 
 @oauth_bp.route("/callback")
-async def oauth2_callback(bot: Weeabot, request: Request):
+async def oauth2_callback():
     """
     Discord sends the user here after authenticating them, along with a code.
     This code is used to get the user token and store it until it expires.
@@ -132,3 +130,6 @@ async def oauth2_callback(bot: Weeabot, request: Request):
     cookie = bot.oauth.signer.dumps(user_data['id'])
     return RedirectResponse(location='/', cookies={'weeabot-user-id': cookie})
 
+
+def register(bot):
+    bot.web.register_blueprint(oauth_bp, url_prefix='/pages')
