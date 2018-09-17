@@ -1,6 +1,7 @@
 -e git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py
 itsdangerous
 requests_oauthlib
+quart
 websockets
 aiohttp
 asphalt
