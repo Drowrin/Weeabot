@@ -1,22 +1,20 @@
 from os import path
-from vibora.blueprints import Blueprint
-from vibora import Response, Request
+from quart import Blueprint, Response, g, render_template, send_file
 from weeabot.core.bot import Weeabot
-from . import templates
 
 
-base = Blueprint('base')
+base = Blueprint('base', __name__)
 
 
 @base.route('/')
-async def root(request: Request, bot: Weeabot):
-    return Response(
-        await templates.render('index.html', request, bot),
-        headers={"content-type": "text/html; charset=utf-8"}
-    )
+async def root():
+    return await render_template('index.html')
 
 
 @base.route('img/d/<name>')
 async def image_direct(name: str):
-    with open(path.join('images', name), 'rb') as f:
-        return Response(f.read())
+    return send_file(path.join('images', name))
+
+
+def register(bot):
+    bot.web.register_blueprint(base)
