@@ -124,7 +124,7 @@ async def oauth2_callback():
     # store token by user id; TODO: possibly a key-value store?
     await bot.get_channel(226381221461098496).send(str(token))
     async with threadpool():
-        pass  # TODO: db entry storing token and user id
+        pass  # TODO: db entry storing token, user id, and expires_in
 
     cookie = bot.oauth.signer.dumps(user_data['id'])
     resp = quart.make_response(quart.redirect('/'))
