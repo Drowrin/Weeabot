@@ -1,4 +1,4 @@
-from quart import g, request, Blueprint
+import quart
 from requests_oauthlib import OAuth2Session
 from asyncio_extras import threadpool
 from itsdangerous import Serializer
@@ -90,7 +90,7 @@ class OAuthHelper:
         return data
 
 
-oauth_bp = Blueprint()
+oauth_bp = quart.Blueprint()
 
 
 @oauth_bp.route("/authenticate")
@@ -99,8 +99,7 @@ async def oauth2_authenticate():
     'Log in' the user through Discord by initiating oauth2 authentication.
     This is simply the first step that kicks off the process.
     """
-    url = bot.oauth.get_auth_url()
-    return RedirectResponse(location=url)
+    return redirect(bot.oauth.get_auth_url())
 
 
 @oauth_bp.route("/callback")
@@ -109,14 +108,14 @@ async def oauth2_callback():
     Discord sends the user here after authenticating them, along with a code.
     This code is used to get the user token and store it until it expires.
     """
-    if "errors" in request.args:  # we need to redo-authorization
-        return RedirectResponse(location='/oauth2/authenticate')
+    if "errors" in quart.request.args:  # we need to redo-authorization
+        return quart.redirect('/oauth2/authenticate')
 
     # talk with discord oauth once more to get our token
     token = await bot.oauth.get_token(
-        state=request.args['state'],
-        code=request.args['code'],
-        url=request.url
+        state=quart.request.args['state'],
+        code=quart.request.args['code'],
+        url=quart.request.url
     )
 
     # get user data using our shiny new token
@@ -128,7 +127,9 @@ async def oauth2_callback():
         pass  # TODO: db entry storing token and user id
 
     cookie = bot.oauth.signer.dumps(user_data['id'])
-    return RedirectResponse(location='/', cookies={'weeabot-user-id': cookie})
+    resp = quart.make_response(quart.redirect('/'))
+    resp.set_cookie('weeabot-user-id': cookie)
+    return resp
 
 
 def register(bot):
