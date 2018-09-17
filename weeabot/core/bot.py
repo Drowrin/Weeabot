@@ -67,6 +67,11 @@ class Weeabot(commands.Bot):
         @app.before_request
         async def before_request():
             g.bot = self
+            id_cookie = request.cookies.get('weeabot-user-id', None)
+            if id_cookie is not None:
+                user_id = bot.oauth.signer.loads(id_cookie)
+                # TODO: check if token expired?
+                g.user = await bot.get_user(user_id)
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
