@@ -14,7 +14,7 @@ from weeabot import utils
 from . import aug
 from weeabot.storage.db import DBHelper
 from ruamel import yaml
-from vibora import Vibora
+from quart import Quart, g
 
 
 class Weeabot(commands.Bot):
@@ -61,9 +61,12 @@ class Weeabot(commands.Bot):
         from ..web.base import base
         from ..web.oauth import OAuthHelper
         self.oauth = OAuthHelper(self)
-        self.web = Vibora()
-        self.web.components.add(self)  # make this bot instance available in any route
-        self.web.add_blueprint(base, prefixes={'base': '/'})
+        self.web = Quart(__name__)
+        self.web.register_blueprint(base)  # TODO: dynamic/modular system in on_ready before web run?
+        
+        @app.before_request
+        async def before_request():
+            g.bot = self
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
