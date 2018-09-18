@@ -20,3 +20,5 @@ SQLAlchemy
 asyncio_extras
 tabulate
 tqdm
+moviepy
+numpy
