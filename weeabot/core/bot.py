@@ -17,6 +17,16 @@ from ruamel import yaml
 from quart import Quart, g, request
 
 
+TEMPLATE_PATH = os.path.join(
+    os.path.split(
+        os.path.dirname(
+            __file__
+        )
+    )[0],
+    'web', 'templates'
+)
+
+
 class Weeabot(commands.Bot):
     """
     Simple additions to commands.Bot
@@ -61,7 +71,10 @@ class Weeabot(commands.Bot):
         from ..web.base import base
         from ..web.oauth import OAuthHelper
         self.oauth = OAuthHelper(self)
-        self.web = Quart('weeabot', template_folder=os.path.join('weeabot', 'web'))
+        self.web = Quart(
+            'weeabot',
+            template_folder=TEMPLATE_PATH
+        )
         self.web.register_blueprint(base)  # TODO: dynamic/modular system in on_ready before web run?
         
         @self.web.before_request
