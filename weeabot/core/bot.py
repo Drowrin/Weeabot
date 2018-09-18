@@ -14,7 +14,7 @@ from weeabot import utils
 from . import aug
 from weeabot.storage.db import DBHelper
 from ruamel import yaml
-from quart import Quart, g
+from quart import Quart, g, request
 
 
 class Weeabot(commands.Bot):
@@ -61,17 +61,17 @@ class Weeabot(commands.Bot):
         from ..web.base import base
         from ..web.oauth import OAuthHelper
         self.oauth = OAuthHelper(self)
-        self.web = Quart(__name__)
+        self.web = Quart('weeabot', template_folder=os.path.join('weeabot', 'web'))
         self.web.register_blueprint(base)  # TODO: dynamic/modular system in on_ready before web run?
         
-        @app.before_request
+        @self.web.before_request
         async def before_request():
             g.bot = self
             id_cookie = request.cookies.get('weeabot-user-id', None)
             if id_cookie is not None:
-                user_id = bot.oauth.signer.loads(id_cookie)
+                user_id = self.oauth.signer.loads(id_cookie)
                 # TODO: check if token expired?
-                g.user = await bot.get_user(user_id)
+                g.user = await self.get_user(user_id)
 
         # database
         self.db = DBHelper(self.config['db']['dsn'], self)
@@ -92,7 +92,9 @@ class Weeabot(commands.Bot):
             print('Please add your token to the config')
             input()
             quit()
-        super(Weeabot, self).run(token or self.config['discord_token'], **kwargs)
+
+        self.loop.create_task(super(Weeabot, self).start(token or self.config['discord_token'], **kwargs))
+        self.web.run(loop=self.loop, **self.config['web']['server'])
 
     async def update_owner(self):
         await self.wait_until_ready()
@@ -142,7 +144,6 @@ class Weeabot(commands.Bot):
         print(f'Owner: {self.owner.name}:{self.owner.id}')
         print('------------------')
         await self.load_extensions()
-        await self.web.run(**self.config['web']['server'])
         await self.db.prepare()
         self.loop.create_task(self.random_status())
         self.init.set()

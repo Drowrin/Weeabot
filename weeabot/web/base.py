@@ -1,6 +1,5 @@
 from os import path
 from quart import Blueprint, Response, g, render_template, send_file
-from weeabot.core.bot import Weeabot
 
 
 base = Blueprint('base', __name__)
@@ -11,7 +10,7 @@ async def root():
     return await render_template('index.html')
 
 
-@base.route('img/d/<name>')
+@base.route('/img/d/<name>')
 async def image_direct(name: str):
     return send_file(path.join('images', name))
 

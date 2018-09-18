@@ -1,4 +1,4 @@
-import quart
+from quart import g, Blueprint, redirect, request, make_response
 from requests_oauthlib import OAuth2Session
 from asyncio_extras import threadpool
 from itsdangerous import Serializer
@@ -90,7 +90,7 @@ class OAuthHelper:
         return data
 
 
-oauth_bp = quart.Blueprint()
+oauth_bp = Blueprint('oauth', __name__)
 
 
 @oauth_bp.route("/authenticate")
@@ -99,7 +99,7 @@ async def oauth2_authenticate():
     'Log in' the user through Discord by initiating oauth2 authentication.
     This is simply the first step that kicks off the process.
     """
-    return redirect(bot.oauth.get_auth_url())
+    return redirect(g.bot.oauth.get_auth_url())
 
 
 @oauth_bp.route("/callback")
@@ -108,27 +108,27 @@ async def oauth2_callback():
     Discord sends the user here after authenticating them, along with a code.
     This code is used to get the user token and store it until it expires.
     """
-    if "errors" in quart.request.args:  # we need to redo-authorization
-        return quart.redirect('/oauth2/authenticate')
+    if "errors" in request.args:  # we need to redo-authorization
+        return redirect('/oauth2/authenticate')
 
     # talk with discord oauth once more to get our token
-    token = await bot.oauth.get_token(
-        state=quart.request.args['state'],
-        code=quart.request.args['code'],
-        url=quart.request.url
+    token = await g.bot.oauth.get_token(
+        state=request.args['state'],
+        code=request.args['code'],
+        url=request.url
     )
 
     # get user data using our shiny new token
-    user_data = await bot.oauth.get_me(token=token)
+    user_data = await g.bot.oauth.get_me(token=token)
 
     # store token by user id; TODO: possibly a key-value store?
-    await bot.get_channel(226381221461098496).send(str(token))
+    await g.bot.get_channel(226381221461098496).send(str(token))
     async with threadpool():
         pass  # TODO: db entry storing token, user id, and expires_in
 
-    cookie = bot.oauth.signer.dumps(user_data['id'])
-    resp = quart.make_response(quart.redirect('/'))
-    resp.set_cookie('weeabot-user-id': cookie)
+    cookie = g.bot.oauth.signer.dumps(user_data['id'])
+    resp = make_response(redirect('/'))
+    resp.set_cookie('weeabot-user-id', cookie)
     return resp
 
 
