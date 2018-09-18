@@ -25,7 +25,7 @@
         <a href="#" class="brand-logo center">
             <div class="valign-wrapper" style="font-weight:bold">
                 WEEAB
-                <img class="circle" height="30px" src="{{ bot.user.avatar_url }}">
+                <img class="circle" height="30px" src="{{ g.bot.user.avatar_url }}">
                 T
             </div>
         </a>
@@ -39,7 +39,7 @@
         {% endset %}
         <ul class="left hide-on-med-and-down">
             {% block navbuttons %}
-                {% for n, a in navpages.items() %}
+                {% for n, a in g.bot.config['web']['site']['navpages'].items() %}
                     <li><a href="{{a.url}}"><i class="material-icons left">{{a.icon}}</i>{{n}}</a></li>
                 {% endfor %}
             {% endblock %}
